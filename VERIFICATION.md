@@ -82,3 +82,18 @@
 使用 `pixelarticons@2.4.1`，实测包文件逻辑大小 3,108,078 字节，五枚直接导入 SVG 总源码 1,283 字节；没有导入整库或额外图标字体。该统计是文件体积，不是运行内存测量。
 
 增量截图和记录：`output/playwright/events-v2-desktop.png`、`events-v2-mobile.png`、`event-picker-v2.png`、`revision-smoke-result.txt`。
+
+## 图标选择器扩充验证
+
+当前最终状态：40 个图标、8 个动物选项、五类主题（另有全部入口）和关键词搜索。自动化测试共 **65 项通过**，生产构建通过。
+
+浏览器验收：
+
+- 确认 40 个选项、8 个小动物；所有分类有对应图标。
+- 搜索“小熊”相关关键词、查无结果后清除筛选；筛选期间原有选择保持不变。
+- “考试”匹配读书和目标图标；搜索框 Enter 不提交事件表单。
+- 导入 SVG 均成功解码，自绘图形不是空 SVG。
+- 320 / 390 / 760 / 1440 宽度下弹窗没有横向溢出，图标网格最后一项可滚动到并选中。
+- 选择新企鹅图标、创建期待、刷新后仍以 `icon:penguin` 保存并显示；测试后恢复原演示数据。
+
+截图：`output/playwright/picker-friends-40-mobile.png`。浏览器记录：`output/playwright/icon-expansion-result.txt`。本轮无需新 SQL 或后端权限变更，也未修改用户提供的参考 demo。

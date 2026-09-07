@@ -10,3 +10,4 @@ output/
 .DS_Store
 android/
 ios/
+supabase/.temp/

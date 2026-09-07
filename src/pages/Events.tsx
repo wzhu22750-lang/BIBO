@@ -5,7 +5,8 @@ import { daysUntil, dateLabel, nextOccurrence, sortedEvents, togetherDays } from
 import { Button, Modal, PageHeading, useTask, useToast } from '../components/ui'
 import { Icon } from '../components/PixelArt'
 import { EventArt, MapIcon } from '../components/EventArt'
-import { eventArtConfig, eventArtOptions } from '../lib/eventArt'
+import { EventArtPicker } from '../components/EventArtPicker'
+import { eventArtConfig } from '../lib/eventArt'
 export function EventCard({ event, onDelete }: { event: EventItem; onDelete?: () => void }) {
   const remaining = daysUntil(event.target_at, event.yearly)
   return (
@@ -116,24 +117,7 @@ export function EventForm({
             onChange={(e) => setTarget(e.target.value)}
           />
         </label>
-        <fieldset className="event-art-picker">
-          <legend>挑一位像素小伙伴</legend>
-          <div className="event-art-options">
-            {eventArtOptions.map((item) => (
-              <button
-                type="button"
-                aria-label={`选择${item.label}`}
-                aria-pressed={emoji === `icon:${item.id}`}
-                className={`art-choice art-${item.tone} ${emoji === `icon:${item.id}` ? 'selected' : ''}`}
-                key={item.id}
-                onClick={() => setEmoji(`icon:${item.id}`)}
-              >
-                <EventArt value={item.id} size={38} />
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </div>
-        </fieldset>
+        <EventArtPicker value={emoji} onChange={setEmoji} />
         {kind === 'anniversary' && (
           <label className="check-label">
             <input type="checkbox" checked={yearly} onChange={(e) => setYearly(e.target.checked)} />

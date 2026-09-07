@@ -1,4 +1,5 @@
-import { Icon, PixelPal } from './PixelArt'
+import { PixelFriend, friendIds } from './PixelFriends'
+import { Icon, PixelPal, PixelFlower } from './PixelArt'
 import { eventArtId } from '../lib/eventArt'
 import type { EventArtId } from '../lib/eventArt'
 // Static, per-file SVG imports: no library index, icon font, runtime fetch or raw HTML.
@@ -6,7 +7,45 @@ import trophy from 'pixelarticons/svg/trophy.svg'
 import map from 'pixelarticons/svg/map.svg'
 import gift from 'pixelarticons/svg/gift.svg'
 import coffee from 'pixelarticons/svg/coffee.svg'
-const imported: Partial<Record<EventArtId, string>> = { trophy, gift, coffee }
+import book from 'pixelarticons/svg/book-open.svg'
+import briefcase from 'pixelarticons/svg/briefcase.svg'
+import code from 'pixelarticons/svg/code.svg'
+import flag from 'pixelarticons/svg/flag.svg'
+import camera from 'pixelarticons/svg/camera.svg'
+import music from 'pixelarticons/svg/music.svg'
+import headphone from 'pixelarticons/svg/headphone.svg'
+import gamepad from 'pixelarticons/svg/gamepad.svg'
+import movie from 'pixelarticons/svg/video.svg'
+import shopping from 'pixelarticons/svg/shopping-bag.svg'
+import sun from 'pixelarticons/svg/sun.svg'
+import moon from 'pixelarticons/svg/moon.svg'
+import tent from 'pixelarticons/svg/tent.svg'
+import compass from 'pixelarticons/svg/compass.svg'
+import backpack from 'pixelarticons/svg/backpack.svg'
+import star from 'pixelarticons/svg/star.svg'
+import balloon from 'pixelarticons/svg/balloon.svg'
+const imported: Partial<Record<EventArtId, string>> = {
+  trophy,
+  gift,
+  coffee,
+  book,
+  briefcase,
+  code,
+  flag,
+  camera,
+  music,
+  headphone,
+  gamepad,
+  movie,
+  shopping,
+  sun,
+  moon,
+  tent,
+  compass,
+  backpack,
+  star,
+  balloon,
+}
 export function MapIcon({ size = 24 }: { size?: number }) {
   return (
     <img
@@ -29,6 +68,28 @@ export function EventArt({
   className?: string
 }) {
   const id = eventArtId(value)
+  if (friendIds.some((friend) => friend === id))
+    return <PixelFriend kind={id} size={size} className={className} />
+  if (id === 'cat')
+    return (
+      <span
+        className={`event-art cat-friend ${className}`}
+        style={{ width: size, height: size }}
+        aria-hidden="true"
+      >
+        <PixelPal type="cat" />
+      </span>
+    )
+  if (id === 'flower')
+    return (
+      <span
+        className={`event-art flower-friend ${className}`}
+        style={{ width: size, height: size }}
+        aria-hidden="true"
+      >
+        <PixelFlower />
+      </span>
+    )
   if (imported[id])
     return (
       <img
@@ -67,6 +128,52 @@ export function EventArt({
       shapeRendering="crispEdges"
       aria-hidden="true"
     >
+      {id === 'dumbbell' && (
+        <>
+          <path fill="#20211d" d="M8 12h12v12h24V12h12v8h8v24h-8v8H44V40H20v12H8v-8H0V20h8z" />
+          <path fill="#04bcf0" d="M12 16h4v32h-4zm36 0h4v32h-4z" />
+          <path fill="#ffa6e8" d="M4 24h4v16H4zm52 0h4v16h-4z" />
+          <path fill="#dceef4" d="M20 28h24v8H20z" />
+        </>
+      )}
+      {id === 'bicycle' && (
+        <>
+          <path
+            fill="#20211d"
+            d="M8 32h16v4h4v16h-4v4H8v-4H4V36h4zm32 0h16v4h4v16h-4v4H40v-4h-4V36h4z"
+          />
+          <path
+            fill="#e5f9ff"
+            d="M12 36h8v4h4v8h-4v4h-8v-4H8v-8h4zm32 0h8v4h4v8h-4v4h-8v-4h-4v-8h4z"
+          />
+          <path fill="#20211d" d="M40 12h12v4h-8v4h-4zM16 16h12v4H16z" />
+          <path
+            fill="#f573b5"
+            d="M20 20h4v4h16v4H24v8h-4v-8h-4v-4h4zm20 0h4v12h4v12h-4V32h-4V20zM16 36h4v4h12v4H16zm16-4h4v8h-4zm4-4h4v8h-4z"
+          />
+        </>
+      )}
+      {id === 'icecream' && (
+        <>
+          <path
+            fill="#20211d"
+            d="M24 4h16v4h8v8h4v8h4v12h-8v8h-4v8h-4v8H24v-8h-4v-8h-4v-8H8V24h4v-8h4V8h8z"
+          />
+          <path fill="#ffa6e8" d="M24 8h16v4h4v8h4v8h4v4H12v-4h4v-8h4v-8h4z" />
+          <path fill="#fff8dc" d="M20 24h24v4h-8v4H20zM24 12h8v4h-8z" />
+          <path fill="#e6ad57" d="M20 36h24v4h-4v8h-4v8h-8v-8h-4v-8h-4z" />
+          <path fill="#a56830" d="M24 40h8v4h-8zm8 4h8v4h-8zm-4 4h8v4h-8z" />
+        </>
+      )}
+      {id === 'mountain' && (
+        <>
+          <path fill="#20211d" d="M24 8h8v8h4v8h4v-8h8v8h4v8h4v8h4v16H4V40h4v-8h4v-8h4v-8h8z" />
+          <path fill="#26c985" d="M24 16h8v8h4v8h4v8h4v8h4v4H8V40h4v-8h4v-8h8z" />
+          <path fill="#0d9977" d="M40 24h8v8h4v8h4v12h-8v-4h-4v-8h-4z" />
+          <path fill="#fffef7" d="M24 16h8v8h4v8h-8v-4h-8v4h-4v-8h8zm16 8h8v8h-8z" />
+          <path fill="#fff238" d="M4 4h12v12H4z" />
+        </>
+      )}
       {id === 'plane' && (
         <>
           <path fill="#20211d" d="M28 4h8v20l24 12v12L36 40v12l8 4v4H20v-4l8-4V40L4 48V36l24-12z" />
