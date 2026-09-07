@@ -1,0 +1,35 @@
+{
+  "name": "bibu-private-space",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "vitest run",
+    "typecheck": "tsc -b",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"supabase/tests/**/*.ts\" \"*.{json,ts,md}\" \"public/demo/*.md\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"supabase/tests/**/*.ts\" \"*.{json,ts,md}\" \"public/demo/*.md\""
+  },
+  "dependencies": {
+    "@fontsource/press-start-2p": "^5.3.0",
+    "@supabase/supabase-js": "^2.115.0",
+    "pixelarticons": "^2.4.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "prettier": "^3.9.6",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
+  }
+}
