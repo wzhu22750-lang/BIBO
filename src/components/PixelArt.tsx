@@ -1,4 +1,21 @@
 import type { CSSProperties } from 'react'
+import type { AvatarType } from '../lib/types'
+
+export const AVATAR_LIST: { id: AvatarType; name: string; tag: string }[] = [
+  { id: 'dog', name: '小狗', tag: '忠诚活泼' },
+  { id: 'cat', name: '小猫', tag: '傲娇元气' },
+  { id: 'bunny', name: '小兔', tag: '软萌温柔' },
+  { id: 'bear', name: '小熊', tag: '憨厚温暖' },
+  { id: 'panda', name: '熊猫', tag: '治愈呆萌' },
+  { id: 'fox', name: '狐狸', tag: '灵动机智' },
+  { id: 'penguin', name: '企鹅', tag: '摇摆可爱' },
+  { id: 'duck', name: '鸭子', tag: '乐天快活' },
+  { id: 'frog', name: '青蛙', tag: '幸运元气' },
+  { id: 'hamster', name: '仓鼠', tag: '腮帮吃货' },
+  { id: 'chick', name: '小鸡', tag: '萌趣好奇' },
+  { id: 'koala', name: '考拉', tag: '安心慢热' },
+]
+
 export type IconName =
   | 'home'
   | 'chat'
@@ -68,7 +85,7 @@ export function PixelPal({
   className = '',
   style,
 }: {
-  type?: 'cat' | 'bunny'
+  type?: AvatarType
   className?: string
   style?: CSSProperties
 }) {
@@ -80,7 +97,18 @@ export function PixelPal({
       shapeRendering="crispEdges"
       aria-hidden="true"
     >
-      {type === 'cat' ? (
+      {type === 'dog' && (
+        <>
+          <path fill="#171917" d="M12 4h16v4h24V4h16v16h-4v28h-4v8h4v8h8v16H16V64h8v-8h-4v-8h-8V20h4z" />
+          <path fill="#ea9937" d="M16 8h12v8h24V8h12v28h-8v8H24v-8h-8z" />
+          <path fill="#fff1d6" d="M24 16h4v4h-4zm28 0h4v4h-4zm-28 12h32v16H24zm4 20h24v8H28z" />
+          <path fill="#ff8595" d="M20 8h4v8h-4zm36 0h4v8h-4zm-40 28h8v4h-8zm40 0h8v4h-8z" />
+          <path fill="#171917" d="M24 24h8v8h-8zm24 0h8v8h-8zm-12 8h8v4h-8zm-4 8h16v4H32z" />
+          <path fill="#04bcf0" d="M24 56h32v8h8v12H16V64h8z" />
+          <path fill="#171917" d="M28 68h4v8h-4zm20 0h4v8h-4z" />
+        </>
+      )}
+      {type === 'cat' && (
         <>
           <path fill="#171917" d="M12 8h16v8h24V8h16v40h-8v8h-4v8h8v16H16V64h8v-8h-4v-8h-8z" />
           <path fill="#ffbb53" d="M16 12h8v12h32V12h8v32h-8v8H24v-8h-8z" />
@@ -90,7 +118,8 @@ export function PixelPal({
           <path fill="#0beca0" d="M28 56h24v8h8v12H20V64h8z" />
           <path fill="#171917" d="M28 68h4v8h-4zm20 0h4v8h-4z" />
         </>
-      ) : (
+      )}
+      {type === 'bunny' && (
         <>
           <path
             fill="#171917"
@@ -101,6 +130,104 @@ export function PixelPal({
           <path fill="#171917" d="M28 36h4v8h-4zm20 0h4v8h-4zM36 44h8v4h-8z" />
           <path fill="#ff88e1" d="M28 60h24v8h8v8H20v-8h8z" />
           <path fill="#171917" d="M28 72h4v4h-4zm20 0h4v4h-4z" />
+        </>
+      )}
+      {type === 'bear' && (
+        <>
+          <path fill="#171917" d="M8 4h20v4h24V4h20v20h-4v28h-4v8h4v8h8v16H8V72h8v-8h4v-8h-4V24H8z" />
+          <path fill="#8d5b36" d="M12 8h12v8h32V8h12v28h-8v8H20v-8h-8z" />
+          <path fill="#ffe0a6" d="M16 8h4v8h-4zm44 0h4v8h-4zm-36 24h32v16H24z" />
+          <path fill="#ffa6e8" d="M16 36h8v4h-8zm40 0h8v4h-8zm-24 16h16v4H32zm-4 4h24v4H28z" />
+          <path fill="#171917" d="M24 28h8v8h-8zm24 0h8v8h-8zm-12 4h8v4h-8zm0 8h8v4h-8z" />
+          <path fill="#ffb703" d="M24 60h32v8h8v12H16V68h8z" />
+          <path fill="#171917" d="M24 72h4v8h-4zm28 0h4v8h-4z" />
+        </>
+      )}
+      {type === 'panda' && (
+        <>
+          <path fill="#171917" d="M8 4h20v4h24V4h20v20h-4v28h-4v8h4v8h8v16H8V72h8v-8h4v-8h-4V24H8z" />
+          <path fill="#171917" d="M12 8h12v12H12zm44 0h12v12H56zm-36 16h16v16H20zm24 0h16v16H44zm-28 32h48v16h-4v8h-4v-8H24v8h-4v-8h-4z" />
+          <path fill="#ffffff" d="M24 12h32v12h8v24h-8v8H24v-8h-8V24h8zm4 16h4v4h-4zm20 0h4v4h-4zm-4 36h32v12H24z" />
+          <path fill="#ff94d9" d="M16 40h8v4h-8zm40 0h8v4h-8z" />
+          <path fill="#171917" d="M36 36h8v4h-8zm-4 8h16v4H32z" />
+          <path fill="#2aeea4" d="M24 56h32v8H24z" />
+        </>
+      )}
+      {type === 'fox' && (
+        <>
+          <path fill="#171917" d="M8 0h16v8h32V0h16v28h-4v24h-4v8h4v8h8v16H8V72h8v-8h4v-8h-4V28H8z" />
+          <path fill="#f97316" d="M12 4h8v16h40V4h8v28h-8v8H20v-8h-8z" />
+          <path fill="#fffef7" d="M16 4h4v12h-4zm44 0h4v12h-4zm-44 28h16v12h16V32h16v8h-8v8H24v-8h-8zm16 24h16v16H32z" />
+          <path fill="#ff94d9" d="M16 40h8v4h-8zm40 0h8v4h-8z" />
+          <path fill="#171917" d="M24 24h8v6h-8zm24 0h8v6h-8zm-12 12h8v4h-8zm0 8h8v4h-8z" />
+          <path fill="#0d9488" d="M20 56h40v8h4v12H16V64h4z" />
+          <path fill="#171917" d="M28 68h4v8h-4zm20 0h4v8h-4z" />
+        </>
+      )}
+      {type === 'penguin' && (
+        <>
+          <path fill="#171917" d="M20 4h40v4h8v16h4v28h-4v8h4v8h8v16H8V72h8v-8h4v-8h-4V24h4V8h4z" />
+          <path fill="#1e293b" d="M24 8h32v8h8v36H16V16h8z" />
+          <path fill="#f8fafc" d="M24 16h32v36h-4v8H28v-8h-4z" />
+          <path fill="#171917" d="M28 24h6v8h-6zm18 0h6v8h-6z" />
+          <path fill="#f59e0b" d="M34 32h12v6H34zm-14 40h12v4H20zm28 0h12v4H48z" />
+          <path fill="#ffa6e8" d="M20 32h6v4h-6zm34 0h6v4h-6z" />
+          <path fill="#ef4444" d="M20 48h40v8H20zm24 8h8v12h-8z" />
+        </>
+      )}
+      {type === 'duck' && (
+        <>
+          <path fill="#171917" d="M20 4h40v4h8v16h4v28h-4v8h4v8h8v16H8V72h8v-8h4v-8h-4V24h4V8h4z" />
+          <path fill="#facc15" d="M24 8h32v8h8v36H16V16h8z" />
+          <path fill="#f97316" d="M28 32h24v8H28zm-8 40h12v4H20zm28 0h12v4H48z" />
+          <path fill="#fb7185" d="M20 36h6v4h-6zm34 0h6v4h-6z" />
+          <path fill="#171917" d="M28 24h6v8h-6zm18 0h6v8h-6z" />
+          <path fill="#ffffff" d="M28 48h24v4H28z" />
+          <path fill="#0284c7" d="M24 52h32v8h8v12H16V60h8z" />
+        </>
+      )}
+      {type === 'frog' && (
+        <>
+          <path fill="#171917" d="M12 0h20v8h16V0h20v24h-4v28h-4v8h4v8h8v16H8V72h8v-8h4v-8h-4V24H8V0z" />
+          <path fill="#4ade80" d="M16 4h12v12h24V4h12v32h-8v8H24v-8h-8z" />
+          <path fill="#ffffff" d="M20 4h8v12h-8zm32 0h8v12h-8z" />
+          <path fill="#171917" d="M24 8h4v6h-4zm32 0h4v6h-4zm-32 24h32v4H24z" />
+          <path fill="#fef08a" d="M28 36h24v16H28z" />
+          <path fill="#f43f5e" d="M16 32h8v4h-8zm40 0h8v4h-8z" />
+          <path fill="#04bcf0" d="M24 56h32v8h8v12H16V64h8z" />
+        </>
+      )}
+      {type === 'hamster' && (
+        <>
+          <path fill="#171917" d="M12 4h16v4h24V4h16v16h8v24h-8v8h-4v8h8v16H8V64h8v-8h-4v-8H4V24h8V4z" />
+          <path fill="#e09f58" d="M16 8h12v8h24V8h12v20h8v16h-8v8H16v-8H8V28h8z" />
+          <path fill="#fff5ea" d="M16 32h48v16H16z" />
+          <path fill="#ff80bf" d="M20 8h4v6h-4zm36 0h4v6h-4zm-44 28h8v6h-8zm48 0h8v6h-8z" />
+          <path fill="#171917" d="M24 24h8v8h-8zm24 0h8v8h-8zm-12 8h8v4h-8zm-2 8h12v4H34z" />
+          <path fill="#f43f5e" d="M34 52h12v4H34zm-4 4h20v6H30zm4 6h12v4H34z" />
+          <path fill="#c084fc" d="M24 64h32v8H24z" />
+        </>
+      )}
+      {type === 'chick' && (
+        <>
+          <path fill="#171917" d="M32 0h16v4H32zm-12 4h40v4h8v16h4v28h-4v8h4v8h8v16H8V72h8v-8h4v-8h-4V24h4V8h4z" />
+          <path fill="#ef4444" d="M36 0h8v4h-8z" />
+          <path fill="#fde047" d="M24 8h32v8h8v36H16V16h8z" />
+          <path fill="#f97316" d="M36 32h8v6h-8zm-12 40h8v4h-8zm24 0h8v4h-8z" />
+          <path fill="#fb7185" d="M20 32h8v4h-8zm32 0h8v4h-8z" />
+          <path fill="#171917" d="M28 24h6v6h-6zm18 0h6v6h-6z" />
+          <path fill="#22c55e" d="M24 52h32v8h8v12H16V60h8z" />
+        </>
+      )}
+      {type === 'koala' && (
+        <>
+          <path fill="#171917" d="M4 8h16v8h40V8h16v24h-8v16h-4v8h4v8h8v16H4V72h8v-8h4v-8h-4V40H4V8z" />
+          <path fill="#f1f5f9" d="M8 12h8v16H8zm56 0h8v16h-8z" />
+          <path fill="#94a3b8" d="M16 16h48v32h-8v8H24v-8h-8z" />
+          <path fill="#1e293b" d="M34 28h12v16H34z" />
+          <path fill="#f472b6" d="M20 36h8v4h-8zm32 0h8v4h-8z" />
+          <path fill="#171917" d="M24 24h6v6h-6zm26 0h6v6h-6z" />
+          <path fill="#facc15" d="M24 56h32v8h8v12H16V64h8z" />
         </>
       )}
     </svg>

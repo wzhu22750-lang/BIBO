@@ -86,7 +86,7 @@ export function Shell({
       <div className="main-wrap">
         <header className="topbar">
           <span className="topbar-caption">
-            <Icon name="star" size={15} /> bibo
+            <Icon name="star" size={15} /> BIBO!
           </span>
           <div className="topbar-right">
             <button

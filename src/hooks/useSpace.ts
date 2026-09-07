@@ -4,7 +4,7 @@ import * as api from '../lib/api'
 import { db, errorText, must, supabase } from '../lib/supabase'
 import { DEMO_KEY, readDemo, saveDemo } from '../lib/demo'
 import { playFeedback } from '../lib/notifications'
-import type { EventInput, Ping, Space } from '../lib/types'
+import type { AvatarType, EventInput, Ping, Space } from '../lib/types'
 
 export function useSpace(session: Session | null, demo: boolean) {
   const [space, setSpace] = useState<Space | null>(() => (demo ? readDemo() : null))
@@ -224,12 +224,12 @@ export function useSpace(session: Session | null, demo: boolean) {
         playFeedback()
       } else await api.sendPing(kind)
     },
-    async save(name: string, since: string) {
+    async save(name: string, since: string, avatar?: AvatarType) {
       await mutate(
-        () => api.saveSettings(me, cid, name, since),
+        () => api.saveSettings(me, cid, name, since, avatar),
         (s) => ({
           ...s,
-          me: { ...s.me, name },
+          me: { ...s.me, name, ...(avatar ? { avatar } : {}) },
           couple: s.couple ? { ...s.couple, together_since: since } : null,
         }),
       )

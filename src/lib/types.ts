@@ -1,5 +1,20 @@
 export type Page = 'home' | 'chat' | 'events' | 'photos' | 'focus' | 'settings'
-export type Profile = { id: string; name: string; avatar: 'cat' | 'bunny' }
+export const AVATAR_IDS = [
+  'dog',
+  'cat',
+  'bunny',
+  'bear',
+  'panda',
+  'fox',
+  'penguin',
+  'duck',
+  'frog',
+  'hamster',
+  'chick',
+  'koala',
+] as const
+export type AvatarType = (typeof AVATAR_IDS)[number]
+export type Profile = { id: string; name: string; avatar: AvatarType }
 export type Couple = { id: string; name: string; together_since: string }
 export type Message = {
   id: string

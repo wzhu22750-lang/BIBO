@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { SpaceController } from '../hooks/useSpace'
+import type { AvatarType } from '../lib/types'
 import { Button, PageHeading, Panel, useTask, useToast } from '../components/ui'
-import { Icon, PixelPal } from '../components/PixelArt'
+import { Icon, PixelPal, AVATAR_LIST } from '../components/PixelArt'
 import { db } from '../lib/supabase'
 import { disableFeedback, enableFeedback } from '../lib/notifications'
 import { localDateInput } from '../lib/dates'
@@ -44,6 +45,7 @@ export function Settings({
   const space = controller.space!,
     [name, setName] = useState(space.me.name),
     [since, setSince] = useState(space.couple?.together_since || localDateInput()),
+    [avatar, setAvatar] = useState<AvatarType>(space.me.avatar || 'cat'),
     [code, setCode] = useState(controller.inviteCode),
     [newPass, setNewPass] = useState(''),
     { busy, run } = useTask(),
@@ -62,14 +64,40 @@ export function Settings({
             onSubmit={(e) => {
               e.preventDefault()
               void run(async () => {
-                await controller.save(name.trim(), since)
+                await controller.save(name.trim(), since, avatar)
                 toast('档案已保存')
               })
             }}
           >
             <div className="settings-avatar">
-              <PixelPal type={space.me.avatar} />
-              <span className="micro">PLAYER 01</span>
+              <PixelPal type={avatar} />
+              <span className="micro">
+                PLAYER 01 · {AVATAR_LIST.find((a) => a.id === avatar)?.name || '专属形象'}
+              </span>
+            </div>
+            <div className="settings-avatar-select">
+              <label className="avatar-picker-label">选择你的像素专属形象</label>
+              <div className="avatar-grid" role="radiogroup" aria-label="选择像素形象">
+                {AVATAR_LIST.map((item) => {
+                  const active = avatar === item.id
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      className={`avatar-option ${active ? 'active' : ''}`}
+                      onClick={() => setAvatar(item.id)}
+                    >
+                      <div className="avatar-preview">
+                        <PixelPal type={item.id} />
+                      </div>
+                      <span className="avatar-name">{item.name}</span>
+                      <span className="avatar-tag">{item.tag}</span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
             <label>
               我的昵称

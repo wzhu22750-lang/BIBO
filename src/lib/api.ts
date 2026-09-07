@@ -1,5 +1,5 @@
 import { db, must, errorText } from './supabase'
-import type { Couple, EventInput, EventItem, Focus, Message, Photo, Profile, Space } from './types'
+import type { AvatarType, Couple, EventInput, EventItem, Focus, Message, Photo, Profile, Space } from './types'
 export async function loadSpace(userId: string): Promise<Space> {
   const me = must(await db().from('profiles').select('*').eq('id', userId).single()) as Profile
   const membership = await db()
@@ -143,9 +143,12 @@ export async function saveSettings(
   coupleId: string | undefined,
   name: string,
   since: string,
+  avatar?: AvatarType,
 ) {
   // Each write must return its row. If the second write fails, surface the partial save explicitly.
-  must(await db().from('profiles').update({ name }).eq('id', userId).select().single())
+  const profileUpdates: { name: string; avatar?: AvatarType } = { name }
+  if (avatar) profileUpdates.avatar = avatar
+  must(await db().from('profiles').update(profileUpdates).eq('id', userId).select().single())
   if (coupleId) {
     const result = await db()
       .from('couples')
@@ -155,7 +158,7 @@ export async function saveSettings(
       .single()
     if (result.error || !result.data)
       throw new Error(
-        `昵称已保存，但在一起日期保存失败：${result.error ? errorText(result.error) : '未返回记录'}`,
+        `个人档案已保存，但在一起日期保存失败：${result.error ? errorText(result.error) : '未返回记录'}`,
       )
   }
 }

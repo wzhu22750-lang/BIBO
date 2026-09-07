@@ -3,7 +3,7 @@
 create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   name text not null default '新玩家' check (char_length(name) between 1 and 24),
-  avatar text not null default 'cat' check (avatar in ('cat', 'bunny'))
+  avatar text not null default 'cat' check (avatar in ('dog', 'cat', 'bunny', 'bear', 'panda', 'fox', 'penguin', 'duck', 'frog', 'hamster', 'chick', 'koala'))
 );
 create table public.couples (
   id uuid primary key default gen_random_uuid(),
