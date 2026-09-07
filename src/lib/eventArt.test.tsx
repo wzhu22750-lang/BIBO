@@ -35,22 +35,25 @@ describe('SVG event art compatibility', () => {
 })
 
 describe('expanded picker search and groups', () => {
-  it('exposes forty unique choices and keeps all categorized', () => {
-    expect(eventArtOptions).toHaveLength(40)
-    expect(new Set(eventArtOptions.map((option) => option.id)).size).toBe(40)
+  it('exposes sixty-four unique choices and keeps all categorized', () => {
+    expect(eventArtOptions).toHaveLength(64)
+    expect(new Set(eventArtOptions.map((option) => option.id)).size).toBe(64)
     for (const group of eventArtGroups.filter((g) => g.id !== 'all')) {
       expect(filterEventArt(group.id, '').length).toBeGreaterThan(0)
       expect(filterEventArt(group.id, '').every((option) => option.group === group.id)).toBe(true)
     }
-    expect(filterEventArt('friends', '')).toHaveLength(8)
+    expect(filterEventArt('friends', '')).toHaveLength(10)
   })
   it('matches Chinese aliases and case-insensitive English terms', () => {
     expect(filterEventArt('all', '考研').map((o) => o.id)).toEqual(['book', 'flag'])
     expect(filterEventArt('friends', ' BEAR ').map((o) => o.id)).toEqual(['bear'])
+    expect(filterEventArt('friends', '机甲').map((o) => o.id)).toEqual(['robot'])
+    expect(filterEventArt('travel', '自驾').map((o) => o.id)).toEqual(['car'])
+    expect(filterEventArt('daily', '微醺').map((o) => o.id)).toEqual(['wine'])
     expect(filterEventArt('all', 'music').map((o) => o.id)).toEqual(['music'])
   })
   it('combines group and query without changing the underlying options', () => {
     expect(filterEventArt('travel', '熊')).toEqual([])
-    expect(filterEventArt('all', '')).toHaveLength(40)
+    expect(filterEventArt('all', '')).toHaveLength(64)
   })
 })

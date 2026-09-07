@@ -1932,6 +1932,66 @@ img {
   padding: 0;
   gap: 17px;
 }
+.auth-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.auth-tab {
+  flex: 1;
+  background: var(--paper);
+  border: var(--line);
+  padding: 10px 8px;
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--ink);
+  transition: transform 0.08s ease, background 0.1s ease;
+}
+.auth-tab:hover {
+  background: #fdfae3;
+}
+.auth-tab.active {
+  background: var(--yellow);
+  box-shadow: 2px 2px 0 var(--ink);
+  font-weight: 700;
+}
+.auth-helper-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  margin: 2px 0;
+}
+.auth-remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #556247;
+  cursor: pointer;
+  user-select: none;
+}
+.auth-remember input[type='checkbox'] {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--ink);
+  cursor: pointer;
+}
+.auth-helper-row .text-button {
+  font-size: 11px;
+  color: #4b683a;
+  text-decoration: underline;
+  padding: 2px 0;
+}
+.auth-helper-row .text-button:hover {
+  color: var(--ink);
+}
 .auth-panel > .button {
   width: 100%;
 }

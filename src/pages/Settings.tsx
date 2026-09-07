@@ -45,6 +45,7 @@ export function Settings({
     [name, setName] = useState(space.me.name),
     [since, setSince] = useState(space.couple?.together_since || localDateInput()),
     [code, setCode] = useState(controller.inviteCode),
+    [newPass, setNewPass] = useState(''),
     { busy, run } = useTask(),
     toast = useToast()
   return (
@@ -160,7 +161,7 @@ export function Settings({
             </div>
           </Panel>
           <Panel
-            title={demo ? '从演示到专属空间' : '登录状态'}
+            title={demo ? '从演示到专属空间' : '账号与安全'}
             tag={demo ? 'DEMO MODE' : 'ACCOUNT'}
           >
             <div className="settings-section">
@@ -169,6 +170,39 @@ export function Settings({
                   ? '你正在探索本地演示。聊天、照片和日期只保存在当前浏览器，不会传给真实用户。配置 Supabase 后即可登录、邀请另一位玩家。'
                   : '私人数据由数据库成员权限隔离。本产品未实现端到端加密。'}
               </p>
+              {!demo && (
+                <form
+                  className="form-stack"
+                  style={{ margin: '14px 0', padding: '14px 0', borderTop: '1px solid #e1e7d5', borderBottom: '1px solid #e1e7d5' }}
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    void run(async () => {
+                      if (newPass.length < 6) throw new Error('密码长度至少需要 6 位')
+                      const { error } = await db().auth.updateUser({ password: newPass })
+                      if (error) throw error
+                      setNewPass('')
+                      toast('登录密码设置成功，后续可直接用密码登录')
+                    })
+                  }}
+                >
+                  <label>
+                    设置 / 修改登录密码
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      placeholder="至少 6 位新密码"
+                      minLength={6}
+                      required
+                      value={newPass}
+                      onChange={(e) => setNewPass(e.target.value)}
+                    />
+                  </label>
+                  <Button tone="green" type="submit" disabled={busy || newPass.length < 6}>
+                    更新登录密码
+                    <Icon name="check" size={16} />
+                  </Button>
+                </form>
+              )}
               <Button
                 tone="white"
                 disabled={busy}
