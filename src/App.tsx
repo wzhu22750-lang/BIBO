@@ -83,7 +83,7 @@ function Workspace({
             <button onClick={() => void controller.reload()}>重试</button>
           </div>
         )}
-        {!controller.space.partner && (
+        {!controller.space.partner && page !== 'chat' && (
           <div className="waiting-banner">
             你的空间已准备好，去「空间设置」生成邀请码，邀请 TA 加入。
             <button onClick={() => navigate('settings')}>生成邀请码 →</button>

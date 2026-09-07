@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { SpaceController } from '../hooks/useSpace'
-import { Button, Empty, PageHeading, useTask } from '../components/ui'
+import { Button, Empty, useTask } from '../components/ui'
 import { Icon, PixelPal } from '../components/PixelArt'
 import { clock, dateLabel } from '../lib/dates'
 export function Chat({ controller, demo }: { controller: SpaceController; demo: boolean }) {
@@ -22,13 +22,7 @@ export function Chat({ controller, demo }: { controller: SpaceController; demo: 
     })
   }
   return (
-    <>
-      <PageHeading
-        eyebrow="OUR PRIVATE FREQUENCY"
-        title="悄悄话"
-        subtitle="一些碎碎念，只想讲给你听。"
-      />
-      <section className="chat-window">
+    <section className="chat-window">
         <div className="chat-window-top">
           <span className="tiny-avatar pink">
             <PixelPal type={space.partner?.avatar || 'bunny'} />
@@ -155,6 +149,5 @@ export function Chat({ controller, demo }: { controller: SpaceController; demo: 
           </div>
         </form>
       </section>
-    </>
   )
 }

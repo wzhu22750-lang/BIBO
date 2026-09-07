@@ -86,7 +86,7 @@ export function Shell({
       <div className="main-wrap">
         <header className="topbar">
           <span className="topbar-caption">
-            <Icon name="star" size={15} /> 平凡的日子，也要一起闪闪发光
+            <Icon name="star" size={15} /> bibo
           </span>
           <div className="topbar-right">
             <button
@@ -110,7 +110,7 @@ export function Shell({
             </button>
           </div>
         </header>
-        <main id="main" key={page}>
+        <main id="main" key={page} className={`page-${page}`}>
           {children}
         </main>
         <footer className="main-footer">

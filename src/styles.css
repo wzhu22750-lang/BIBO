@@ -368,15 +368,16 @@ img {
   gap: 14px;
 }
 .topbar-caption {
-  font-size: 11px;
-  color: #74766b;
+  font-family: var(--pixel);
+  font-size: 13px;
+  color: var(--ink);
   display: flex;
   align-items: center;
   gap: 9px;
-  letter-spacing: 0.6px;
+  letter-spacing: -0.5px;
 }
 .topbar-caption .pixel-icon {
-  color: #20211d;
+  color: #f7a23b;
 }
 .topbar-right {
   display: flex;
@@ -1482,6 +1483,28 @@ img {
   height: min(680px, calc(100dvh - 245px));
   min-height: 420px;
 }
+.main-wrap > main.page-chat {
+  padding: 0;
+  margin: 0;
+  max-width: none;
+  min-height: calc(100vh - 71px);
+  height: calc(100vh - 71px);
+  display: flex;
+  flex-direction: column;
+}
+.page-chat + .main-footer {
+  display: none;
+}
+.page-chat .chat-window {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+}
 .chat-window-top {
   display: flex;
   align-items: center;
@@ -2547,11 +2570,11 @@ img {
     gap: 0;
   }
   .topbar-caption:after {
-    content: 'BIBU!';
+    content: 'bibo';
     font-family: var(--pixel);
-    font-size: 22px;
+    font-size: 20px;
     color: var(--ink);
-    letter-spacing: -2px;
+    letter-spacing: -1px;
   }
   .topbar-caption .pixel-icon {
     display: none;
@@ -2997,9 +3020,27 @@ img {
   .lightbox-caption span {
     font-size: 10px;
   }
-  .chat-window {
-    height: calc(100dvh - 264px);
-    min-height: 370px;
+  .main-wrap > main.page-chat {
+    padding: 0;
+    min-height: calc(100dvh - 60px - 70px);
+    height: calc(100dvh - 60px - 70px);
+    max-height: calc(100dvh - 60px - 70px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .page-chat + .main-footer {
+    display: none;
+  }
+  .page-chat .chat-window {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
   }
   .chat-window-top {
     padding: 12px 15px;
@@ -3179,6 +3220,10 @@ img {
   .main-wrap > main {
     padding-left: 14px;
     padding-right: 14px;
+  }
+  .main-wrap > main.page-chat {
+    padding-left: 0;
+    padding-right: 0;
   }
   .page-heading h1 {
     font-size: 21px;
