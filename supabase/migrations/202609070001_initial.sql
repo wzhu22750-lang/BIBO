@@ -9,6 +9,8 @@ create table public.couples (
   id uuid primary key default gen_random_uuid(),
   name text not null default '我们的小宇宙' check (char_length(name) between 1 and 60),
   together_since date not null default current_date,
+  greeting_title text default '今天也喜欢你，多一点',
+  greeting_subtitle text default '生活不是每天都浪漫，但每天都有你。',
   created_at timestamptz not null default now()
 );
 create table public.couple_members (
@@ -159,7 +161,7 @@ alter table public.pings enable row level security;
 revoke all on public.profiles, public.couples, public.couple_members, public.invitations, public.messages, public.events, public.photos, public.focus_sessions, public.pings from anon, authenticated;
 grant select on public.profiles, public.couples, public.couple_members, public.messages, public.events, public.photos, public.focus_sessions, public.pings to authenticated;
 grant update(name, avatar) on public.profiles to authenticated;
-grant update(name, together_since) on public.couples to authenticated;
+grant update(name, together_since, greeting_title, greeting_subtitle) on public.couples to authenticated;
 grant insert(couple_id, sender_id, content) on public.messages to authenticated;
 grant insert(couple_id, created_by, title, target_at, kind, yearly, emoji), delete on public.events to authenticated;
 grant insert(couple_id, uploaded_by, path, caption) on public.photos to authenticated;

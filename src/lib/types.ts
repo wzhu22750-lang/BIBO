@@ -15,7 +15,13 @@ export const AVATAR_IDS = [
 ] as const
 export type AvatarType = (typeof AVATAR_IDS)[number]
 export type Profile = { id: string; name: string; avatar: AvatarType }
-export type Couple = { id: string; name: string; together_since: string }
+export type Couple = {
+  id: string
+  name: string
+  together_since: string
+  greeting_title?: string
+  greeting_subtitle?: string
+}
 export type Message = {
   id: string
   couple_id: string

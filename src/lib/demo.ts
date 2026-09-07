@@ -11,7 +11,13 @@ export function makeDemo(): Space {
   return {
     me: { id: 'demo-me', name: '小橘', avatar: 'cat' },
     partner: { id: 'demo-you', name: '小桃', avatar: 'bunny' },
-    couple: { id: 'demo', name: '小橘 & 小桃的小宇宙', together_since: '2025-07-07' },
+    couple: {
+      id: 'demo',
+      name: '小橘 & 小桃的小宇宙',
+      together_since: '2025-07-07',
+      greeting_title: '今天也喜欢你，多一点',
+      greeting_subtitle: '生活不是每天都浪漫，但每天都有你。',
+    },
     messages: [
       {
         id: '1',

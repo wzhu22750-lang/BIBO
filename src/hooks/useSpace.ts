@@ -234,6 +234,18 @@ export function useSpace(session: Session | null, demo: boolean) {
         }),
       )
     },
+    async updateGreeting(title: string, subtitle: string) {
+      if (!cid) throw new Error('尚未绑定空间')
+      await mutate(
+        () => api.updateGreeting(cid, title, subtitle),
+        (s) => ({
+          ...s,
+          couple: s.couple
+            ? { ...s.couple, greeting_title: title, greeting_subtitle: subtitle }
+            : null,
+        }),
+      )
+    },
     async createSpace() {
       const code = must(await db().rpc('create_space')) as string
       setInviteCode(code)

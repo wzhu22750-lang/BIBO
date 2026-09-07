@@ -141,20 +141,38 @@ export function PageHeading({
   title,
   subtitle,
   children,
+  onEdit,
+  editLabel = '编辑寄语',
 }: {
   eyebrow: string
   title: string
   subtitle: string
   children?: ReactNode
+  onEdit?: () => void
+  editLabel?: string
 }) {
   return (
     <div className="page-heading">
-      <div>
+      <div className="heading-main">
         <span className="micro eyebrow">{eyebrow}</span>
-        <h1>
-          {title}
-          <span className="heading-dot">.</span>
-        </h1>
+        <div className="heading-title-row">
+          <h1>
+            {title}
+            <span className="heading-dot">.</span>
+          </h1>
+          {onEdit && (
+            <button
+              type="button"
+              className="heading-edit-btn"
+              onClick={onEdit}
+              title={editLabel}
+              aria-label={editLabel}
+            >
+              <Icon name="spark" size={13} />
+              <span>编辑</span>
+            </button>
+          )}
+        </div>
         <p>{subtitle}</p>
       </div>
       {children}
