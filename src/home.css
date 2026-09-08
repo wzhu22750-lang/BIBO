@@ -10,6 +10,9 @@
   background: #fffef7;
   box-shadow: 2px 2px 0 #20211d;
   font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
   cursor: pointer;
 }
 .ping-choices button[aria-pressed='true'] {
