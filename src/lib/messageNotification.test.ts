@@ -29,8 +29,9 @@ describe('incoming message notification decisions', () => {
     expect(newPartnerMessages([], [message('m1', partner, 10 * 60_000)], me, now)).toEqual([])
     expect(newPartnerMessages([], [message('m1', null)], me, now)).toEqual([])
   })
-  it('suppresses the banner only while the chat page is visible in the foreground', () => {
-    expect(shouldNotifyIncomingMessage(true, '#chat')).toBe(true)
+  it('suppresses the banner in background (owned by FCM) and while chat is active', () => {
+    expect(shouldNotifyIncomingMessage(true, '#chat')).toBe(false)
+    expect(shouldNotifyIncomingMessage(true, '#home')).toBe(false)
     expect(shouldNotifyIncomingMessage(false, '#chat')).toBe(false)
     expect(shouldNotifyIncomingMessage(false, '#chat?message=m1')).toBe(false)
     expect(shouldNotifyIncomingMessage(false, '#home')).toBe(true)

@@ -17,7 +17,9 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
     [registered, setRegistered] = useState(Boolean(initialToken)),
     [token, setToken] = useState<string | undefined>(initialToken),
     [busy, setBusy] = useState(false),
-    [permission, setPermission] = useState<NotificationPermission | null>(null)
+    [permission, setPermission] = useState<NotificationPermission | null>(null),
+    [testResult, setTestResult] = useState('')
+
   useEffect(() => {
     let active = true
     void BiboNative.permissions
@@ -30,13 +32,54 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
       active = false
     }
   }, [busy])
+
+  const requestPermission = async () => {
+    setBusy(true)
+    setMessage('')
+    try {
+      const res = await BiboNative.permissions.requestNotifications()
+      setPermission(res)
+      if (res.granted) {
+        setMessage('系统通知权限已开启！')
+      } else {
+        setMessage('系统通知权限仍未开启。请前往 Android 系统「设置 → 应用管理 → 哔卟哔卟 → 通知」手动允许。')
+      }
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const testMessageChannel = async () => {
+    setBusy(true)
+    setTestResult('')
+    try {
+      const res = await BiboNative.notifications.show({
+        id: 999,
+        title: 'BIBO 悄悄话渠道测试',
+        body: '如果你看到了这条系统横幅，说明系统通知权限与悄悄话通道（bibo_messages_v1）完全正常！',
+        route: '#chat',
+        channel: 'messages',
+      })
+      if (res.supported) {
+        setTestResult('✅ 本地测试通知已发出！请查看手机通知栏。若能看到，说明系统权限与通道无误；若收不到伴侣的远程推送，请排查下方 GMS 与网络连接。')
+      } else {
+        setTestResult(`❌ 本地通知未能显示：${res.reason || '不支持'}`)
+      }
+    } catch (err) {
+      setTestResult(`❌ 发送测试通知异常：${err instanceof Error ? err.message : String(err)}`)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const permissionNote = !permission
     ? ''
     : !permission.supported
       ? '当前环境没有 Android 系统通知（Web）。通知登记仅对 Android 应用有效。'
       : permission.granted
-        ? '系统通知权限：已开启（GRANTED）。'
-        : '系统通知权限：已被拒绝（DENIED）。这不是系统故障：BIBO 将无法显示任何系统通知，伴侣消息只会在打开应用后出现。请在 Android 系统设置 → 应用 → 哔卟哔卟 → 通知 中重新开启。'
+        ? '✅ 系统通知权限：已开启（GRANTED）'
+        : '❌ 系统通知权限：已被拒绝（DENIED）。BIBO 无法弹出任何系统横幅。'
+
   async function register() {
     setBusy(true)
     setMessage('')
@@ -52,15 +95,14 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
       }
       setRegistered(true)
       setToken(result.token)
-      setMessage(
-        '设备 token 已登记；这不代表伴侣消息已经发送或送达。服务端 Push 发送函数（send-message-push / send-ping-push）部署并配置 Webhook 后才会真实推送。',
-      )
+      setMessage('✅ 设备 token 已成功登记到服务器！伴侣发消息时将通过 FCM 自动推送到这台设备。')
     } catch (error) {
       setMessage(`登记失败：${error instanceof Error ? error.message : String(error)}`)
     } finally {
       setBusy(false)
     }
   }
+
   async function revoke() {
     setBusy(true)
     setMessage('')
@@ -79,26 +121,53 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
       setBusy(false)
     }
   }
+
   return (
     <div className="settings-section">
-      <h3>Android 远程 Push 设备登记</h3>
+      <h3>Android 远程 Push 设备登记与诊断</h3>
       <p>
-        需要 Firebase 配置与服务端发送函数。此按钮只申请权限、获取设备 token
-        并登记当前账号；不会在客户端发送伴侣通知。前台消息由 Supabase Realtime
-        呈现，后台/被杀时由服务端 FCM 推送，二者按 message_id 与活跃心跳去重。
+        前台消息由 Supabase Realtime 呈现；后台/锁屏时由 Google FCM 统一推送。
       </p>
-      {permissionNote && <p role="status">{permissionNote}</p>}
+      {permissionNote && (
+        <p role="status" style={{ fontWeight: 600 }}>
+          {permissionNote}
+        </p>
+      )}
+      {permission && !permission.granted && permission.supported && (
+        <Button tone="yellow" disabled={busy} onClick={() => void requestPermission()}>
+          申请开启系统通知权限
+        </Button>
+      )}
+      {token && (
+        <p style={{ fontSize: '0.85rem', color: '#666', wordBreak: 'break-all' }}>
+          本机 Push Token：<code>{token.slice(0, 14)}...{token.slice(-10)}</code>（{token.length} 位）
+        </p>
+      )}
       {message && <p role="status">{message}</p>}
-      <Button
-        tone={registered ? 'white' : 'yellow'}
-        disabled={busy}
-        onClick={() => void register()}
-      >
-        {busy ? '处理中…' : registered ? '重新更新本机 Token' : '登记这台设备接收 Push'}
-      </Button>
-      <Button tone="white" disabled={busy || !registered} onClick={() => void revoke()}>
-        撤销这台设备的 Push
-      </Button>
+      {testResult && <p role="status" style={{ fontWeight: 500 }}>{testResult}</p>}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
+        <Button
+          tone={registered ? 'white' : 'yellow'}
+          disabled={busy}
+          onClick={() => void register()}
+        >
+          {busy ? '处理中…' : registered ? '重新更新本机 Token' : '登记这台设备接收 Push'}
+        </Button>
+        <Button tone="white" disabled={busy} onClick={() => void testMessageChannel()}>
+          测试本设备通知渠道 (悄悄话)
+        </Button>
+        <Button tone="white" disabled={busy || !registered} onClick={() => void revoke()}>
+          撤销这台设备的 Push
+        </Button>
+      </div>
+      <div style={{ marginTop: '12px', padding: '10px 12px', background: 'rgba(0,0,0,0.03)', borderRadius: '8px', fontSize: '0.82rem', lineHeight: '1.5' }}>
+        <strong>📱 国内 Android 设备 FCM 推送排查建议：</strong>
+        <ul style={{ margin: '4px 0 0', paddingLeft: '18px' }}>
+          <li><b>Google 服务 (GMS)</b>：国内设备需在「系统设置 → 谷歌服务/Google 基础服务」中开启。</li>
+          <li><b>后台与自启动</b>：在系统应用设置中将「哔卟哔卟」和「Google Play 服务」设为「允许自启动 / 后台耗电无限制」，避免息屏被杀。</li>
+          <li><b>网络连接</b>：FCM 需长连接 <code>mtalk.google.com:5228</code>。若在无外部网络环境下，Google Cloud 无法将消息推入手机。</li>
+        </ul>
+      </div>
     </div>
   )
 }

@@ -36,6 +36,16 @@ DENSITIES = {
     "xxxhdpi": 4,
 }
 
+# Android notification small-icon density sizes (24dp base, as documented in
+# the platform guidelines for a single-color status-bar/heads-up glyph).
+NOTIFICATION_ICON_SIZES = {
+    "mdpi": 24,
+    "hdpi": 36,
+    "xhdpi": 48,
+    "xxhdpi": 72,
+    "xxxhdpi": 96,
+}
+
 
 def square_crop(src: Image.Image) -> Image.Image:
     """Crop to the largest centred square."""
@@ -95,6 +105,41 @@ def adaptive_foreground(src: Image.Image, size: int) -> Image.Image:
     return canvas
 
 
+def silhouette_alpha(src: Image.Image, work: int = 192) -> Image.Image:
+    """Alpha mask of the drawn art: mint background -> transparent, art -> opaque.
+
+    Computed on a compact working canvas (still 2x the largest density) so the
+    per-pixel RGB distance loop stays fast, then LANCZOS-upscaled per size.
+    """
+    rgb = src.convert("RGB").resize((work, work), Image.Resampling.LANCZOS)
+    px = rgb.load()
+    alpha = Image.new("L", (work, work), 0)
+    ap = alpha.load()
+    for y in range(work):
+        for x in range(work):
+            r, g, b = px[x, y]
+            d = math.hypot(r - MINT[0], g - MINT[1], b - MINT[2])
+            # Map a gradient band (24..50) so edges stay smooth; anything close
+            # to mint is transparent, anything clearly drawn is solid white.
+            ap[x, y] = 0 if d <= 24 else (255 if d >= 50 else int(255 * (d - 24) / 26))
+    return alpha
+
+
+def notification_small_icon(alpha: Image.Image, size: int) -> Image.Image:
+    """White notification small-icon at the requested side length.
+
+    Android notification small icons must be a single-colour (here: white)
+    alpha-only silhouette on a transparent background; colour or photo art gets
+    flattened into an unreadable blob by the system, so we never reuse the
+    colourful launcher PNG here.
+    """
+    mask = alpha.resize((size, size), Image.Resampling.LANCZOS)
+    out = Image.new("RGBA", (size, size), TRANSPARENT)
+    white = Image.new("RGBA", (size, size), (255, 255, 255, 255))
+    out.paste(white, (0, 0), mask)
+    return out
+
+
 def save(img: Image.Image, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     img.save(path, "PNG")
@@ -125,6 +170,17 @@ def main() -> None:
     (PUBLIC / "favicon.svg").write_text(svg_with_png(full), encoding="utf-8")
     print("  public/favicon.svg")
 
+    print("Android notification small icon (white silhouette)")
+    alpha = silhouette_alpha(full)
+    stale = RES / "drawable" / "ic_stat_bibo.xml"
+    if stale.exists():
+        stale.unlink()
+        print(f"  removed {stale.relative_to(ROOT)}")
+    for name, size in NOTIFICATION_ICON_SIZES.items():
+        # A single white shape must not touch the 24dp canvas edge; the
+        # artwork already leaves generous margins.
+        save(notification_small_icon(alpha, size), RES / f"drawable-{name}" / "ic_stat_bibo.png")
+
     print("Android legacy + adaptive PNG")
     for name, factor in DENSITIES.items():
         folder = RES / f"mipmap-{name}"
@@ -144,8 +200,8 @@ def main() -> None:
         '</resources>\n',
         encoding="utf-8",
     )
-    print("  android/app/src/main/res/values/ic_launcher_background.xml")
-
+    # Values background colour + vector-backed drawable background for
+    # adaptive icons (only rewritten when present).
     bg_drawable = RES / "drawable" / "ic_launcher_background.xml"
     if bg_drawable.exists():
         bg_drawable.write_text(
@@ -165,10 +221,10 @@ def main() -> None:
 
     # The vector heart foreground is no longer used; adaptive icons now point
     # at the regenerated @mipmap/ic_launcher_foreground bitmaps.
-    fg_xml = RES / "drawable" / "ic_launcher_foreground.xml"
-    if fg_xml.exists():
-        fg_xml.unlink()
-        print(f"  removed {fg_xml.relative_to(ROOT)}")
+    for fg_xml in (RES / "drawable" / "ic_launcher_foreground.xml", RES / "drawable-v24" / "ic_launcher_foreground.xml"):
+        if fg_xml.exists():
+            fg_xml.unlink()
+            print(f"  removed {fg_xml.relative_to(ROOT)}")
 
     for adaptive in (
         RES / "mipmap-anydpi-v26" / "ic_launcher.xml",

@@ -49,11 +49,12 @@ export function newPartnerMessages(
   )
 }
 /**
- * BIBO has exactly one conversation per couple, so "the user is already in this
- * conversation" means the chat page is visible in the foreground. Otherwise
- * (app hidden, or another page) a system notification is appropriate.
+ * BIBO has exactly one conversation per couple. Background/screen-off delivery
+ * belongs strictly to FCM to prevent duplicate stacked notifications.
+ * Realtime only notifies when the app is in the foreground AND the user
+ * is not currently on the chat page.
  */
 export function shouldNotifyIncomingMessage(hidden: boolean, hash: string): boolean {
-  if (hidden) return true
+  if (hidden) return false
   return parseRoute(hash).page !== 'chat'
 }
