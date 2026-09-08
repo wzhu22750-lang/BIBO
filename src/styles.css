@@ -2678,7 +2678,7 @@ img {
     padding-bottom: 70px;
     --app-top: env(safe-area-inset-top);
     --app-bottom: max(8px, env(safe-area-inset-bottom));
-    --app-nav: calc(66px + var(--app-bottom));
+    --app-nav: calc(78px + var(--app-bottom));
   }
   .topbar {
     min-height: 60px;
@@ -3198,6 +3198,7 @@ img {
   .composer-main textarea {
     padding: 9px 8px;
     font-size: 11px;
+    resize: none;
   }
   .composer-main .button {
     padding: 9px 10px;

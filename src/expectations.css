@@ -955,7 +955,12 @@
   }
   /* Symmetric floating dock, with one intentional stepped central action. */
   .main-wrap {
-    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+    padding-bottom: calc(86px + env(safe-area-inset-bottom));
+    --app-nav: calc(78px + var(--app-bottom));
+  }
+  .main-wrap.page-wrap-chat,
+  .main-wrap:has(> .page-chat) {
+    padding-bottom: 0;
   }
   .bottom-nav.bibo-dock {
     left: 0;

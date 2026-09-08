@@ -5,7 +5,7 @@ import type { Session } from '@supabase/supabase-js'
 import { configured, errorText, supabase } from './lib/supabase'
 import { useBibu } from './hooks/useBibu'
 import { useSpace } from './hooks/useSpace'
-import { disableFeedback } from './lib/notifications'
+import { disableFeedback, loadFeedbackEnabled, restoreFeedback, storeFeedbackEnabled } from './lib/notifications'
 import type { Page } from './lib/types'
 import { Shell } from './components/Shell'
 import { ToastContext, Button } from './components/ui'
@@ -34,12 +34,15 @@ function Workspace({
 }) {
   const controller = useSpace(session, demo),
     [page, setPage] = useState<Page>(currentPage),
-    [sound, setSound] = useState(false)
+    [sound, setSound] = useState<boolean>(() => loadFeedbackEnabled())
   const bibu = useBibu(controller, demo)
   useEffect(() => {
-    disableFeedback()
+    // 声音/震动偏好持久化到本机：退出或刷新后保持开启，声音在首次点击时自动恢复
+    storeFeedbackEnabled(sound)
+    if (sound) restoreFeedback()
+    else disableFeedback()
     return () => disableFeedback()
-  }, [])
+  }, [sound])
   useEffect(() => {
     const onHash = () => setPage(currentPage())
     window.addEventListener('hashchange', onHash)
