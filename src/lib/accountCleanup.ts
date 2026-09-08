@@ -55,3 +55,42 @@ export async function cleanupAccountLocal(deps: AccountCleanupDeps): Promise<str
   }
   return errors
 }
+
+export type SessionPrivacyCleanupDeps = {
+  removeDeviceInstallations: () => Promise<void>
+  unregisterPush?: () => Promise<void>
+  listReminders: () => Promise<{ supported: boolean; items: LocalReminder[] }>
+  cancelReminder: (id: number) => Promise<unknown>
+}
+
+export async function cleanupSessionPrivacy(deps: SessionPrivacyCleanupDeps): Promise<string[]> {
+  const errors: string[] = []
+  try {
+    await deps.removeDeviceInstallations()
+  } catch (error) {
+    // Keep the session if the server still associates this account with a Push token.
+    errors.push(`远程 Push 登记：${String(error)}`)
+  }
+  if (deps.unregisterPush) {
+    try {
+      await deps.unregisterPush()
+    } catch (error) {
+      errors.push(`本机 Push：${String(error)}`)
+    }
+  }
+  try {
+    const result = await deps.listReminders()
+    if (result.supported) {
+      for (const reminder of result.items) {
+        try {
+          await deps.cancelReminder(reminder.id)
+        } catch (error) {
+          errors.push(`本机提醒 ${reminder.id}：${String(error)}`)
+        }
+      }
+    }
+  } catch (error) {
+    errors.push(`本机提醒列表：${String(error)}`)
+  }
+  return errors
+}

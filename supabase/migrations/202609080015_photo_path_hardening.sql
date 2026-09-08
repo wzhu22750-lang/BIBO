@@ -21,10 +21,13 @@ begin
     raise exception '当前账号无法登记这张照片' using errcode='42501';
   end if;
   parts := string_to_array(coalesce(photo_path, ''), '/');
-  if array_length(parts, 1) <> 3
-    or parts[1] is distinct from space_id::text
-    or parts[2] is distinct from uid::text
-    or parts[3] not in (photo_id::text || '.jpg', photo_id::text || '.png', photo_id::text || '.webp') then
+  if array_length(parts, 1) <> 3 or parts[1] is distinct from space_id::text then
+    raise exception '照片路径与当前上传操作不匹配（ID 或路径已被修改）' using errcode='42501';
+  end if;
+  if parts[2] is distinct from uid::text then
+    raise exception '照片路径与当前账号不匹配' using errcode='42501';
+  end if;
+  if coalesce(parts[3], '') not in (photo_id::text || '.jpg', photo_id::text || '.png', photo_id::text || '.webp') then
     raise exception '照片路径与当前上传操作不匹配（ID 或路径已被修改）' using errcode='42501';
   end if;
   insert into public.photos(id,couple_id,uploaded_by,path,caption,occurred_on,story,event_id,message_id)

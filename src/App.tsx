@@ -1,5 +1,6 @@
-import { registerDeviceInstallation } from './lib/api'
-import { BiboNative } from './native'
+import { registerDeviceInstallation, touchDeviceActivity } from './lib/api'
+import { BiboNative, isAndroidApp } from './native'
+import { createDeviceActivityHeartbeat } from './lib/deviceActivity'
 import { parseRoute } from './lib/routes'
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
@@ -60,7 +61,7 @@ function Workspace({
         <h2>暂时没能打开小宇宙</h2>
         <p role="alert">{controller.error}</p>
         <Button onClick={() => void controller.reload()}>重新连接</Button>
-        <Button tone="white" onClick={() => void supabase?.auth.signOut()}>
+        <Button tone="white" onClick={() => void controller.signOut().catch(() => {})}>
           退出并重新登录
         </Button>
       </div>
@@ -179,6 +180,16 @@ export default function App() {
       active = false
       stop?.()
     }
+  }, [session?.user.id])
+  useEffect(() => {
+    // Foreground heartbeat for the Realtime/FCM split: while this Android app is
+    // visible, server push functions skip its devices so an arriving message or
+    // Ping is presented once (Realtime in-app) instead of twice (system banner).
+    // The RPC no-ops for accounts without registered devices.
+    if (!session || !configured || !isAndroidApp()) return
+    const heartbeat = createDeviceActivityHeartbeat(() => touchDeviceActivity())
+    heartbeat.start()
+    return () => heartbeat.stop()
   }, [session?.user.id])
   useEffect(() => {
     if (!supabase) return

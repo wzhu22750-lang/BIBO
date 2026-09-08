@@ -62,6 +62,10 @@ beforeAll(async () => {
   await pg.exec(readFileSync('supabase/migrations/202609080013_photo_outbox.sql', 'utf8'))
   await pg.exec(readFileSync('supabase/migrations/202609080014_relationship_seal.sql', 'utf8'))
   await pg.exec(readFileSync('supabase/migrations/202609080015_photo_path_hardening.sql', 'utf8'))
+  await pg.exec(
+    readFileSync('supabase/migrations/202609080016_device_push_registration.sql', 'utf8'),
+  )
+  await pg.exec(readFileSync('supabase/migrations/202609080017_message_push_activity.sql', 'utf8'))
   legacyAfter = (await pg.query<Record<string, unknown>>('select * from public.photos')).rows[0]
   legacyEvent = (await pg.query<Record<string, unknown>>('select * from public.events')).rows[0]
   await pg.exec(
@@ -724,10 +728,9 @@ describe.sequential('private two-player database boundary', () => {
   it('isolates device Push tokens to the owning account and cascades them on deletion', async () => {
     await asUser(D)
     const token = 'fcm-token-for-user-d-0000000001'
-    const row = await scalar(
-      "insert into public.device_installations(user_id,platform,token,app_version) values($1,'android',$2,'test') returning id",
-      [D, token],
-    )
+    const row = (
+      await pg.query('select * from public.register_device_installation($1,$2)', [token, 'test'])
+    ).rows[0].id as string
     expect(row).toBeTypeOf('string')
     await asUser(C)
     expect(await scalar('select count(*)::int from public.device_installations')).toBe(0)
@@ -736,14 +739,16 @@ describe.sequential('private two-player database boundary', () => {
         .rows,
     ).toHaveLength(0)
     await asUser(D)
+    await expect(
+      pg.query('update public.device_installations set app_version=$1 where id=$2 returning id', [
+        'new',
+        row,
+      ]),
+    ).rejects.toThrow()
     expect(
-      (
-        await pg.query(
-          'update public.device_installations set app_version=$1 where id=$2 returning id',
-          ['new', row],
-        )
-      ).rows,
-    ).toHaveLength(1)
+      (await pg.query('select * from public.register_device_installation($1,$2)', [token, 'new']))
+        .rows[0].app_version,
+    ).toBe('new')
     await pg.exec('reset role; set role anon')
     await expect(pg.query('select * from public.device_installations')).rejects.toThrow()
     await pg.exec('reset role')
@@ -755,10 +760,9 @@ describe.sequential('private two-player database boundary', () => {
   it('does not let a second account claim an existing device token through direct upsert', async () => {
     await asUser(A)
     const token = 'fcm-token-shared-for-upsert-probe-0001'
-    const id = await scalar(
-      "insert into public.device_installations(user_id,platform,token,app_version) values($1,'android',$2,'test') returning id",
-      [A, token],
-    )
+    const id = (
+      await pg.query('select * from public.register_device_installation($1,$2)', [token, 'test'])
+    ).rows[0].id as string
     await asUser(B)
     await expect(
       pg.query(
@@ -768,6 +772,67 @@ describe.sequential('private two-player database boundary', () => {
     ).rejects.toThrow()
     await asUser(A)
     await pg.query('delete from public.device_installations where id=$1', [id])
+  })
+  it('moves a Push token to the current account through the registration RPC', async () => {
+    await asUser(A)
+    const token = 'fcm-token-account-switch-transfer-0001'
+    const first = (
+      await pg.query('select * from public.register_device_installation($1,$2)', [token, 'a'])
+    ).rows[0]
+    await asUser(B)
+    const second = (
+      await pg.query('select * from public.register_device_installation($1,$2)', [token, 'b'])
+    ).rows[0]
+    expect(first.user_id).toBe(A)
+    expect(second.user_id).toBe(B)
+    await asUser(A)
+    expect(
+      await scalar('select count(*)::int from public.device_installations where token=$1', [token]),
+    ).toBe(0)
+    await asUser(B)
+    expect(
+      await scalar('select count(*)::int from public.device_installations where token=$1', [token]),
+    ).toBe(1)
+    await pg.query('delete from public.device_installations where token=$1', [token])
+  })
+  it('touches only the calling account\u2019s own Android device activity', async () => {
+    await asUser(A)
+    const mine = 'fcm-token-activity-heartbeat-a-00001'
+    await pg.query('select * from public.register_device_installation($1,$2)', [mine, 'test'])
+    await asUser(B)
+    const theirs = 'fcm-token-activity-heartbeat-b-00001'
+    await pg.query('select * from public.register_device_installation($1,$2)', [theirs, 'test'])
+    // Backdate both rows with elevated rights: authenticated UPDATE was revoked
+    // in 202609080016, which is exactly why the heartbeat goes through an RPC.
+    await pg.exec('reset role')
+    await pg.query(
+      "update public.device_installations set last_seen_at = now() - interval '1 hour' where token in ($1,$2)",
+      [mine, theirs],
+    )
+    await asUser(A)
+    expect(await scalar('select public.touch_device_activity()')).toBe(1)
+    // Verify with elevated rights: under RLS account A cannot even see B's row.
+    await pg.exec('reset role')
+    expect(
+      await scalar(
+        "select count(*)::int from public.device_installations where token=$1 and last_seen_at > now() - interval '1 minute'",
+        [mine],
+      ),
+    ).toBe(1)
+    expect(
+      await scalar(
+        "select count(*)::int from public.device_installations where token=$1 and last_seen_at < now() - interval '30 minutes'",
+        [theirs],
+      ),
+    ).toBe(1)
+    await pg.exec('reset role; set role anon')
+    await expect(pg.query('select public.touch_device_activity()')).rejects.toThrow()
+    await pg.exec('reset role')
+    await pg.query('delete from public.device_installations where token in ($1,$2)', [mine, theirs])
+  })
+  it('returns zero from the heartbeat RPC when the account has no devices', async () => {
+    await asUser(C)
+    expect(await scalar('select public.touch_device_activity()')).toBe(0)
   })
   it('prepares account deletion atomically, anonymizes shared authorship, and is idempotent', async () => {
     await asUser(A)

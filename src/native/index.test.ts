@@ -90,6 +90,32 @@ describe('BiboNative boundary', () => {
       BiboNative.notifications.show({ id: -1, title: '', body: '', route: '#home' }),
     ).rejects.toThrow('ID')
   })
+  it('routes message notifications to the messages channel and drops unknown channels', async () => {
+    mocks.platform = 'android'
+    mocks.notify.mockResolvedValue({ supported: true })
+    await BiboNative.notifications.show({
+      id: 4,
+      title: 'Wincy',
+      body: '你今天吃饭了吗？',
+      route: '#chat?message=m1',
+      channel: 'messages',
+    })
+    expect(mocks.notify).toHaveBeenCalledWith({
+      id: 4,
+      title: 'Wincy',
+      body: '你今天吃饭了吗？',
+      route: '#chat?message=m1',
+      channel: 'messages',
+    })
+    await BiboNative.notifications.show({
+      id: 5,
+      title: 't',
+      body: 'b',
+      route: '#home',
+      channel: 'everything-else' as 'messages',
+    })
+    expect(mocks.notify).toHaveBeenLastCalledWith({ id: 5, title: 't', body: 'b', route: '#home' })
+  })
   it('keeps permission denial separate from measured zero and passes the app filter', async () => {
     mocks.platform = 'android'
     mocks.screenTimeToday.mockResolvedValue({ supported: true, granted: false, milliseconds: null })

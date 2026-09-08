@@ -355,26 +355,25 @@ export async function deleteAccount(
 }
 
 export async function registerDeviceInstallation(
-  userId: string,
+  _userId: string,
   token: string,
   appVersion = 'unknown',
 ) {
+  // The server derives ownership from auth.uid() and atomically transfers a
+  // token from an old account when this installation changes accounts.
   return must(
-    await db()
-      .from('device_installations')
-      .upsert(
-        {
-          user_id: userId,
-          platform: 'android',
-          token,
-          app_version: appVersion,
-          last_seen_at: new Date().toISOString(),
-        },
-        { onConflict: 'token' },
-      )
-      .select()
-      .single(),
+    await db().rpc('register_device_installation', {
+      device_token: token,
+      device_app_version: appVersion,
+    }),
   )
+}
+export async function touchDeviceActivity(): Promise<number> {
+  // Foreground heartbeat for the Realtime/FCM split: server push functions skip
+  // devices seen recently. Best-effort; callers must not surface failures.
+  const result = await db().rpc('touch_device_activity')
+  if (result.error) throw result.error
+  return typeof result.data === 'number' ? result.data : 0
 }
 export async function removeDeviceInstallation(userId: string, token: string) {
   const result = await db()
@@ -439,6 +438,14 @@ export async function updateEventOnce(
   return must(await (signal ? request.abortSignal(signal) : request)) as EventItem
 }
 
+function hasDefiniteServerFailure(error: unknown) {
+  if (!error || typeof error !== 'object') return false
+  const value = error as { code?: unknown; status?: unknown }
+  if (typeof value.code === 'string' && value.code.length > 0) return true
+  const status = Number(value.status)
+  return Number.isInteger(status) && status >= 400 && status < 500 && status !== 408
+}
+
 export async function uploadPhotoOnce(
   coupleId: string,
   userId: string,
@@ -467,5 +474,17 @@ export async function uploadPhotoOnce(
     photo_event_id: memory.event_id,
     photo_message_id: memory.message_id,
   })
-  return must(await (signal ? request.abortSignal(signal) : request)) as Photo
+  try {
+    return must(await (signal ? request.abortSignal(signal) : request)) as Photo
+  } catch (error) {
+    // A typed server rejection proves the metadata transaction did not commit;
+    // clean up the object. Timeout/transport errors remain ambiguous and retain
+    // the object for same-path retry so a committed row is not deleted.
+    if (hasDefiniteServerFailure(error)) {
+      const cleanup = await db().storage.from('couple-photos').remove([path])
+      if (cleanup.error)
+        throw new Error(`${errorText(error)}；清理未完成，请稍后重试：${errorText(cleanup.error)}`)
+    }
+    throw error
+  }
 }

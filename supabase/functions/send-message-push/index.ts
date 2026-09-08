@@ -1,6 +1,10 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { buildPingPush, isUnregisteredFcmError, type PingPushRecord } from '../_shared/pingPush.ts'
-import { isDeviceRecentlyActive } from '../_shared/messagePush.ts'
+import { isUnregisteredFcmError } from '../_shared/pingPush.ts'
+import {
+  buildMessagePush,
+  isDeviceRecentlyActive,
+  type MessagePushRecord,
+} from '../_shared/messagePush.ts'
 import { googleAccessToken, parseServiceAccount, sendFcmMessage } from '../_shared/fcm.ts'
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -24,15 +28,15 @@ Deno.serve(async (request) => {
     accountRaw = Deno.env.get('FCM_SERVICE_ACCOUNT_JSON')
   if (!url || !service || !accountRaw)
     return json({ error: 'Push 发送服务尚未配置 service key / FCM service account' }, 503)
-  let payload: { record?: PingPushRecord }
+  let payload: { record?: MessagePushRecord }
   try {
     payload = await request.json()
   } catch {
     return json({ error: 'Webhook payload 无效' }, 400)
   }
   const record = payload.record
-  if (!record?.id || !record.couple_id || !record.sender_id)
-    return json({ sent: 0, skipped: '匿名或无效 Ping' }, 200)
+  if (!record?.id || !record.couple_id || !record.sender_id || typeof record.content !== 'string')
+    return json({ sent: 0, skipped: '匿名或无效消息' }, 200)
   let account
   try {
     account = parseServiceAccount(accountRaw)
@@ -57,8 +61,8 @@ Deno.serve(async (request) => {
   ])
   if (deviceError) return json({ error: '读取 Push 设备失败', details: deviceError.message }, 502)
   if (!devices?.length) return json({ sent: 0, skipped: '对方没有登记 Android Push 设备' }, 200)
-  // Realtime owns the foreground: a device that heartbeated recently already
-  // presents the Ping in-app, so pushing would double-notify the same event.
+  // Realtime owns the foreground; FCM owns background/killed. A device that
+  // heartbeated recently is in the app and must not be double-notified.
   const targets = devices.filter(
     (device) =>
       typeof device.token === 'string' && !isDeviceRecentlyActive(device.last_seen_at as string),
@@ -76,11 +80,14 @@ Deno.serve(async (request) => {
     failed = 0
   for (const device of targets) {
     const token = device.token as string
-    const result = await sendFcmMessage(
-      account,
-      access,
-      buildPingPush(record, token, profile?.name || 'TA'),
-    )
+    let body
+    try {
+      body = buildMessagePush(record, token, profile?.name || 'TA')
+    } catch {
+      invalid++
+      continue
+    }
+    const result = await sendFcmMessage(account, access, body)
     if (result.ok) {
       sent++
       continue

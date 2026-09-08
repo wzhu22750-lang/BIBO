@@ -3,7 +3,13 @@ import { PushNotifications } from '@capacitor/push-notifications'
 import { parseRoute } from '../lib/routes'
 export type CapabilityResult = { supported: boolean; reason?: string }
 export type NotificationPermission = CapabilityResult & { granted: boolean }
-export type NotificationInput = { id: number; title: string; body: string; route: string }
+export type NotificationInput = {
+  id: number
+  title: string
+  body: string
+  route: string
+  channel?: 'messages'
+}
 export type ScreenTimeResult = CapabilityResult & {
   granted: boolean
   milliseconds: number | null
@@ -37,6 +43,7 @@ interface DevicePlugin {
 }
 const plugin = registerPlugin<DevicePlugin>('BiboDevice')
 const native = () => Capacitor.getPlatform() === 'android'
+export const isAndroidApp = native
 const unavailable = (reason: string): CapabilityResult => ({ supported: false, reason })
 export function safeNativeRoute(value: string) {
   const parsed = parseRoute(value)
@@ -51,11 +58,14 @@ export const BiboNative = {
       if (!native()) return unavailable('系统通知仅在 Android 应用内可用')
       if (!Number.isInteger(input.id) || input.id < 1 || input.id > 2147483647)
         throw new Error('通知 ID 无效')
+      const { channel, ...rest } = input
       return plugin.notify({
-        ...input,
+        ...rest,
         title: input.title.slice(0, 80),
         body: input.body.slice(0, 240),
         route: safeNativeRoute(input.route),
+        // Only allow-listed native channels; anything else falls back to default.
+        ...(channel === 'messages' ? { channel } : {}),
       })
     },
   },
@@ -150,6 +160,18 @@ export const BiboNative = {
           description: '情侣 Ping 通知',
           importance: 3,
           visibility: 1,
+          vibration: true,
+        })
+        // Chat messages get their own HIGH-importance channel: heads-up banner,
+        // system default sound and vibration, governed by Android system rules
+        // (DND/silence still apply — we never bypass them).
+        await PushNotifications.createChannel({
+          id: 'bibo_messages_v1',
+          name: 'BIBO 悄悄话',
+          description: '伴侣消息通知',
+          importance: 4,
+          visibility: 1,
+          sound: 'default',
           vibration: true,
         })
         const token = await new Promise<string>((resolve, reject) => {

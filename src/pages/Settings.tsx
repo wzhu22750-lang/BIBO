@@ -1,6 +1,5 @@
 import { InactiveEventOutbox } from '../components/InactiveEventOutbox'
 import { downloadSpace } from '../lib/spaceExport'
-import { clearChatDraftsForUser } from '../lib/chatDraftStorage'
 import { PushRegistrationPanel } from '../components/PushRegistrationPanel'
 import { AccountDeletion } from '../components/AccountDeletion'
 import { InactiveOutbox } from '../components/InactiveOutbox'
@@ -383,10 +382,9 @@ export function Settings({
                   demo
                     ? exitDemo()
                     : void run(async () => {
-                        controller.clearOfflineSnapshot()
-                        clearChatDraftsForUser(space.me.id)
-                        const { error } = await db().auth.signOut()
-                        if (error) throw error
+                        const warnings = await controller.signOut()
+                        if (warnings.length)
+                          toast(`已退出登录；部分本机清理未确认：${warnings.join('；')}`, true)
                       })
                 }
               >

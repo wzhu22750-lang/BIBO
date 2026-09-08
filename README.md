@@ -31,7 +31,7 @@ npm run dev
 ### 创建数据库和私有存储桶
 
 1. 创建一个 Supabase 项目。
-2. 在 SQL Editor 或 Supabase CLI 按文件名顺序执行 `supabase/migrations/202609070001_initial.sql` 和 `supabase/migrations/202609080001_*.sql` 至 `202609080013_*.sql`。每个迁移只执行一次；不要把新增迁移单独跳过。
+2. 在 SQL Editor 或 Supabase CLI 按文件名顺序执行 `supabase/migrations/202609070001_initial.sql` 和 `supabase/migrations/202609080001_*.sql` 至 `202609080017_*.sql`。每个迁移只执行一次；不要把新增迁移单独跳过。
 3. 初始 SQL 创建 9 张业务表、RLS 策略、Auth 用户触发器、基础业务 RPC、私有 `couple-photos` 存储桶并加入 Realtime；后续增量迁移继续添加 Ping/回忆字段、幂等消息、分页、生命周期和注销准备 RPC。
 4. 如果使用 Supabase CLI 管理项目，也可在链接项目后通过 `supabase db push` 应用迁移；不要对同一数据库重复在 SQL Editor 和 CLI 中执行同一迁移。
 
@@ -75,7 +75,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=你的公开PublishableKey
 - `send_ping` 在数据库事务内执行 3 秒冷却；无伴侣不能发送。
 - 对方正在专注且未授权提醒时，服务器拒绝哔卟。学习 / 工作 / 休息提醒要求对方处于有效专注状态并已授权。
 - “已发出”只代表数据库接受了请求，不表示对方已收到或已读。
-- 当前未部署 FCM 服务端发送通道、Web Push 或 Service Worker 后台提醒。Android 客户端可以在配置 Firebase 后登记设备 token，但 token 登记不等于远程消息已发送或送达。请勿用于紧急联络。
+- 仓库已提供 FCM 服务端发送模板：`send-ping-push`（Ping）与 `send-message-push`（聊天消息）均只接受带 `x-bibo-webhook-secret` 的数据库 Webhook，服务端读取伴侣的 Android token 后走 FCM HTTP v1；前台消息由 Supabase Realtime 呈现，App 前台活跃心跳会让服务端跳过仍在应用内的设备，避免重复通知。但这些函数尚未部署、Webhook 尚未配置、仓库也没有 Firebase 配置：token 登记不等于远程消息已发送或送达。请勿用于紧急联络。
 
 ## 3. 部署到 Vercel
 
@@ -159,7 +159,7 @@ npm run preview
 - 普通倒计时包含具体时刻，列表按目标时间排序，首页展示本地自然日差；当天均显示“就是今天”。过期事件保留在后面。
 - 专注保存本人声明的活动、截止时间和提醒授权；Android 明确授权 Usage Access 后可在本人设备读取今日屏幕交互/指定 App 前台时长，数值为设备事件估算，不上传给伴侣。关闭页面后计时仍由时间戳决定，超时授权自动失效。
 - 尚无分析 SDK、广告、公开照片链接或用户在线状态推断；“实时已连接”指本机订阅连接，不代表另一台设备在线。
-- Android 原生层已包含系统通知、非精确定时提醒、UsageStats、本机 Focus 查询和可选 Push token 登记；`supabase/functions/send-ping-push` 提供 FCM HTTP v1 服务端发送模板，但需自行配置 Webhook、Firebase service account 和 secrets，远程发送/跨设备回执/厂商后台可靠性仍未交付。
+- Android 原生层已包含系统通知、非精确定时提醒、UsageStats、本机 Focus 查询和可选 Push token 登记；`supabase/functions/send-ping-push` 与 `send-message-push` 提供 FCM HTTP v1 服务端发送模板（消息通知走独立渠道 `bibo_messages_v1`，点击经 `#chat?message=<id>` Deep Link 回到对应聊天），但需自行配置 Webhook、Firebase service account 和 secrets；远程发送/跨设备回执/厂商后台可靠性仍未交付，真实 FCM 链路未验证。
 
 ## 素材与设计
 

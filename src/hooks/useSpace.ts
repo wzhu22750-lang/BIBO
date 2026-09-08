@@ -4,10 +4,15 @@ import { clearEventOutboxForUser } from '../lib/eventOutbox'
 import { clearPhotoOutboxForUser } from '../lib/photoOutbox'
 import { useEventOutbox } from './useEventOutbox'
 import { usePhotoOutbox } from './usePhotoOutbox'
-import { cleanupAccountLocal } from '../lib/accountCleanup'
+import { cleanupAccountLocal, cleanupSessionPrivacy } from '../lib/accountCleanup'
 import { clearChatDraftsForUser } from '../lib/chatDraftStorage'
 import { BiboNative } from '../native'
 import { incomingPingNotification } from '../lib/pingNotification'
+import {
+  incomingMessageNotification,
+  newPartnerMessages,
+  shouldNotifyIncomingMessage,
+} from '../lib/messageNotification'
 import { withRequestDeadline } from '../lib/requestDeadline'
 import { useSpaceRealtime } from './useSpaceRealtime'
 import type { Focus } from '../lib/types'
@@ -54,9 +59,38 @@ export function useSpace(
   const [ping, setPing] = useState<{ id: string; name: string; kind: string } | null>(null)
   const dismissPing = useCallback(() => setPing(null), [])
   const version = useRef(0)
+  const notifiedMessages = useRef(new Set<string>())
   const stateRef = useRef(space)
   stateRef.current = space
   const userId = session?.user.id
+  // Dedupe by message_id across reloads/Realtime races, and suppress the system
+  // banner when the user is already looking at the one BIBO conversation (the
+  // chat page in the foreground). Background/killed delivery belongs to FCM.
+  const notifyIncoming = useCallback(
+    (previous: Space | null, next: Space) => {
+      if (!userId) return
+      // Initial load or couple switch: mark everything seen without notifying.
+      if (!previous || previous.couple?.id !== next.couple?.id) return
+      const incoming = newPartnerMessages(
+        previous ? previous.messages : null,
+        next.messages,
+        userId,
+      )
+      if (!incoming.length) return
+      if (notifiedMessages.current.size > 500) notifiedMessages.current.clear()
+      const notify = shouldNotifyIncomingMessage(document.hidden, window.location.hash)
+      const partnerName = next.partner?.name || '另一位玩家'
+      for (const message of incoming) {
+        if (notifiedMessages.current.has(message.id)) continue
+        notifiedMessages.current.add(message.id)
+        if (!notify) continue
+        void BiboNative.notifications
+          .show(incomingMessageNotification(message, partnerName))
+          .catch(() => {})
+      }
+    },
+    [userId],
+  )
   const reload = useCallback(async () => {
     if (demo || !userId) return
     const current = ++version.current
@@ -75,6 +109,7 @@ export function useSpace(
             : data
         stateRef.current = next
         setSpace(next)
+        notifyIncoming(previous, next)
         setError('')
         setCachedAt(null)
         try {
@@ -198,9 +233,13 @@ export function useSpace(
         const partnerName = current.partner?.name || '另一位玩家'
         setPing({ id: incoming.id, name: partnerName, kind: incoming.kind })
         playFeedback(incoming.kind)
-        void BiboNative.notifications
-          .show(incomingPingNotification(incoming.id, incoming.kind, partnerName))
-          .catch(() => {})
+        // Foreground: the full-screen PingEffect plus sound/vibration already
+        // presents the Ping; a system banner would double-notify. Background
+        // delivery is FCM's job, suppressed server-side by the same heartbeat.
+        if (document.hidden)
+          void BiboNative.notifications
+            .show(incomingPingNotification(incoming.id, incoming.kind, partnerName))
+            .catch(() => {})
       }
     },
   })
@@ -546,6 +585,38 @@ export function useSpace(
           couple: s.couple ? { ...s.couple, together_since: since } : null,
         }),
       )
+    },
+    async signOut(): Promise<string[]> {
+      if (demo || !userId || !supabase) return []
+      try {
+        const cleanupErrors = await cleanupSessionPrivacy({
+          // Remove the server row before invalidating the local Firebase token.
+          removeDeviceInstallations: () => api.removeAllDeviceInstallations(userId),
+          unregisterPush: async () => {
+            const result = await BiboNative.push.unregister()
+            if (!result.supported && result.reason && !result.reason.includes('Web'))
+              throw new Error(result.reason)
+          },
+          listReminders: () => BiboNative.reminders.list(),
+          cancelReminder: (id) => BiboNative.reminders.cancel(id),
+        })
+        const remoteFailure = cleanupErrors.find((item) => item.startsWith('远程 Push 登记：'))
+        if (remoteFailure)
+          throw new Error(
+            `退出登录前无法清理远程 Push 登记，请保持当前账号登录并重试：${remoteFailure}`,
+          )
+        setCacheEnabled(userId, false)
+        setOfflineCacheEnabled(false)
+        setCacheError('')
+        clearSpaceCache(userId)
+        clearChatDraftsForUser(userId)
+        const signedOut = await supabase.auth.signOut()
+        if (signedOut.error) throw signedOut.error
+        return cleanupErrors
+      } catch (error) {
+        setError(`退出登录前清理失败：${errorText(error)}`)
+        throw error
+      }
     },
     async deleteAccount(expectedSpace: string | null): Promise<{ cleanupWarning?: string }> {
       if (demo || !userId) throw new Error('演示模式不能注销真实账号')

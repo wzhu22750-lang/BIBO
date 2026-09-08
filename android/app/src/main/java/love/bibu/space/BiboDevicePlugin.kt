@@ -31,6 +31,24 @@ import com.getcapacitor.annotation.PermissionCallback
 @CapacitorPlugin(name = "BiboDevice", permissions = [Permission(alias = "notifications", strings = [Manifest.permission.POST_NOTIFICATIONS])])
 class BiboDevicePlugin : Plugin() {
     private val channel = "bibo_love_v1"
+    private val messageChannel = "bibo_messages_v1"
+    override fun load() {
+        // Create push channels as early as the bridge exists so an FCM
+        // notification arriving later (even after process death and relaunch)
+        // lands on the right channel instead of the system "Miscellaneous" one.
+        ensureChannels(context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+    }
+    private fun ensureChannels(manager: NotificationManager) {
+        if (Build.VERSION.SDK_INT < 26) return
+        manager.createNotificationChannel(NotificationChannel(channel, "两个人的哔卟", NotificationManager.IMPORTANCE_DEFAULT))
+        // Chat messages: heads-up banner with the system default sound and
+        // vibration. Importance/sound/vibration are owned by Android after the
+        // user first sees the channel; we never bypass DND or silent mode.
+        val messages = NotificationChannel(messageChannel, "BIBO 悄悄话", NotificationManager.IMPORTANCE_HIGH)
+        messages.description = "伴侣消息通知"
+        messages.enableVibration(true)
+        manager.createNotificationChannel(messages)
+    }
     private fun result() = JSObject().put("supported", true)
     private fun permission() = result().put("granted", NotificationManagerCompat.from(context).areNotificationsEnabled())
     private fun safeRoute(raw: String?): String {
@@ -51,14 +69,15 @@ class BiboDevicePlugin : Plugin() {
         if (id < 1) { call.reject("Invalid notification id"); return }
         if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) { call.reject("请先开启 Android 系统通知权限"); return }
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (Build.VERSION.SDK_INT >= 26) manager.createNotificationChannel(NotificationChannel(channel, "两个人的哔卟", NotificationManager.IMPORTANCE_DEFAULT))
-        if (Build.VERSION.SDK_INT >= 26 && manager.getNotificationChannel(channel).importance == NotificationManager.IMPORTANCE_NONE) { call.reject("请在系统设置中开启哔卟通知渠道"); return }
+        ensureChannels(manager)
+        val target = if (call.getString("channel") == "messages") messageChannel else channel
+        if (Build.VERSION.SDK_INT >= 26 && manager.getNotificationChannel(target).importance == NotificationManager.IMPORTANCE_NONE) { call.reject("请在系统设置中开启哔卟通知渠道"); return }
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra("biboRoute", safeRoute(call.getString("route")))
         }
         val pending = PendingIntent.getActivity(context, id, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        val notification = NotificationCompat.Builder(context, channel)
+        val notification = NotificationCompat.Builder(context, target)
             .setSmallIcon(love.bibu.space.R.drawable.ic_stat_bibo)
             .setContentTitle((call.getString("title") ?: "BIBO").take(80))
             .setContentText((call.getString("body") ?: "收到一个小小的想念").take(240))
