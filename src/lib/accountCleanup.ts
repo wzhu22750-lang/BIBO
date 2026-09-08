@@ -3,6 +3,7 @@ export type AccountCleanupDeps = {
   clearSpaceCache: () => void
   clearOutbox: () => Promise<void>
   removeSavedEmail: () => void
+  clearChatDrafts?: () => void
   unregisterPush?: () => Promise<void>
   listReminders: () => Promise<{ supported: boolean; items: LocalReminder[] }>
   cancelReminder: (id: number) => Promise<unknown>
@@ -23,6 +24,13 @@ export async function cleanupAccountLocal(deps: AccountCleanupDeps): Promise<str
     deps.removeSavedEmail()
   } catch (error) {
     errors.push(`保存的邮箱：${String(error)}`)
+  }
+  if (deps.clearChatDrafts) {
+    try {
+      deps.clearChatDrafts()
+    } catch (error) {
+      errors.push(`聊天草稿：${String(error)}`)
+    }
   }
   if (deps.unregisterPush) {
     try {

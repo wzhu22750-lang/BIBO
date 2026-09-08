@@ -1,4 +1,5 @@
 import { InactiveEventOutbox } from '../components/InactiveEventOutbox'
+import { clearChatDraftsForUser } from '../lib/chatDraftStorage'
 import { AccountDeletion } from '../components/AccountDeletion'
 import { InactiveOutbox } from '../components/InactiveOutbox'
 import { useState } from 'react'
@@ -378,6 +379,7 @@ export function Onboarding({ controller }: { controller: SpaceController }) {
         className="text-button"
         onClick={() =>
           void run(async () => {
+            clearChatDraftsForUser(controller.space?.me.id || '')
             const { error } = await db().auth.signOut()
             if (error) throw error
           })

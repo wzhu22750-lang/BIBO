@@ -20,8 +20,10 @@ export function EventOutboxPanel({ controller }: { controller: SpaceController }
             <li key={row.id}>
               <strong>
                 {row.operation === 'create'
-                  ? row.input?.title || '未命名事件'
-                  : `删除事件「${controller.space?.events.find((event) => event.id === row.eventId)?.title || row.eventId}」`}
+                  ? `创建：${row.input?.title || '未命名事件'}`
+                  : row.operation === 'update'
+                    ? `修改：${row.input?.title || row.eventId}`
+                    : `删除事件「${controller.space?.events.find((event) => event.id === row.eventId)?.title || row.eventId}」`}
               </strong>
               <small>
                 {row.status === 'blocked'

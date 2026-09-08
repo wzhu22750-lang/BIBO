@@ -419,3 +419,22 @@ export async function deleteEventOnce(
   const request = db().rpc('delete_event_once', { event_id: eventId, space_id: coupleId })
   return must(await (signal ? request.abortSignal(signal) : request)) as boolean
 }
+
+export async function updateEventOnce(
+  eventId: string,
+  coupleId: string,
+  input: EventInput,
+  signal?: AbortSignal,
+): Promise<EventItem> {
+  const request = db().rpc('update_event_once', {
+    event_id: eventId,
+    space_id: coupleId,
+    event_title: input.title,
+    event_target_at: input.target_at,
+    event_kind: input.kind,
+    event_yearly: input.yearly,
+    event_emoji: input.emoji,
+    event_category: input.category || 'other',
+  })
+  return must(await (signal ? request.abortSignal(signal) : request)) as EventItem
+}

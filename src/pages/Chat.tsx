@@ -1,3 +1,4 @@
+import { clearChatDraft, readChatDraft, writeChatDraft } from '../lib/chatDraftStorage'
 import { clearSentDraft, type DraftSnapshot } from '../lib/chatDraft'
 import { useMessageHistory } from '../hooks/useMessageHistory'
 import { LinkedRecordPanel } from '../components/LinkedRecordPanel'
@@ -18,7 +19,7 @@ export function Chat({
   referenceId?: string
 }) {
   const space = controller.space!,
-    [draft, setDraft] = useState<DraftSnapshot>({ text: '', revision: 0 }),
+    [draft, setDraft] = useState<DraftSnapshot>(() => readChatDraft(space.me.id, space.couple!.id)),
     [memory, setMemory] = useState<Photo | null>(null),
     [emoji, setEmoji] = useState(false),
     { busy, run } = useTask(),
@@ -42,6 +43,16 @@ export function Chat({
   const anchor = useRef<{ height: number; top: number } | null>(null)
   const [unread, setUnread] = useState(false)
   const input = useRef<HTMLTextAreaElement>(null)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        writeChatDraft(space.me.id, space.couple!.id, draftRef.current)
+      } catch {
+        /* Draft persistence is optional; message sending remains authoritative. */
+      }
+    }, 180)
+    return () => clearTimeout(timer)
+  }, [draft.revision, space.me.id, space.couple!.id])
   useLayoutEffect(() => {
     const container = scroll.current
     if (container && anchor.current && !history.busy) {
@@ -62,6 +73,13 @@ export function Chat({
       const next = clearSentDraft(draftRef.current, sent)
       draftRef.current = next
       setDraft(next)
+      if (!next.text) {
+        try {
+          clearChatDraft(space.me.id, space.couple!.id)
+        } catch {
+          /* Optional cleanup. */
+        }
+      }
       input.current?.focus()
     })
   }

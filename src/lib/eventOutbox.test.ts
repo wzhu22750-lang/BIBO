@@ -4,6 +4,7 @@ import {
   eventDue,
   eventOperationForCreate,
   eventOperationForDelete,
+  eventOperationForUpdate,
   eventRetryDelay,
   failedEventAttempt,
   inactiveEventOutboxRows,
@@ -29,6 +30,12 @@ describe('durable event operation queue', () => {
     expect(confirmedEvent(create, { ...event, title: 'tampered' })).toBe(false)
     expect(sameEventScope(create, 'u', 'c')).toBe(true)
     expect(sameEventScope(create, 'u', 'other')).toBe(false)
+  })
+  it('models update intent and confirms a deleted creator without changing the target ID', () => {
+    const row = eventOperationForUpdate('u', 'c', 'event', input, 1)
+    expect(row.operation).toBe('update')
+    expect(confirmedEvent(row, { ...event, id: row.eventId, created_by: null })).toBe(true)
+    expect(confirmedEvent(row, { ...event, id: row.eventId, title: 'tampered' })).toBe(false)
   })
   it('models idempotent delete intent separately', () => {
     const row = eventOperationForDelete('u', 'c', 'event', 1)

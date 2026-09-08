@@ -6,13 +6,28 @@ import type { EventCategory } from '../lib/types'
 import { useState } from 'react'
 import type { EventItem } from '../lib/types'
 import type { SpaceController } from '../hooks/useSpace'
-import { daysUntil, dateLabel, nextOccurrence, sortedEvents, togetherDays } from '../lib/dates'
+import {
+  daysUntil,
+  dateLabel,
+  localDateTimeInput,
+  nextOccurrence,
+  sortedEvents,
+  togetherDays,
+} from '../lib/dates'
 import { Button, Modal, PageHeading, useTask, useToast } from '../components/ui'
 import { Icon } from '../components/PixelArt'
 import { EventArt, MapIcon } from '../components/EventArt'
 import { EventArtPicker } from '../components/EventArtPicker'
 import { eventArtConfig } from '../lib/eventArt'
-export function EventCard({ event, onDelete }: { event: EventItem; onDelete?: () => void }) {
+export function EventCard({
+  event,
+  onDelete,
+  onEdit,
+}: {
+  event: EventItem
+  onDelete?: () => void
+  onEdit?: () => void
+}) {
   const remaining = daysUntil(event.target_at, event.yearly)
   return (
     <article className={`event-card ${event.kind === 'anniversary' ? 'anniversary' : ''}`}>
@@ -23,6 +38,15 @@ export function EventCard({ event, onDelete }: { event: EventItem; onDelete?: ()
         <span className="event-type">
           {event.yearly ? '每年纪念' : event.kind === 'anniversary' ? '纪念日' : '共同倒计时'}
         </span>
+        {onEdit && (
+          <button
+            className="icon-button edit-event"
+            aria-label={`编辑${event.title}`}
+            onClick={onEdit}
+          >
+            <Icon name="edit" size={12} />
+          </button>
+        )}
         {onDelete && (
           <button
             className="icon-button delete-event"
@@ -56,37 +80,46 @@ export function EventCard({ event, onDelete }: { event: EventItem; onDelete?: ()
 export function EventForm({
   onClose,
   controller,
+  event,
 }: {
   onClose: () => void
   controller: SpaceController
+  event?: EventItem
 }) {
   const { busy, run } = useTask(),
     toast = useToast()
-  const [title, setTitle] = useState(''),
-    [category, setCategory] = useState<EventCategory>('other'),
-    [kind, setKind] = useState<'anniversary' | 'countdown'>('countdown'),
-    [target, setTarget] = useState(''),
-    [yearly, setYearly] = useState(false),
-    [emoji, setEmoji] = useState('icon:heart')
+  const [title, setTitle] = useState(event?.title || ''),
+    [category, setCategory] = useState<EventCategory>(event?.category || 'other'),
+    [kind, setKind] = useState<'anniversary' | 'countdown'>(event?.kind || 'countdown'),
+    [target, setTarget] = useState(event ? localDateTimeInput(event.target_at) : ''),
+    [yearly, setYearly] = useState(event?.yearly || false),
+    [emoji, setEmoji] = useState(event?.emoji || 'icon:heart')
   return (
-    <Modal title="添加一份小期待" onClose={onClose}>
+    <Modal title={event ? '编辑这份期待' : '添加一份小期待'} onClose={onClose}>
       <form
         className="form-stack"
         onSubmit={(e) => {
           e.preventDefault()
           void run(async () => {
-            const result = await controller.addEvent({
+            const input = {
               title: title.trim(),
               target_at: new Date(target).toISOString(),
               kind,
               yearly: kind === 'anniversary' && yearly,
               emoji,
               category,
-            })
+            }
+            const result = event
+              ? await controller.updateEvent(event.id, input)
+              : await controller.addEvent(input)
             toast(
               result.queued
-                ? '期待已保存在本机，联网后同步到你们的空间'
-                : '新的期待，已加入我们的小宇宙',
+                ? event
+                  ? '修改意图已保存在本机，联网后同步'
+                  : '期待已保存在本机，联网后同步到你们的空间'
+                : event
+                  ? '事件修改已保存'
+                  : '新的期待，已加入我们的小宇宙',
             )
             onClose()
           })
@@ -147,14 +180,22 @@ export function EventForm({
         )}
         <p className="form-note">按本机时区保存具体时间；首页按自然日显示，临近的期待排在前面。</p>
         <Button disabled={busy || !title.trim()} type="submit" tone="green">
-          {busy ? '保存中…' : '把期待存起来'}
-          <Icon name="plus" size={16} />
+          {busy ? '保存中…' : event ? '保存事件修改' : '把期待存起来'}
+          <Icon name={event ? 'check' : 'plus'} size={16} />
         </Button>
       </form>
     </Modal>
   )
 }
-function CelebrationCard({ event, onDelete }: { event: EventItem; onDelete: () => void }) {
+function CelebrationCard({
+  event,
+  onDelete,
+  onEdit,
+}: {
+  event: EventItem
+  onDelete: () => void
+  onEdit: () => void
+}) {
   const art = eventArtConfig(event.emoji)
   const days = daysUntil(event.target_at, event.yearly)
   return (
@@ -191,6 +232,13 @@ function CelebrationCard({ event, onDelete }: { event: EventItem; onDelete: () =
         <span className="micro">{days === 0 ? 'MAKE A MEMORY!' : 'DAYS'}</span>
       </div>
       <button
+        className="icon-button celebration-edit"
+        aria-label={`编辑${event.title}`}
+        onClick={onEdit}
+      >
+        <Icon name="edit" size={12} />
+      </button>
+      <button
         className="icon-button celebration-delete"
         aria-label={`删除${event.title}`}
         onClick={onDelete}
@@ -220,12 +268,18 @@ export function Events({
 }) {
   const [adding, setAdding] = useState(false),
     [deleting, setDeleting] = useState<EventItem | null>(null),
-    [filter, setFilter] = useState('all')
+    [editing, setEditing] = useState<EventItem | null>(null),
+    [filter, setFilter] = useState('all'),
+    [categoryFilter, setCategoryFilter] = useState<EventCategory | 'all'>('all')
   const { busy, run } = useTask(),
     toast = useToast()
   const space = controller.space!
   const ordered = sortedEvents(space.events)
-  const events = ordered.filter((e) => filter === 'all' || e.kind === filter)
+  const events = ordered.filter(
+    (e) =>
+      (filter === 'all' || e.kind === filter) &&
+      (categoryFilter === 'all' || (e.category || 'other') === categoryFilter),
+  )
   const days = togetherDays(space.couple!.together_since)
   const milestones = [
     { target: 100, name: '100 天心动', art: 'heart' },
@@ -329,6 +383,21 @@ export function Events({
             </button>
           ))}
         </div>
+        <label className="event-category-filter">
+          按类型
+          <select
+            aria-label="按事件类型筛选"
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value as EventCategory | 'all')}
+          >
+            <option value="all">全部类型</option>
+            {eventCategories.map((item) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </label>
         <span className="list-sort">
           <MapIcon size={16} />
           从近到远，慢慢靠近
@@ -338,7 +407,12 @@ export function Events({
         <div className="celebration-list">
           {events.length ? (
             events.map((event) => (
-              <CelebrationCard key={event.id} event={event} onDelete={() => setDeleting(event)} />
+              <CelebrationCard
+                key={event.id}
+                event={event}
+                onEdit={() => setEditing(event)}
+                onDelete={() => setDeleting(event)}
+              />
             ))
           ) : (
             <div className="event-empty">
@@ -403,6 +477,9 @@ export function Events({
         </p>
       </div>
       {adding && <EventForm controller={controller} onClose={() => setAdding(false)} />}
+      {editing && (
+        <EventForm event={editing} controller={controller} onClose={() => setEditing(null)} />
+      )}
       {deleting && (
         <Modal title="告别这份期待？" onClose={() => setDeleting(null)}>
           <div className="form-stack">

@@ -8,6 +8,7 @@ import {
   enqueueEvent,
   eventDue,
   eventOperationForCreate,
+  eventOperationForUpdate,
   eventOperationForDelete,
   failedEventAttempt,
   listEventOutbox,
@@ -20,9 +21,12 @@ export function useEventOutbox(
   coupleId: string | undefined,
   enabled: boolean,
   onCommitted: (
-    value: { operation: 'create'; event: EventItem } | { operation: 'delete'; eventId: string },
+    value:
+      | { operation: 'create' | 'update'; event: EventItem }
+      | { operation: 'delete'; eventId: string },
   ) => void,
   create = api.createEventOnce,
+  update = api.updateEventOnce,
   remove = api.deleteEventOnce,
 ) {
   const [state, setState] = useState<{
@@ -51,12 +55,15 @@ export function useEventOutbox(
         if (row.status === 'blocked') continue
         if (!eventDue(row)) break // Preserve create/delete order while an earlier operation backs off
         try {
-          if (row.operation === 'create') {
+          if (row.operation === 'create' || row.operation === 'update') {
             if (!row.input) throw { message: '待同步事件内容缺失', code: 'EVENT_OUTBOX_INVALID' }
+            const sender = row.operation === 'create' ? create : update
             const saved = await withRequestDeadline(
-              (signal) => create(row.eventId, coupleId, row.input!, signal),
+              (signal) => sender(row.eventId, coupleId, row.input!, signal),
               20000,
-              '事件同步超时，结果尚未确认；原事件意图已保留，稍后使用同一 ID 重试',
+              row.operation === 'create'
+                ? '事件同步超时，结果尚未确认；原事件意图已保留，稍后使用同一 ID 重试'
+                : '事件编辑超时，结果尚未确认；原事件意图已保留，稍后使用同一 ID 重试',
             )
             if (!confirmedEvent(row, saved))
               throw {
@@ -64,7 +71,8 @@ export function useEventOutbox(
                 code: 'EVENT_OUTBOX_MISMATCH',
               }
             await changeEventOutbox(row.id, userId, coupleId, () => null)
-            if (scopeRef.current === scope) callback.current({ operation: 'create', event: saved })
+            if (scopeRef.current === scope)
+              callback.current({ operation: row.operation, event: saved })
           } else {
             const confirmed = await withRequestDeadline(
               (signal) => remove(row.eventId, coupleId, signal),
@@ -91,7 +99,7 @@ export function useEventOutbox(
     } finally {
       running.current.delete(scope)
     }
-  }, [enabled, userId, coupleId, scope, refresh, create, remove])
+  }, [enabled, userId, coupleId, scope, refresh, create, update, remove])
   useEffect(() => {
     scopeRef.current = scope
     let active = true
@@ -122,6 +130,13 @@ export function useEventOutbox(
     async enqueueCreate(input: EventInput) {
       if (!userId || !coupleId) throw new Error('请先登录并进入空间')
       const row = eventOperationForCreate(userId, coupleId, input)
+      await enqueueEvent(row)
+      await refresh().catch(() => {})
+      void flush()
+    },
+    async enqueueUpdate(eventId: string, input: EventInput) {
+      if (!userId || !coupleId) throw new Error('请先登录并进入空间')
+      const row = eventOperationForUpdate(userId, coupleId, eventId, input)
       await enqueueEvent(row)
       await refresh().catch(() => {})
       void flush()

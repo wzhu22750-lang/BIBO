@@ -34,6 +34,7 @@ export type IconName =
   | 'star'
   | 'check'
   | 'upload'
+  | 'edit'
   | 'spark'
 const paths: Record<IconName, string> = {
   home: 'M10 2h4v2h2v2h2v2h2v2h2v4h-4v8h-6v-6h-2v6H4v-8H2v-4h2V8h2V6h2V4h2zm0 6H8v2H6v10h2v-6h6v6h2V10h-2V8h-2V6h-2z',
@@ -55,6 +56,7 @@ const paths: Record<IconName, string> = {
   star: 'M10 1h4v6h3v3h6v4h-6v3h-3v6h-4v-6H7v-3H1v-4h6V7h3z',
   check: 'M18 4h4v5h-3v3h-3v3h-3v3h-3v3H6v-3H3v-3H0v-5h4v3h3v3h3v-3h3v-3h3V7h2z',
   upload: 'M10 2h4v3h3v3h3v3h-5v6H9v-6H4V8h3V5h3zM2 16h3v4h14v-4h3v7H2z',
+  edit: 'M3 17v4h4L19 9l-4-4zm3 2v-1l9-9 1 1-9 9zm11-12 2-2 3 3-2 2z',
   spark: 'M9 0h3v5h3v3h5v3h-5v3h-3v5H9v-5H6v-3H1V8h5V5h3zm10 16h2v3h3v2h-3v3h-2v-3h-3v-2h3z',
 }
 export function Icon({

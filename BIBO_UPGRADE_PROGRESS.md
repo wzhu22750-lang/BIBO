@@ -391,7 +391,7 @@ Widget、快捷入口、AI 仅在核心体验稳定后考虑，不提前堆砌�
 - `BiboNative.push.register/unregister/listenAction`：Android 申请 Push 权限、注册 FCM token、监听点击路由；Web fallback 明确 unsupported，不使用浏览器假 token。无 `google-services.json`、权限拒绝或 token 超时都会返回失败说明。
 - 新迁移 `202609080010_device_push_tokens.sql` 创建 RLS 保护的 device_installations；token 只允许当前账号读写，账号删除由 profiles 外键级联清理。客户端只登记 token/版本，不包含 service key，也不发送伴侣消息。
 - Settings 增加“登记这台设备接收 Push”和撤销入口；注销本机清理额外撤销 Push token。Push 点击复用内部安全路由，不接受任意外部 URL。
-- Web 浏览器 390px 验证 Push fallback、撤销按钮状态和无横向溢出；Push registration 单元测试覆盖 unsupported、成功登记、原生撤销失败不删服务器 token、成功撤销清理当前账号全部 token。
+- Web 浏览器 390px 验证 Push fallback、撤销按钮状态和无横向溢出；Push registration 单元测试覆盖 unsupported、成功登记、原生撤销失败不删服务器 token、成功撤销仅清理当前设备 token，不能清理账号其他设备。
 - npm audit 仍为 0；typecheck、193 tests（26 files）、Web build、Capacitor sync、Gradle assembleDebug 通过。首次安装尝试 8.5.1 发现该插件版本不存在，改用 npm 实际存在的 8.1.2；未凭经验写死不存在版本。
 - 真实 Firebase 项目、google-services.json、FCM 服务端发送 Edge Function、双设备后台送达和 Android 真机尚未验收；token 登记绝不等于消息送达。远程 Push 全链路仍未完成。
 
@@ -423,3 +423,82 @@ Widget、快捷入口、AI 仅在核心体验稳定后考虑，不提前堆砌�
 - Events 页面新增同步队列，显示等待/最早重试/失败原意图，可重试或移除本机意图；照片文件上传仍要求在线，不伪装可离线。
 - typecheck、205 tests（29 files）、Web build、Capacitor sync、Gradle assembleDebug 通过；PGlite 测试覆盖事件 RPC 幂等、篡改/空间/匿名边界；output/event-outbox-smoke.js 使用实际 IndexedDB + hook 验证断网入队、同 ID 重试不重复、删除确认、blocked 原文保留和退避。
 - 当前边界：事件队列测试发送端为注入替身，真实 Supabase Webhook/HTTP 仍需验收；已绑定空间被服务器撤销时队列会 blocked，不会迁移到新空间。照片文件离线上传、完整操作队列导入/导出、厂商后台仍未完成。
+
+## 事件队列后续：解绑后的本机事件意图
+
+- 新增 InactiveEventOutbox；解除关系/重新绑定后只显示当前账号留在旧空间的创建/删除意图，当前新空间操作不泄露。旧意图可复制摘要或确认移除，不提供自动迁移/重发。
+- output/inactive-event-smoke.js 用真实 IndexedDB + 实际组件验证旧事件可见、当前空间事件隐藏、取消不删除、确认只清旧记录；测试数据已清理。
+- README Focus 说明已同步为：UsageStats 需本人明确授权且只在设备本地估算，不上传给伴侣。
+
+## Android Deep Link 运行验收
+
+- `DeepLinkPolicy` 将 Android Intent extra 和 `love.bibu.space://` data URI 转换为白名单 hash；仅允许已知页面和 message/event ID，恶意 scheme/path/query 回退为安全页面或忽略。Manifest 注册 VIEW/DEFAULT/BROWSABLE 自定义 scheme。
+- Kotlin 本地测试不再依赖未 mock 的 Intent/Uri，而测试纯规则输入；11 项 Android unit tests（含 UsageWindow/ReminderPolicy/DeepLinkPolicy）通过。
+- Android 35 Pixel_8_Pro AVD 实测：`am start -a VIEW -d 'love.bibu.space://chat?message=abc_123' -n love.bibu.space/.MainActivity` 返回 ok，调试 WebView 实际 `location.hash` 为 `#chat?message=abc_123`，页面标题为 BIBO。此为模拟器路由证据，不等于真实浏览器点击或真机 Android App Links 验证。
+- 最新 APK 构建、Capacitor sync、Gradle unit test + assembleDebug 均通过。FCM 配置、系统通知点击和厂商策略另行验收。
+
+## 继续验收记录：Deep Link 与 Firebase 预检
+
+- 当前 Android 35 AVD `emulator-5554` 保持可用；安装最新 APK 后用真实 `am start -a android.intent.action.VIEW -d 'love.bibu.space://chat?message=abc_123' -n love.bibu.space/.MainActivity`，系统返回 `Status: ok`，WebView CDP 实际 hash 为 `#chat?message=abc_123`，证明 Manifest → MainActivity → Kotlin bridge → React hash 路由链路。
+- 该运行环境没有 Firebase 配置；`BiboDevice.firebaseConfiguration` 实测返回 `supported=true, configured=false`。直接绕过产品预检调用官方插件曾取证到 Firebase 未初始化日志；产品入口现在先拦截，不主动触发官方异常路径。没有把无 Firebase 当成 Push 注册成功。
+- 新增 FCM 默认 channel/id 图标；Push 插件和自有 Kotlin bridge build 通过。FCM 配置后仍需真实权限弹窗、token、Webhook 和双设备验证。
+
+## Web 离线壳：Service Worker 资源缓存
+
+- 新增 `public/sw.js`，仅缓存同源 `/`、`index.html`、`assets/`、本地 `/demo/` 和 favicon；Service Worker 自身不缓存，POST、Supabase REST、Storage、Functions 路径一律不缓存，避免私密响应/签名 URL进入离线 Cache Storage。
+- 导航请求 network-first，网络失败回退已缓存 index；静态资源 cache-first；版本切换清理旧的 BIBO shell cache。`main.tsx` 仅生产环境注册，注册失败只警告，不影响页面。
+- 与主动开启的 spaceCache 分工：Service Worker 提供页面壳，spaceCache 提供按账号校验的业务快照；首次从未联网打开不能凭空离线启动，业务缓存仍默认关闭。
+- 3 项 policy 测试覆盖同源静态资源、API/Storage/Functions 排除、非 GET 与导航识别。preview 浏览器实测 cache key 为 bibo-shell-20260908-v1，缓存了构建资源/演示图片且 `apiCached=false`；切换离线后页面标题和 Home 标题正常加载、受 SW 控制、无 pageerror，随后恢复在线。
+- 当前未在 Android WebView 冷启动验证 Service Worker，亦未缓存 Supabase 数据；这不是远程 Push/后台同步替代品。整体目标继续进行中。
+
+## 2026-09-08 当前回归基线
+
+- 迁移链当前为初始 SQL + 202609080001–202609080012，必须按文件名顺序执行；README/DATABASE 已同步到 011。
+- TypeScript/Vitest 当前 208 tests（30 files）通过；`npm run format:check`、`npm run typecheck`、`npm run test`、`npm run build`、`npm audit --omit=dev`（0）通过。
+- `npm run android:build` 当前可完成 Web build、Capacitor sync、Android debug APK；最新构建含 Push Notifications、Firebase 配置预检、Deep Link、事件队列和 Service Worker 资源。
+- Android 35 AVD 曾实际验证自定义 Deep Link；没有 Firebase 配置时实际 `BiboDevice.firebaseConfiguration` 为 false。不存在真机、真实 Supabase、FCM 或 Edge Function 的当前运行证据，相关目标继续标记为未验收。
+
+## Android WebView 离线壳验收
+
+- 最新 APK 安装到 Android 35 Pixel_8_Pro 后，Capacitor origin `https://localhost` 支持 Service Worker；首次 3 秒查询仍处于注册前窗口，手动触发 registration 作为诊断确认脚本可激活。随后等待 500ms，实际 `navigator.serviceWorker.controller=true`、scope 为 `https://localhost/`、Cache Storage 包含 `bibo-shell-20260908-v1`。
+- Logcat 确认 `https://localhost/sw.js` 由 Capacitor 本地服务提供，BiboDevice 和 PushNotifications 均正常注册；没有把首次尚未 controller 当作失败。
+- 这证明 Android WebView 可以使用静态离线壳；尚未做断网冷启动/强制停止后的业务快照恢复，因此仍不能声称 Android 全离线可靠。
+
+## 数据导出运行验收
+
+- 2026-09-08 在本地演示浏览器实际调用 `downloadSpace`：生成 `application/json` Blob，大小 2130 bytes，文件名 `bibo-space-2026-09-08.json`，schema=1、scope=`currently_loaded`。
+- 对生成内容检查无 `token=`、`access_token`、`service_role`、演示账号 ID；导出仅使用演示数据，不访问真实账号。
+
+## 移动端聊天体验增量：会话级草稿恢复
+
+- Chat 草稿按当前账号和空间写入 sessionStorage，延迟 180ms 保存，最多 24 小时；切换组件或刷新后恢复，空草稿立即清除。不会进入 Supabase、spaceCache 或导出文件，避免把未发送私密内容长期落盘。
+- 与发送 revision 保护结合：成功只清除未被编辑的提交草稿；发送失败、新输入和同文重新输入都保留。账户注销时已有本机会话清理会随账号会话结束，页面关闭也由浏览器清理 sessionStorage。
+- 新增 3 项存储测试；重新执行实际 Chat 组件浏览器 smoke，验证刷新/重挂载恢复“刷新后仍在的草稿”，并再次验证发送中输入保护。
+- 本轮浏览器测试数据恢复原始 `bibo-chat-draft-v1:demo-me:demo`；无真实账号数据。
+
+## 离线壳更新安全修复
+
+- Service Worker 不再缓存 `/sw.js` 自身，避免旧脚本阻止版本更新；版本淘汰只处理 `bibo-shell-*` 旧缓存。
+- 更新后的 preview 实测 controller=true、`hasServiceWorkerScript=false`、`apiCached=false`，静态资源仍可由 `bibo-shell-20260908-v1` 提供。
+- 212 tests、typecheck、format:check、Web build 继续通过；Android WebView 之前的 Service Worker 注册证据仍有效，尚未重新做 Android 冷启动。
+
+## Events 长期维护：编辑事件
+
+- 新增 `202609080012_event_edit.sql` 的 `update_event_once` RPC：只允许当前空间成员编辑，服务端应用标题/时间/类型/年度/图标/分类校验并返回真实行；已注销创建者不阻止剩余成员维护事件。不存在事件、跨空间和匿名请求拒绝。
+- Event outbox 扩展 update 操作，固定 event ID，编辑结果不创建副本；创建/编辑共享 exact-row confirmation，网络不确定时按当前队列顺序退避重试。
+- EventForm 支持创建/编辑复用，保留本机时区 datetime-local；Events 卡片提供编辑入口，演示/真实路径文案区分“修改已保存”和“修改意图已保存在本机”。
+- 新增时间输入与 update confirmation 测试；output/event-edit-smoke.js 实际演示浏览器验证已有事件加载、修改标题/类型/年度、刷新持久化、390px 无溢出、无 pageerror，测试后恢复原始演示数据。
+- 本轮最终 TypeScript 检查、测试和构建已通过；数据库新迁移未部署，真实云端编辑权限与多人并发尚未验收。
+
+## Events 分类筛选与移动端修复（2026-09-08）
+
+- Events 列表新增日常小事/纪念日/约会/旅行/生日分类筛选；新演示数据补充 travel/birthday/date 分类，真实旧行缺分类仍显示为日常小事，不改写云端旧记录。
+- 初次 320px 验收发现分类控件作为 nowrap flex item 溢出到 393px；通过移动端换行和 100% flex-basis 修复，没有隐藏筛选功能。修复后 Travel/Birthday 筛选均正确，320px 无横向溢出。
+- 回归：215 TypeScript/Vitest tests、typecheck、format:check、Web build、Capacitor sync、Gradle assembleDebug 通过。
+
+## 账号退出/注销隐私修复：会话聊天草稿清理
+
+- Chat 草稿虽然只在 sessionStorage，但退出登录或账号注销后仍可能留在当前浏览器会话。新增按 userId 批量清理，删除前先拍快照避免遍历时跳过 key；不碰其他账号的草稿。
+- AccountDeletion 成功后的本机清理加入聊天草稿；普通退出登录和无空间入口退出也清理当前账号草稿。云端注销未确认时不提前删除，避免服务器失败导致不可恢复的本机数据丢失。
+- 新增测试覆盖多空间同账号清理、其他账号保留和清理异常；现有 Chat 草稿恢复/发送保护继续通过。
+- 本轮测试最初暴露测试 sessionStorage 替身缺少 key/length，补齐后 216 tests（31 files）通过。

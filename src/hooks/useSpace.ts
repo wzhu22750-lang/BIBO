@@ -3,6 +3,7 @@ import { clearOutboxForUser } from '../lib/outbox'
 import { clearEventOutboxForUser } from '../lib/eventOutbox'
 import { useEventOutbox } from './useEventOutbox'
 import { cleanupAccountLocal } from '../lib/accountCleanup'
+import { clearChatDraftsForUser } from '../lib/chatDraftStorage'
 import { BiboNative } from '../native'
 import { incomingPingNotification } from '../lib/pingNotification'
 import { withRequestDeadline } from '../lib/requestDeadline'
@@ -138,15 +139,7 @@ export function useSpace(
   const eventOutbox = useEventOutbox(userId, cid, !demo, (value) => {
     const current = stateRef.current
     if (!current || current.couple?.id !== cid) return
-    if (value.operation === 'create') {
-      const events = [
-        ...current.events.filter((event) => event.id !== value.event.id),
-        value.event,
-      ].sort((a, b) => a.target_at.localeCompare(b.target_at) || a.id.localeCompare(b.id))
-      const next = { ...current, events }
-      stateRef.current = next
-      setSpace(next)
-    } else {
+    if (value.operation === 'delete') {
       const next = {
         ...current,
         events: current.events.filter((event) => event.id !== value.eventId),
@@ -154,6 +147,14 @@ export function useSpace(
           photo.event_id === value.eventId ? { ...photo, event_id: null } : photo,
         ),
       }
+      stateRef.current = next
+      setSpace(next)
+    } else {
+      const events = [
+        ...current.events.filter((event) => event.id !== value.event.id),
+        value.event,
+      ].sort((a, b) => a.target_at.localeCompare(b.target_at) || a.id.localeCompare(b.id))
+      const next = { ...current, events }
       stateRef.current = next
       setSpace(next)
     }
@@ -317,6 +318,24 @@ export function useSpace(
             ...s.events,
             { ...input, id: crypto.randomUUID(), couple_id: cid, created_by: me },
           ],
+        }),
+      )
+      return { queued: false }
+    },
+    async updateEvent(id: string, input: EventInput): Promise<{ queued: boolean }> {
+      if (!cid) throw new Error('请先进入空间')
+      const current = stateRef.current?.events.find((event) => event.id === id)
+      if (!current) throw new Error('事件不存在或已刷新，请重新打开')
+      const normalized = { ...input, category: input.category || 'other' }
+      if (!demo) {
+        await eventOutbox.enqueueUpdate(id, normalized)
+        return { queued: true }
+      }
+      await mutate(
+        () => api.updateEventOnce(id, cid, normalized),
+        (s) => ({
+          ...s,
+          events: s.events.map((event) => (event.id === id ? { ...event, ...normalized } : event)),
         }),
       )
       return { queued: false }
@@ -518,6 +537,7 @@ export function useSpace(
           await clearEventOutboxForUser(userId)
         },
         removeSavedEmail: () => localStorage.removeItem('bibu-saved-email'),
+        clearChatDrafts: () => clearChatDraftsForUser(userId),
         unregisterPush: async () => {
           const result = await BiboNative.push.unregister()
           if (!result.supported && result.reason && !result.reason.includes('Web'))

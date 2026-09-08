@@ -58,6 +58,7 @@ beforeAll(async () => {
   await pg.exec(readFileSync('supabase/migrations/202609080009_account_deletion.sql', 'utf8'))
   await pg.exec(readFileSync('supabase/migrations/202609080010_device_push_tokens.sql', 'utf8'))
   await pg.exec(readFileSync('supabase/migrations/202609080011_event_outbox.sql', 'utf8'))
+  await pg.exec(readFileSync('supabase/migrations/202609080012_event_edit.sql', 'utf8'))
   legacyAfter = (await pg.query<Record<string, unknown>>('select * from public.photos')).rows[0]
   legacyEvent = (await pg.query<Record<string, unknown>>('select * from public.events')).rows[0]
   await pg.exec(
@@ -566,6 +567,96 @@ describe.sequential('private two-player database boundary', () => {
     await pg.exec('reset role; set role anon')
     await expect(
       pg.query('select public.delete_event_once($1,$2)', [id, otherCouple]),
+    ).rejects.toThrow()
+  })
+  it('edits an event for either member with a confirmed server row', async () => {
+    await asUser(C)
+    const id = (await scalar(
+      "insert into public.events(couple_id,created_by,title,target_at,kind,category) values($1,$2,'旧标题',now(),'countdown','other') returning id",
+      [otherCouple, C],
+    )) as string
+    const updated = (
+      await pg.query('select * from public.update_event_once($1,$2,$3,$4,$5,$6,$7,$8)', [
+        id,
+        otherCouple,
+        '新标题',
+        '2031-02-03T04:05:06Z',
+        'anniversary',
+        true,
+        'icon:heart',
+        'anniversary',
+      ])
+    ).rows[0]
+    expect(updated.title).toBe('新标题')
+    expect(updated.kind).toBe('anniversary')
+    expect(updated.yearly).toBe(true)
+    expect(updated.created_by).toBe(C)
+    await asUser(D)
+    expect(
+      (
+        await pg.query('select * from public.update_event_once($1,$2,$3,$4,$5,$6,$7,$8)', [
+          id,
+          otherCouple,
+          'TA 改的标题',
+          '2032-02-03T04:05:06Z',
+          'countdown',
+          false,
+          'icon:dog',
+          'date',
+        ])
+      ).rows[0].title,
+    ).toBe('TA 改的标题')
+    expect(
+      (
+        await pg.query('select * from public.update_event_once($1,$2,$3,$4,$5,$6,$7,$8)', [
+          id,
+          otherCouple,
+          'tamper',
+          '2032-02-03T04:05:06Z',
+          'countdown',
+          false,
+          'icon:dog',
+          'date',
+        ])
+      ).rows[0].title,
+    ).toBe('tamper')
+    await expect(
+      pg.query('select * from public.update_event_once($1,$2,$3,$4,$5,$6,$7,$8)', [
+        '50000000-0000-4000-8000-000000000099',
+        otherCouple,
+        'missing',
+        '2032-02-03T04:05:06Z',
+        'countdown',
+        false,
+        'icon:dog',
+        'date',
+      ]),
+    ).rejects.toThrow('不存在')
+    await asUser(A)
+    await expect(
+      pg.query('select * from public.update_event_once($1,$2,$3,$4,$5,$6,$7,$8)', [
+        id,
+        otherCouple,
+        'cross',
+        '2032-02-03T04:05:06Z',
+        'countdown',
+        false,
+        'icon:dog',
+        'date',
+      ]),
+    ).rejects.toThrow('空间')
+    await pg.exec('reset role; set role anon')
+    await expect(
+      pg.query('select * from public.update_event_once($1,$2,$3,$4,$5,$6,$7,$8)', [
+        id,
+        otherCouple,
+        'anon',
+        '2032-02-03T04:05:06Z',
+        'countdown',
+        false,
+        'icon:dog',
+        'date',
+      ]),
     ).rejects.toThrow()
   })
   it('isolates device Push tokens to the owning account and cascades them on deletion', async () => {

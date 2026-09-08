@@ -1,5 +1,6 @@
 import { InactiveEventOutbox } from '../components/InactiveEventOutbox'
 import { downloadSpace } from '../lib/spaceExport'
+import { clearChatDraftsForUser } from '../lib/chatDraftStorage'
 import { PushRegistrationPanel } from '../components/PushRegistrationPanel'
 import { AccountDeletion } from '../components/AccountDeletion'
 import { InactiveOutbox } from '../components/InactiveOutbox'
@@ -383,6 +384,7 @@ export function Settings({
                     ? exitDemo()
                     : void run(async () => {
                         controller.clearOfflineSnapshot()
+                        clearChatDraftsForUser(space.me.id)
                         const { error } = await db().auth.signOut()
                         if (error) throw error
                       })

@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   listReminders: vi.fn(),
   usagePermission: vi.fn(),
   openUsageSettings: vi.fn(),
+  firebaseConfiguration: vi.fn(),
 }))
 vi.mock('@capacitor/core', () => ({
   Capacitor: { getPlatform: () => mocks.platform },
@@ -49,6 +50,14 @@ describe('BiboNative boundary', () => {
     expect(safeNativeRoute('https://evil.test')).toBe('#home')
     expect(safeNativeRoute('#chat?message=abc')).toBe('#chat?message=abc')
     expect(safeNativeRoute('#chat?message=../x')).toBe('#chat')
+  })
+  it('blocks Push registration before the official plugin when Firebase is absent', async () => {
+    mocks.platform = 'android'
+    mocks.firebaseConfiguration.mockResolvedValue({ supported: true, configured: false })
+    expect(await BiboNative.push.register()).toEqual({
+      supported: false,
+      reason: 'Android 未配置 Firebase google-services.json，未调用 Push 注册',
+    })
   })
   it('uses the Android bridge and validates untrusted vibration input', async () => {
     mocks.platform = 'android'

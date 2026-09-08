@@ -4,7 +4,7 @@ export type EventOutboxOperation = {
   eventId: string
   userId: string
   coupleId: string
-  operation: 'create' | 'delete'
+  operation: 'create' | 'update' | 'delete'
   queuedAt: number
   status: 'pending' | 'blocked'
   error?: string
@@ -70,6 +70,24 @@ export function eventOperationForCreate(
     input: { ...input },
   }
 }
+export function eventOperationForUpdate(
+  userId: string,
+  coupleId: string,
+  eventId: string,
+  input: EventInput,
+  now = Date.now(),
+): EventOutboxOperation {
+  return {
+    id: crypto.randomUUID(),
+    eventId,
+    userId,
+    coupleId,
+    operation: 'update',
+    queuedAt: now,
+    status: 'pending',
+    input: { ...input },
+  }
+}
 export function eventOperationForDelete(
   userId: string,
   coupleId: string,
@@ -89,11 +107,11 @@ export function eventOperationForDelete(
 export function confirmedEvent(row: EventOutboxOperation, saved: EventItem) {
   const input = row.input
   return (
-    row.operation === 'create' &&
+    (row.operation === 'create' || row.operation === 'update') &&
     !!input &&
     saved.id === row.eventId &&
     saved.couple_id === row.coupleId &&
-    saved.created_by === row.userId &&
+    (row.operation === 'update' || saved.created_by === row.userId) &&
     saved.title === input.title &&
     saved.target_at === input.target_at &&
     saved.kind === input.kind &&
