@@ -1,8 +1,17 @@
 #!/usr/bin/env python3
-"""Generate BIBU app icons from a 32×32 pixel map."""
+"""Generate BIBU app icons from scripts/app-icon-source.png (full-bleed artwork).
+
+The source art is a complete icon (opaque, square-ish). It is used:
+  - Web / legacy Android: full-bleed, resized.
+  - Android adaptive foreground: scaled down to FIT_FRACTION of the 108dp
+    canvas (safe zone is 72/108 = 66.7%) and centred, so launcher masks
+    never clip the artwork. The yellow ic_launcher_background shows around it.
+"""
 
 from __future__ import annotations
 
+import base64
+import io
 import math
 from pathlib import Path
 
@@ -11,57 +20,13 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 RES = ROOT / "android" / "app" / "src" / "main" / "res"
 PUBLIC = ROOT / "public"
+SOURCE = ROOT / "scripts" / "app-icon-source.png"
 
 YELLOW = (255, 242, 56, 255)  # #fff238
-INK = (32, 33, 29, 255)  # #20211d
-PAPER = (255, 254, 247, 255)  # #fffef7
-PINK = (255, 166, 232, 255)  # #ffa6e8
 TRANSPARENT = (0, 0, 0, 0)
 
-COLORS = {
-    ".": YELLOW,
-    " ": TRANSPARENT,
-    "K": INK,
-    "W": PAPER,
-    "P": PINK,
-}
-
-# 32×32. Heart sits in the Android adaptive safe zone (~18% inset).
-# . yellow  K ink  W paper highlight  P ping spark
-PIXELS = [
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "........................PP......",
-    "........................PP......",
-    "................................",
-    ".......KKWWKK......KKKKKK.......",
-    "......KKWWKKKK....KKKKKKKK......",
-    "......KKKKKKKKK..KKKKKKKKK......",
-    "......KKKKKKKKKKKKKKKKKKKK......",
-    "......KKKKKKKKKKKKKKKKKKKK......",
-    ".......KKKKKKKKKKKKKKKKKK.......",
-    "........KKKKKKKKKKKKKKKK........",
-    ".........KKKKKKKKKKKKKK.........",
-    "..........KKKKKKKKKKKK..........",
-    "...........KKKKKKKKKK...........",
-    "............KKKKKKKK............",
-    ".............KKKKKK.............",
-    "..............KKKK..............",
-    "...............KK...............",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-]
+# Adaptive icon: content must stay inside the central 66.7% safe zone.
+FIT_FRACTION = 0.66
 
 DENSITIES = {
     "mdpi": 1,
@@ -72,28 +37,15 @@ DENSITIES = {
 }
 
 
-def assert_map() -> None:
-    assert len(PIXELS) == 32, len(PIXELS)
-    for i, row in enumerate(PIXELS):
-        assert len(row) == 32, f"row {i} len {len(row)}"
-        assert set(row) <= set(COLORS), f"row {i} bad chars {set(row) - set(COLORS)}"
-
-
-def paint(transparent: bool) -> Image.Image:
-    img = Image.new("RGBA", (32, 32), TRANSPARENT if transparent else YELLOW)
-    px = img.load()
-    for y, row in enumerate(PIXELS):
-        for x, ch in enumerate(row):
-            if ch == ".":
-                if not transparent:
-                    px[x, y] = YELLOW
-                continue
-            px[x, y] = COLORS[ch]
-    return img
+def square_crop(src: Image.Image) -> Image.Image:
+    """Crop to the largest centred square."""
+    w, h = src.size
+    side = min(w, h)
+    return src.crop(((w - side) // 2, (h - side) // 2, (w + side) // 2, (h + side) // 2))
 
 
 def scale(src: Image.Image, size: int) -> Image.Image:
-    return src.resize((size, size), Image.Resampling.NEAREST)
+    return src.resize((size, size), Image.Resampling.LANCZOS)
 
 
 def circle_mask(size: int) -> Image.Image:
@@ -121,67 +73,13 @@ def round_icon(src: Image.Image, size: int) -> Image.Image:
     return out
 
 
-def svg_from_map(transparent: bool = False) -> str:
-    rects: list[str] = []
-    if not transparent:
-        rects.append('<rect width="32" height="32" fill="#fff238"/>')
-    for y, row in enumerate(PIXELS):
-        x = 0
-        while x < 32:
-            ch = row[x]
-            if ch == ".":
-                x += 1
-                continue
-            w = 1
-            while x + w < 32 and row[x + w] == ch:
-                w += 1
-            hex_color = {
-                "K": "#20211d",
-                "W": "#fffef7",
-                "P": "#ffa6e8",
-            }[ch]
-            rects.append(f'<rect x="{x}" y="{y}" width="{w}" height="1" fill="{hex_color}"/>')
-            x += w
-    body = "".join(rects)
-    return (
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" '
-        'shape-rendering="crispEdges">'
-        f"{body}</svg>\n"
-    )
-
-
-def vector_drawable() -> str:
-    """Adaptive foreground: same 32-grid in a 32-unit viewport, 108dp box."""
-    paths: dict[str, list[str]] = {"K": [], "W": [], "P": []}
-    for y, row in enumerate(PIXELS):
-        x = 0
-        while x < 32:
-            ch = row[x]
-            if ch in " .":
-                x += 1
-                continue
-            w = 1
-            while x + w < 32 and row[x + w] == ch:
-                w += 1
-            paths[ch].append(f"M{x},{y}h{w}v1h-{w}z")
-            x += w
-    fills = {"K": "#20211D", "W": "#FFFEF7", "P": "#FFA6E8"}
-    path_xml = []
-    for ch in ("K", "W", "P"):
-        if not paths[ch]:
-            continue
-        path_xml.append(
-            f'    <path android:fillColor="{fills[ch]}" android:pathData="{"".join(paths[ch])}"/>'
-        )
-    return f"""<?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="32"
-    android:viewportHeight="32">
-{chr(10).join(path_xml)}
-</vector>
-"""
+def adaptive_foreground(src: Image.Image, size: int) -> Image.Image:
+    """Full-bleed art scaled to the safe zone, centred on transparency."""
+    target = round(size * FIT_FRACTION)
+    canvas = Image.new("RGBA", (size, size), TRANSPARENT)
+    content = scale(src, target)
+    canvas.paste(content, ((size - target) // 2, (size - target) // 2), content)
+    return canvas
 
 
 def save(img: Image.Image, path: Path) -> None:
@@ -190,16 +88,28 @@ def save(img: Image.Image, path: Path) -> None:
     print(f"  {path.relative_to(ROOT)}  {img.size[0]}×{img.size[1]}")
 
 
+def svg_with_png(src: Image.Image, px: int = 64) -> str:
+    """Favicon SVG that embeds a tiny PNG of the artwork (data URI)."""
+    small = scale(src, px)
+    buf = io.BytesIO()
+    small.save(buf, "PNG")
+    b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">\n'
+        f'  <image href="data:image/png;base64,{b64}" width="32" height="32"/>\n'
+        "</svg>\n"
+    )
+
+
 def main() -> None:
-    assert_map()
-    full = paint(transparent=False)
-    fg = paint(transparent=True)
+    src = Image.open(SOURCE).convert("RGBA")
+    full = square_crop(src)  # opaque, full-bleed artwork
 
     print("Web")
     save(scale(full, 1024), PUBLIC / "app-icon.png")
     save(scale(full, 180), PUBLIC / "apple-touch-icon.png")
     save(scale(full, 512), PUBLIC / "app-icon-512.png")
-    (PUBLIC / "favicon.svg").write_text(svg_from_map(), encoding="utf-8")
+    (PUBLIC / "favicon.svg").write_text(svg_with_png(full), encoding="utf-8")
     print("  public/favicon.svg")
 
     print("Android legacy + adaptive PNG")
@@ -209,24 +119,17 @@ def main() -> None:
         foreground = int(108 * factor)
         save(scale(full, launcher), folder / "ic_launcher.png")
         save(round_icon(full, launcher), folder / "ic_launcher_round.png")
-        save(scale(fg, foreground), folder / "ic_launcher_foreground.png")
+        save(adaptive_foreground(full, foreground), folder / "ic_launcher_foreground.png")
 
     playstore = ROOT / "android" / "app" / "src" / "main" / "ic_launcher-playstore.png"
     save(scale(full, 512), playstore)
 
+    # The vector heart foreground is no longer used; adaptive icons now point
+    # at the regenerated @mipmap/ic_launcher_foreground bitmaps.
     fg_xml = RES / "drawable" / "ic_launcher_foreground.xml"
-    fg_xml.write_text(vector_drawable(), encoding="utf-8")
-    print(f"  {fg_xml.relative_to(ROOT)}")
-
-    bg = RES / "values" / "ic_launcher_background.xml"
-    bg.write_text(
-        '<?xml version="1.0" encoding="utf-8"?>\n'
-        "<resources>\n"
-        "    <color name=\"ic_launcher_background\">#FFF238</color>\n"
-        "</resources>\n",
-        encoding="utf-8",
-    )
-    print(f"  {bg.relative_to(ROOT)}")
+    if fg_xml.exists():
+        fg_xml.unlink()
+        print(f"  removed {fg_xml.relative_to(ROOT)}")
 
     for adaptive in (
         RES / "mipmap-anydpi-v26" / "ic_launcher.xml",
@@ -236,7 +139,7 @@ def main() -> None:
             '<?xml version="1.0" encoding="utf-8"?>\n'
             '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n'
             '    <background android:drawable="@color/ic_launcher_background"/>\n'
-            '    <foreground android:drawable="@drawable/ic_launcher_foreground"/>\n'
+            '    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>\n'
             "</adaptive-icon>\n",
             encoding="utf-8",
         )

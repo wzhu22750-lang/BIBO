@@ -1,12 +1,21 @@
 import { useEffect, useState } from 'react'
 import type { SpaceController } from '../hooks/useSpace'
-import { registerDevicePush, unregisterDevicePush } from '../lib/pushRegistration'
+import {
+  registerDevicePush,
+  unregisterDevicePush,
+  readStoredPushToken,
+} from '../lib/pushRegistration'
 import { BiboNative, type NotificationPermission } from '../native'
 import { Button } from './ui'
 export function PushRegistrationPanel({ controller }: { controller: SpaceController }) {
-  const [message, setMessage] = useState(''),
-    [registered, setRegistered] = useState(false),
-    [token, setToken] = useState<string | undefined>(),
+  const initialToken = readStoredPushToken()
+  const [message, setMessage] = useState(
+      initialToken
+        ? '本机 Push 状态：已成功登记。伴侣在后台发消息时将自动推送，无需重复点击。'
+        : '',
+    ),
+    [registered, setRegistered] = useState(Boolean(initialToken)),
+    [token, setToken] = useState<string | undefined>(initialToken),
     [busy, setBusy] = useState(false),
     [permission, setPermission] = useState<NotificationPermission | null>(null)
   useEffect(() => {
@@ -80,8 +89,12 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
       </p>
       {permissionNote && <p role="status">{permissionNote}</p>}
       {message && <p role="status">{message}</p>}
-      <Button tone="white" disabled={busy} onClick={() => void register()}>
-        {busy ? '处理中…' : '登记这台设备接收 Push'}
+      <Button
+        tone={registered ? 'white' : 'yellow'}
+        disabled={busy}
+        onClick={() => void register()}
+      >
+        {busy ? '处理中…' : registered ? '重新更新本机 Token' : '登记这台设备接收 Push'}
       </Button>
       <Button tone="white" disabled={busy || !registered} onClick={() => void revoke()}>
         撤销这台设备的 Push

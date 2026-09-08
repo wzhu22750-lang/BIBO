@@ -69,6 +69,23 @@ export function EventArt({
   size?: number
   className?: string
 }) {
+  if (value === 'panda' || value === 'hamster' || value === 'chick' || value === 'koala') {
+    return (
+      <span
+        className={`event-art pal-avatar ${className}`}
+        style={{
+          width: size,
+          height: size,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+        aria-hidden="true"
+      >
+        <PixelPal type={value} />
+      </span>
+    )
+  }
   const id = eventArtId(value)
   if (friendIds.some((friend) => friend === id))
     return <PixelFriend kind={id} size={size} className={className} />

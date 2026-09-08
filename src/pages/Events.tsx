@@ -1,5 +1,6 @@
 import { EventOutboxPanel } from '../components/EventOutboxPanel'
 import { LinkedRecordPanel } from '../components/LinkedRecordPanel'
+import { LoveMilestones } from '../components/LoveMilestones'
 import { RelationshipTimeline } from '../components/RelationshipTimeline'
 import { eventCategories } from '../lib/memories'
 import type { EventCategory } from '../lib/types'
@@ -12,10 +13,9 @@ import {
   localDateTimeInput,
   nextOccurrence,
   sortedEvents,
-  togetherDays,
 } from '../lib/dates'
 import { Button, Modal, PageHeading, useTask, useToast } from '../components/ui'
-import { Icon } from '../components/PixelArt'
+import { Icon, PixelPal } from '../components/PixelArt'
 import { EventArt, MapIcon } from '../components/EventArt'
 import { EventArtPicker } from '../components/EventArtPicker'
 import { eventArtConfig } from '../lib/eventArt'
@@ -280,14 +280,6 @@ export function Events({
       (filter === 'all' || e.kind === filter) &&
       (categoryFilter === 'all' || (e.category || 'other') === categoryFilter),
   )
-  const days = togetherDays(space.couple!.together_since)
-  const milestones = [
-    { target: 100, name: '100 天心动', art: 'heart' },
-    { target: 365, name: '一周年纪念', art: 'bunny' },
-    { target: 520, name: '520 我爱你', art: 'dog' },
-    { target: 1000, name: '千日长相守', art: 'trophy' },
-  ]
-  const next = milestones.find((m) => days < m.target)
   return (
     <div className="expectations-page">
       {referenceId && (
@@ -318,49 +310,7 @@ export function Events({
           添加期待
         </Button>
       </div>
-      <section className="love-milestones" aria-label="恋爱里程碑">
-        <div className="milestones-heading">
-          <h2>
-            <EventArt value="trophy" size={22} />
-            恋爱成就收集册
-          </h2>
-          <span>
-            已经一起 <b>{days}</b> 天
-          </span>
-        </div>
-        <div className="milestone-grid">
-          {milestones.map((m, i) => {
-            const reached = days >= m.target
-            return (
-              <div
-                key={m.target}
-                className={`milestone-badge badge-${i} ${reached ? 'reached' : 'waiting'}`}
-              >
-                <span className="badge-status">
-                  <Icon name={reached ? 'check' : 'lock'} size={11} />
-                  {reached ? '已解锁' : '待解锁'}
-                </span>
-                <EventArt value={m.art} size={43} />
-                <strong>
-                  {m.target}
-                  <small>天</small>
-                </strong>
-                <span className="badge-name">{m.name}</span>
-                <span className="badge-progress">
-                  {reached ? '又多了一份关于我们的回忆' : `还差 ${m.target - days} 天，一起慢慢来`}
-                </span>
-              </div>
-            )
-          })}
-        </div>
-        <div className="milestones-footer">
-          <Icon name="spark" size={14} />
-          {next
-            ? `下一枚徽章：${next.name}，还有 ${next.target - days} 天。`
-            : '四枚徽章全部点亮，我们的故事还在继续。'}
-          <span className="micro">LOVE IS A CO-OP GAME.</span>
-        </div>
-      </section>
+      <LoveMilestones controller={controller} />
       <RelationshipTimeline controller={controller} />
       <EventOutboxPanel controller={controller} />
       <div className="expectations-list-heading">
@@ -416,7 +366,11 @@ export function Events({
             ))
           ) : (
             <div className="event-empty">
-              <EventArt value="bunny" size={85} />
+              <PixelPal
+                type={space.me.avatar}
+                className="event-empty-pal"
+                style={{ width: 85, height: 85 }}
+              />
               <h3>下一份期待，由我们一起写</h3>
               <p>旅行、生日，或者下一次见面。</p>
             </div>
@@ -443,8 +397,8 @@ export function Events({
             </span>
             <span className="postcard-message">下一站，见到你。</span>
             <div className="postcard-pals">
-              <EventArt value="bunny" size={100} />
-              <EventArt value="dog" size={100} />
+              <PixelPal type={space.partner?.avatar || 'bunny'} className="postcard-pal" />
+              <PixelPal type={space.me.avatar} className="postcard-pal" />
             </div>
             <div className="postcard-ground" />
           </div>

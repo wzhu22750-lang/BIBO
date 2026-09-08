@@ -97,7 +97,7 @@ export function Chat({
           id={referenceId}
         />
       )}
-      {!demo && (
+      {!demo && Boolean(controller.outbox.error || controller.outbox.rows.length > 0) && (
         <section className="linked-record-panel" aria-label="消息同步队列">
           {controller.outbox.error && <p role="alert">本机队列异常：{controller.outbox.error}</p>}
           {controller.outbox.rows.map((row) => (

@@ -173,7 +173,7 @@ img {
 }
 .app-shell {
   min-height: 100vh;
-  padding-top: env(safe-area-inset-top);
+  padding-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
   background: #fffef8;
 }
 .sidebar {
@@ -2684,8 +2684,8 @@ img {
   .main-wrap {
     margin-left: 0;
     padding-bottom: 70px;
-    --app-top: env(safe-area-inset-top);
-    --app-bottom: max(8px, env(safe-area-inset-bottom));
+    --app-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+    --app-bottom: max(8px, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
     --app-nav: calc(78px + var(--app-bottom));
   }
   .topbar {
@@ -3029,7 +3029,7 @@ img {
     background: #fffef7;
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    padding: 7px 6px max(9px, env(safe-area-inset-bottom));
+    padding: 7px 6px max(9px, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
     box-shadow: 0 -3px 0 #20211d09;
     min-height: 66px;
   }
