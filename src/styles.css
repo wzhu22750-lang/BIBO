@@ -2724,7 +2724,7 @@ img {
     gap: 0;
   }
   .topbar-caption:after {
-    content: 'BIBO!';
+    content: 'BIBU!';
     font-family: var(--pixel);
     font-size: 22px;
     color: var(--ink);
@@ -3218,7 +3218,7 @@ img {
     width: 26px;
   }
   .chat-composer {
-    padding: 10px 10px max(9px, env(safe-area-inset-bottom, 0px));
+    padding: 8px 10px;
     background: #fffef7;
     border-top: var(--line);
     flex-shrink: 0;
