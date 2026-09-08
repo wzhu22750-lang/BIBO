@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { configured, db } from '../lib/supabase'
+import { Capacitor } from '@capacitor/core'
+import { AUTH_REDIRECT_DEEP_LINK, configured, db } from '../lib/supabase'
 import { Button, useTask, useToast } from '../components/ui'
 import { Icon, PixelFlower, PixelPal } from '../components/PixelArt'
 import type { SpaceController } from '../hooks/useSpace'
@@ -90,9 +91,12 @@ export function Auth({ enterDemo }: { enterDemo: () => void }) {
     void run(async () => {
       const trimmedEmail = email.trim().toLowerCase()
       if (!trimmedEmail) throw new Error('请输入邮箱地址')
+      const redirectTo = Capacitor.isNativePlatform()
+        ? AUTH_REDIRECT_DEEP_LINK
+        : window.location.origin
       const { error } = await db().auth.signInWithOtp({
         email: trimmedEmail,
-        options: { emailRedirectTo: window.location.origin },
+        options: { emailRedirectTo: redirectTo },
       })
       if (error) throw error
       persistEmail(trimmedEmail)

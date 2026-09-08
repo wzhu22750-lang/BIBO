@@ -16,6 +16,10 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"supabase/tests/**/*.ts\" \"*.{json,ts,md}\" \"public/demo/*.md\""
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/cli": "^8.5.1",
+    "@capacitor/core": "^8.5.1",
     "@fontsource/press-start-2p": "^5.3.0",
     "@supabase/supabase-js": "^2.115.0",
     "pixelarticons": "^2.4.1",
