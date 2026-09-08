@@ -1683,13 +1683,6 @@ img {
   border: 0;
   background: none;
 }
-.composer-note {
-  display: flex;
-  justify-content: space-between;
-  color: #8b957c;
-  font-size: 9px;
-  padding-top: 9px;
-}
 .chat-emojis {
   display: flex;
   flex-wrap: wrap;
@@ -3216,9 +3209,6 @@ img {
   .emoji-toggle {
     font-size: 27px;
     padding: 0 2px;
-  }
-  .composer-note {
-    font-size: 8px;
   }
   .chat-start-label {
     font-size: 9px;

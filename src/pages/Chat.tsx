@@ -143,10 +143,6 @@ export function Chat({ controller, demo }: { controller: SpaceController; demo: 
               <Icon name="send" size={17} />
             </Button>
           </div>
-          <div className="composer-note">
-            <span>Enter 发送 · Shift + Enter 换行</span>
-            <span>{text.length}/2000</span>
-          </div>
         </form>
       </section>
   )
