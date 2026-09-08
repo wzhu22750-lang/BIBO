@@ -1806,7 +1806,9 @@ img {
   align-items: center;
   gap: 4px;
   text-align: center;
-  transition: transform 0.08s ease, background 0.1s ease;
+  transition:
+    transform 0.08s ease,
+    background 0.1s ease;
   border-radius: 0;
   font-family: inherit;
 }
@@ -2035,7 +2037,9 @@ img {
   justify-content: center;
   gap: 6px;
   color: var(--ink);
-  transition: transform 0.08s ease, background 0.1s ease;
+  transition:
+    transform 0.08s ease,
+    background 0.1s ease;
 }
 .auth-tab:hover {
   background: #fdfae3;

@@ -1,10 +1,10 @@
 # 哔卟哔卟 · BIBU!
 
-两个人的私人像素空间。React + TypeScript + Vite，使用 Supabase Auth / Database / Storage / Realtime，适配 Vercel，并预留 Capacitor Android 配置。
+两个人的私人像素空间。React + TypeScript + Vite，使用 Supabase Auth / Database / Storage / Realtime，适配 Vercel，并包含可构建的 Capacitor Android 工程与 Kotlin 原生能力层。
 
-**当前交付：第一阶段可运行 MVP。** 不配置后端即可探索本地演示；真实模式的数据适配器和数据库迁移已编写。本仓库没有写入任何 Supabase 凭据，也没有替你创建云项目或部署 Vercel。
+**当前交付：持续升级中的可运行版本。** 不配置后端即可探索本地演示；真实模式的数据适配器、增量迁移、Android 原生能力和本机恢复路径已编写。本仓库没有写入任何 Supabase 凭据，也没有替你创建云项目或部署 Vercel。
 
-> 网页关闭、手机锁屏或系统挂起时，当前版本不能保证提醒送达。没有实现后台推送、已读回执或端到端加密。演示中的小橘、小桃和三张照片是示例，不是真实伴侣数据。
+> 网页关闭、手机锁屏或系统挂起时，当前版本不能保证提醒送达。没有实现远程 FCM/Push、已读回执或端到端加密；Android 本机通知和本机定时提醒不等同于远程推送。演示中的小橘、小桃和三张照片是示例，不是真实伴侣数据。
 
 ## 1. 先运行起来
 
@@ -31,8 +31,8 @@ npm run dev
 ### 创建数据库和私有存储桶
 
 1. 创建一个 Supabase 项目。
-2. 在 SQL Editor 执行 `supabase/migrations/202609070001_initial.sql`，执行一次即可。
-3. SQL 会创建 9 张业务表、RLS 策略、Auth 用户触发器、4 个业务 RPC、私有 `couple-photos` 存储桶，并将相关业务表加入 Realtime publication。
+2. 在 SQL Editor 或 Supabase CLI 按文件名顺序执行 `supabase/migrations/202609070001_initial.sql` 和 `supabase/migrations/202609080001_*.sql` 至 `202609080009_*.sql`。每个迁移只执行一次；不要把新增迁移单独跳过。
+3. 初始 SQL 创建 9 张业务表、RLS 策略、Auth 用户触发器、基础业务 RPC、私有 `couple-photos` 存储桶并加入 Realtime；后续增量迁移继续添加 Ping/回忆字段、幂等消息、分页、生命周期和注销准备 RPC。
 4. 如果使用 Supabase CLI 管理项目，也可在链接项目后通过 `supabase db push` 应用迁移；不要对同一数据库重复在 SQL Editor 和 CLI 中执行同一迁移。
 
 初始迁移**不是幂等重置脚本**。如部分执行过，先检查已有对象和迁移历史，不要删表重来。已有 Auth 用户会补齐默认 profile。
@@ -75,7 +75,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=你的公开PublishableKey
 - `send_ping` 在数据库事务内执行 3 秒冷却；无伴侣不能发送。
 - 对方正在专注且未授权提醒时，服务器拒绝哔卟。学习 / 工作 / 休息提醒要求对方处于有效专注状态并已授权。
 - “已发出”只代表数据库接受了请求，不表示对方已收到或已读。
-- 当前无 Web Push、FCM、Service Worker 后台提醒或离线哔卟补发。请勿用于紧急联络。
+- 当前未部署 FCM 服务端发送通道、Web Push 或 Service Worker 后台提醒。Android 客户端可以在配置 Firebase 后登记设备 token，但 token 登记不等于远程消息已发送或送达。请勿用于紧急联络。
 
 ## 3. 部署到 Vercel
 
@@ -89,23 +89,20 @@ Preview 环境建议使用独立 Supabase 测试项目，避免预览版本操�
 
 ## 4. 以后打包 Android
 
-已提供 `capacitor.config.json`，其中 `webDir` 为 `dist`。当前**未安装原生依赖、未生成 Android 工程、未构建 APK**。
+当前已生成 Android 工程，并提供 `npm run android:sync` / `npm run android:build`。工程使用 Capacitor 8、Kotlin 原生插件和 `src/native/index.ts` Web fallback；本地可构建调试 APK，但通知、AlarmManager、UsageStats 和厂商后台策略仍需真实设备验收。
 
-决定进入原生阶段后再执行：
+常用命令：
 
 ```sh
-npm install @capacitor/core @capacitor/android
-npm install -D @capacitor/cli
-npm run build
-npx cap add android
-npx cap sync android
-npx cap open android
+npm run android:sync
+npm run android:build
+# Android Studio 可选：npx cap open android
 ```
 
 随后在 Android Studio 配置应用 ID、签名、SDK 和 APK 输出。这只是进入原生开发的步骤，不是“现在已能登录并可靠推送”的承诺。上架前还需：
 
 - 实现并验证魔法链接的 App Deep Link 回调。
-- 接入明确授权的原生通知 / FCM，配置安全的服务器发送端，不能把管理员密钥放进 APK。
+- Android 已接入 Push Notifications 客户端登记接口；仍需在 Android 模块放入 Firebase 配置，并部署只在服务端使用密钥的发送函数。没有这些配置时注册会明确失败，不影响本机通知。
 - 根据实际设备选择 Haptics 等原生适配器。
 - 若加入屏幕时间统计，只读取**本人**经明确授权的设备统计；专注锁定也只能作用于本人设备，随时可撤销。
 - 当前版本不会请求其他 App 使用情况、无障碍控制、屏幕录制、相机或麦克风权限。
@@ -149,18 +146,20 @@ npm run preview
 - **本地数据库测试不等于已验证托管 Supabase 的 Auth 邮件、Realtime 订阅、Storage HTTP API、真实并发或云项目配置。** 上线前请按 `VERIFICATION.md` 完成双账号验收。
 - `npm run format` / `npm run format:check` 用于统一 TypeScript、CSS、JSON 和文档格式。
 
-## 7. 第一阶段有意保持简单的地方
+## 7. 当前边界与产品化说明
 
 - 像素猫 / 兔作为头像，可改昵称；尚未提供头像上传。
-- 每个账号只能属于一个空间，每个空间最多两位；暂不提供解绑、换伴侣或账号数据清除流程。
-- 聊天只加载最近 200 条；照片只加载最近 200 张。数据没有被删除，历史分页留待后续。
+- 每个账号只能属于一个空间，每个空间最多两位；设置页支持明确确认的解除并封存、重新创建/加入新空间；封存不等于云端删除。
+- 账号注销代码位于 `supabase/functions/delete-account`，必须在服务器部署 Edge Function 并配置 `SUPABASE_SERVICE_ROLE_KEY`；该密钥绝不能进入 Vite 或 APK。注销会匿名化共享记录、清理该账号上传的 Storage 文件并删除 Auth 用户，失败阶段会明确返回，未部署函数时客户端不会假装成功。部署模板见该目录 README。
+- 聊天默认最近 200 条；真实模式支持 `message_history` 游标分页和本机 IndexedDB 待发送队列。照片页支持 `photo_history` 分页与事件筛选；首页仍使用轻量快照。
 - 日期可以创建和经确认删除；尚未提供编辑已有事件的表单。
-- 照片暂不提供删除、自动压缩、EXIF 移除或 HEIC 转换。真实单张上限 5 MB，私有链接有效期 1 小时并会定时刷新。
+- 照片支持上传、文字/发生日期/事件/聊天关联、编辑和上传者确认删除；不自动压缩、不移除 EXIF、不支持 HEIC。真实单张上限 5 MB，私有链接有效期 1 小时并会定时刷新。
 - 照片上传成功、元数据写入失败时，会尝试清理本人的孤立文件；清理失败会显示具体路径，不冒充上传成功。
 - 一起天数使用自然日差：开始当天为第 0 天；每年 2 月 29 日在非闰年按 2 月 28 日纪念。
 - 普通倒计时包含具体时刻，列表按目标时间排序，首页展示本地自然日差；当天均显示“就是今天”。过期事件保留在后面。
 - 专注只保存本人声明的活动、截止时间和提醒授权，不测量实际屏幕行为。关闭页面后计时仍由时间戳决定，超时授权自动失效。
 - 尚无分析 SDK、广告、公开照片链接或用户在线状态推断；“实时已连接”指本机订阅连接，不代表另一台设备在线。
+- Android 原生层已包含系统通知、非精确定时提醒、UsageStats、本机 Focus 查询和可选 Push token 登记；`supabase/functions/send-ping-push` 提供 FCM HTTP v1 服务端发送模板，但需自行配置 Webhook、Firebase service account 和 secrets，远程发送/跨设备回执/厂商后台可靠性仍未交付。
 
 ## 素材与设计
 

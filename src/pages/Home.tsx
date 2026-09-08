@@ -1,7 +1,11 @@
+import { EventArt } from '../components/EventArt'
+import { lovePings, pingFeedback } from '../lib/ping'
+import { dailyPrompt, dailyMemories, upcomingEvents } from '../lib/home'
+import { useNow } from '../hooks/useNow'
 import { useState } from 'react'
 import { Icon, PixelFlower, PixelPal } from '../components/PixelArt'
 import { Empty, PageHeading, Panel } from '../components/ui'
-import { clock, dateLabel, sortedEvents, togetherDays } from '../lib/dates'
+import { clock, dateLabel, togetherDays } from '../lib/dates'
 import type { Page, Photo } from '../lib/types'
 import type { SpaceController } from '../hooks/useSpace'
 import type { BibuAction } from '../hooks/useBibu'
@@ -21,11 +25,17 @@ export function Home({
   const space = controller.space!
   const [adding, setAdding] = useState(false),
     [photo, setPhoto] = useState<Photo | null>(null)
-  const events = sortedEvents(space.events).slice(0, 3)
-  const days = togetherDays(space.couple!.together_since)
+  const now = useNow()
+  const events = upcomingEvents(space, now)
+  const prompt = dailyPrompt(space.couple!.id, now)
+  const memories = dailyMemories(space.photos, space.couple!.id, now)
+  const partnerFocus = space.focus.find(
+    (f) => f.user_id === space.partner?.id && new Date(f.ends_at) > now,
+  )
+  const days = togetherDays(space.couple!.together_since, now)
   const last = space.messages.at(-1)
   const focus = space.focus.find(
-    (f) => f.user_id === space.me.id && new Date(f.ends_at).getTime() > Date.now(),
+    (f) => f.user_id === space.me.id && new Date(f.ends_at).getTime() > now.getTime(),
   )
   return (
     <>
@@ -36,8 +46,8 @@ export function Home({
       >
         <span className="today-label">
           <Icon name="calendar" size={16} />
-          {dateLabel(new Date())}
-          <span>星期{'日一二三四五六'[new Date().getDay()]}</span>
+          {dateLabel(now)}
+          <span>星期{'日一二三四五六'[now.getDay()]}</span>
         </span>
       </PageHeading>
       <div className="hero-grid">
@@ -108,12 +118,24 @@ export function Home({
               className={`bibu-button ${bibu.busy ? 'pressed' : ''}`}
               disabled={bibu.disabled}
               onClick={() => void bibu.send()}
-              aria-label="发送哔卟哔卟"
+              aria-label={`发送${bibu.kind}`}
             >
               <Icon name="heart" size={36} />
               <strong>{bibu.cooling ? 'SENT!' : 'BIBU!'}</strong>
-              <small>{bibu.cooling ? '想念发射中' : '哔 卟 哔 卟'}</small>
+              <small>{bibu.cooling ? '想念发射中' : bibu.kind}</small>
             </button>
+          </div>
+          <div className="ping-choices" role="group" aria-label="选择哔卟心情">
+            {lovePings.map((item) => (
+              <button
+                key={item.kind}
+                aria-pressed={bibu.kind === item.kind}
+                disabled={bibu.busy || bibu.cooling}
+                onClick={() => bibu.setKind(item.kind)}
+              >
+                {item.label}
+              </button>
+            ))}
           </div>
           <div className="bibu-bottom">
             <span>✦ {demo ? '演示模式 · 点击预览提醒效果' : '对方需在线 · 声音需先授权'}</span>
@@ -121,6 +143,24 @@ export function Home({
           </div>
         </section>
       </div>
+      <section className="daily-reason" aria-label="今天的小约定">
+        <div>
+          <span className="micro">JUST FOR TODAY</span>
+          <h2>{prompt.text}</h2>
+          <p>
+            {space.partner
+              ? `${space.partner.name} · ${partnerFocus ? `正在${partnerFocus.activity}，${partnerFocus.allow_reminders ? '接受温柔提醒' : '暂不打扰'}` : '还没有正在进行的专注记录'}`
+              : '邀请另一位玩家，开始共同的日常'}
+          </p>
+          <small>专注状态来自共享记录，不代表在线状态。</small>
+        </div>
+        <button
+          className="text-button"
+          onClick={() => navigate(space.partner ? prompt.page : 'settings')}
+        >
+          {space.partner ? prompt.action : '邀请 TA'} <Icon name="arrow" size={16} />
+        </button>
+      </section>
       <div className="home-section-title">
         <h2>
           <Icon name="calendar" />
@@ -153,9 +193,40 @@ export function Home({
           ＋ 写下我们的第一份期待
         </button>
       )}
+      <Panel title="最近的哔卟" tag="LITTLE MOMENTS" className="ping-history">
+        {space.pings.length ? (
+          <ul aria-label="最近哔卟记录">
+            {space.pings.slice(0, 5).map((item) => (
+              <li key={item.id}>
+                <EventArt value={pingFeedback(item.kind).art} size={28} />
+                <div>
+                  <b>
+                    {item.sender_id === null
+                      ? '已注销玩家'
+                      : item.sender_id === space.me.id
+                        ? '你'
+                        : space.partner?.name || '另一位玩家'}
+                  </b>{' '}
+                  发来「{item.kind}」
+                  <time dateTime={item.created_at}>
+                    {dateLabel(item.created_at)} {clock(item.created_at)}
+                  </time>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>还没有哔卟记录。给 TA 留下一点想念吧。</p>
+        )}
+        <small>
+          {demo
+            ? '本地演示记录，不会发送给真实伴侣。'
+            : '最近 50 条中展示最新 5 条；记录不代表对方已读或通知已送达。'}
+        </small>
+      </Panel>
       <div className="home-lower">
         <Panel
-          title="回忆存档"
+          title="今天翻到的回忆"
           tag="OUR MEMORIES"
           className="memories-panel"
           action={
@@ -165,7 +236,7 @@ export function Home({
           }
         >
           <div className="home-photos">
-            {space.photos.slice(0, 3).map((p, i) => (
+            {memories.map((p, i) => (
               <PhotoCard photo={p} key={p.id} index={i} onClick={() => setPhoto(p)} />
             ))}
             {!space.photos.length && (
@@ -198,9 +269,11 @@ export function Home({
                 <div className="message-meta">
                   <b>
                     {last
-                      ? last.sender_id === space.me.id
-                        ? space.me.name
-                        : space.partner?.name
+                      ? last.sender_id === null
+                        ? '已注销玩家'
+                        : last.sender_id === space.me.id
+                          ? space.me.name
+                          : space.partner?.name
                       : '还没有悄悄话'}
                   </b>
                   <time>{last && clock(last.created_at)}</time>
@@ -230,7 +303,9 @@ export function Home({
         <span>宇宙很大，但我的小窝刚好装下你。</span>
       </div>
       {adding && <EventForm controller={controller} onClose={() => setAdding(false)} />}{' '}
-      {photo && <PhotoViewer photo={photo} onClose={() => setPhoto(null)} />}
+      {photo && (
+        <PhotoViewer controller={controller} photo={photo} onClose={() => setPhoto(null)} />
+      )}
     </>
   )
 }

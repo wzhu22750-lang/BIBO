@@ -1,3 +1,8 @@
+import { EventOutboxPanel } from '../components/EventOutboxPanel'
+import { LinkedRecordPanel } from '../components/LinkedRecordPanel'
+import { RelationshipTimeline } from '../components/RelationshipTimeline'
+import { eventCategories } from '../lib/memories'
+import type { EventCategory } from '../lib/types'
 import { useState } from 'react'
 import type { EventItem } from '../lib/types'
 import type { SpaceController } from '../hooks/useSpace'
@@ -58,6 +63,7 @@ export function EventForm({
   const { busy, run } = useTask(),
     toast = useToast()
   const [title, setTitle] = useState(''),
+    [category, setCategory] = useState<EventCategory>('other'),
     [kind, setKind] = useState<'anniversary' | 'countdown'>('countdown'),
     [target, setTarget] = useState(''),
     [yearly, setYearly] = useState(false),
@@ -69,14 +75,19 @@ export function EventForm({
         onSubmit={(e) => {
           e.preventDefault()
           void run(async () => {
-            await controller.addEvent({
+            const result = await controller.addEvent({
               title: title.trim(),
               target_at: new Date(target).toISOString(),
               kind,
               yearly: kind === 'anniversary' && yearly,
               emoji,
+              category,
             })
-            toast('新的期待，已加入我们的小宇宙')
+            toast(
+              result.queued
+                ? '期待已保存在本机，联网后同步到你们的空间'
+                : '新的期待，已加入我们的小宇宙',
+            )
             onClose()
           })
         }}
@@ -117,6 +128,16 @@ export function EventForm({
             onChange={(e) => setTarget(e.target.value)}
           />
         </label>
+        <label>
+          事件类型
+          <select value={category} onChange={(e) => setCategory(e.target.value as EventCategory)}>
+            {eventCategories.map((item) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </label>
         <EventArtPicker value={emoji} onChange={setEmoji} />
         {kind === 'anniversary' && (
           <label className="check-label">
@@ -149,7 +170,9 @@ function CelebrationCard({ event, onDelete }: { event: EventItem; onDelete: () =
       </div>
       <div className="celebration-info">
         <div className="celebration-tags">
-          <span className="category-chip">{art.category}</span>
+          <span className="category-chip">
+            {eventCategories.find((c) => c.value === event.category)?.label || art.category}
+          </span>
           <span className="repeat-chip">
             {event.yearly ? '每年纪念' : event.kind === 'anniversary' ? '纪念日' : '共同倒计时'}
           </span>
@@ -188,7 +211,13 @@ function CelebrationCard({ event, onDelete }: { event: EventItem; onDelete: () =
   )
 }
 
-export function Events({ controller }: { controller: SpaceController }) {
+export function Events({
+  controller,
+  referenceId,
+}: {
+  controller: SpaceController
+  referenceId?: string
+}) {
   const [adding, setAdding] = useState(false),
     [deleting, setDeleting] = useState<EventItem | null>(null),
     [filter, setFilter] = useState('all')
@@ -207,10 +236,18 @@ export function Events({ controller }: { controller: SpaceController }) {
   const next = milestones.find((m) => days < m.target)
   return (
     <div className="expectations-page">
+      {referenceId && (
+        <LinkedRecordPanel
+          key={`${space.couple!.id}:${referenceId}`}
+          controller={controller}
+          kind="event"
+          id={referenceId}
+        />
+      )}
       <PageHeading
         eyebrow="GOOD THINGS TAKE TWO"
         title="值得期待"
-        subtitle="把想和你一起做的事，写进未来。"
+        subtitle="把已经一起走过的、今天发生的、未来期待的，都留在这里。"
       />
       <div className="expectations-banner">
         <div className="banner-caption">
@@ -270,6 +307,8 @@ export function Events({ controller }: { controller: SpaceController }) {
           <span className="micro">LOVE IS A CO-OP GAME.</span>
         </div>
       </section>
+      <RelationshipTimeline controller={controller} />
+      <EventOutboxPanel controller={controller} />
       <div className="expectations-list-heading">
         <div className="page-tabs" aria-label="期待分类">
           {[
@@ -373,9 +412,9 @@ export function Events({ controller }: { controller: SpaceController }) {
               disabled={busy}
               onClick={() =>
                 void run(async () => {
-                  await controller.deleteEvent(deleting.id)
+                  const result = await controller.deleteEvent(deleting.id)
                   setDeleting(null)
-                  toast('已移除这份期待')
+                  toast(result.queued ? '删除意图已保存在本机，联网后同步' : '已移除这份期待')
                 })
               }
             >

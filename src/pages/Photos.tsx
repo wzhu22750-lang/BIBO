@@ -1,3 +1,7 @@
+import { usePhotoPages } from '../hooks/usePhotoPages'
+import { referenceLink } from '../lib/routes'
+import { MemoryFields } from '../components/MemoryFields'
+import { memoryInput, memoryDateLabel, sortedMemories } from '../lib/memories'
 import { useState } from 'react'
 import type { Photo } from '../lib/types'
 import type { SpaceController } from '../hooks/useSpace'
@@ -26,25 +30,158 @@ export function PhotoCard({
       <div className="photo-caption">
         <strong>{photo.caption || '又一个关于我们的瞬间'}</strong>
         <span>
-          {dateLabel(photo.created_at)}
+          {memoryDateLabel(photo) || `上传于 ${dateLabel(photo.created_at)}`}
           <Icon name="heart" size={12} />
         </span>
       </div>
     </button>
   )
 }
-export function PhotoViewer({ photo, onClose }: { photo: Photo; onClose: () => void }) {
+export function PhotoViewer({
+  photo: original,
+  onClose,
+  controller,
+}: {
+  photo: Photo
+  onClose: () => void
+  controller?: SpaceController
+}) {
+  const [savedPhoto, setSavedPhoto] = useState<Photo | null>(null)
+  const photo =
+    savedPhoto || controller?.space?.photos.find((p) => p.id === original.id) || original
+  const [editing, setEditing] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [confirmation, setConfirmation] = useState('')
+  const [caption, setCaption] = useState(photo.caption)
+  const [memory, setMemory] = useState(() => memoryInput(photo))
+  const { busy, run } = useTask()
+  const toast = useToast()
+  const event = controller?.space?.events.find((e) => e.id === photo.event_id)
+  const message = controller?.space?.messages.find((m) => m.id === photo.message_id)
   return (
-    <Modal title="MEMORY UNLOCKED" onClose={onClose} className="photo-modal">
-      {photo.url ? (
-        <img className="full-photo" src={photo.url} alt={photo.caption || '照片大图'} />
+    <Modal
+      title="MEMORY UNLOCKED"
+      onClose={() => {
+        if (!busy) onClose()
+      }}
+      className="photo-modal"
+    >
+      {deleting && controller ? (
+        <form
+          className="form-stack"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (confirmation !== '删除') return
+            void run(async () => {
+              await controller.deletePhoto(photo.id)
+              toast('这份回忆及照片文件已删除')
+              onClose()
+            })
+          }}
+        >
+          <h3>删除「{photo.caption || '这个瞬间'}」？</h3>
+          <p>
+            照片文件和回忆文字会从两个人的空间移除，不能撤销。关联事件与聊天消息不会删除。其他设备已下载的副本不受影响。
+          </p>
+          <label>
+            输入“删除”确认
+            <input
+              value={confirmation}
+              onChange={(e) => setConfirmation(e.target.value)}
+              autoComplete="off"
+            />
+          </label>
+          <Button tone="pink" type="submit" disabled={busy || confirmation !== '删除'}>
+            {busy ? '正在删除…' : '确认永久删除回忆'}
+          </Button>
+          <Button
+            tone="white"
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              setDeleting(false)
+              setConfirmation('')
+            }}
+          >
+            保留这份回忆
+          </Button>
+        </form>
+      ) : editing && controller ? (
+        <form
+          className="form-stack"
+          onSubmit={(e) => {
+            e.preventDefault()
+            void run(async () => {
+              const saved = await controller.updateMemory(photo.id, caption.trim(), memory)
+              if (saved)
+                setSavedPhoto({ ...saved, url: saved.path === photo.path ? photo.url : undefined })
+              setEditing(false)
+              toast('回忆已更新')
+            })
+          }}
+        >
+          <label>
+            回忆标题
+            <input maxLength={120} value={caption} onChange={(e) => setCaption(e.target.value)} />
+          </label>
+          <MemoryFields value={memory} onChange={setMemory} space={controller.space!} />
+          <Button type="submit" disabled={busy}>
+            保存回忆
+          </Button>
+          <Button type="button" tone="white" disabled={busy} onClick={() => setEditing(false)}>
+            取消编辑
+          </Button>
+        </form>
       ) : (
-        <Empty title="照片暂不可用" description="请关闭后刷新页面重新获取访问链接。" />
+        <>
+          {photo.url ? (
+            <img className="full-photo" src={photo.url} alt={photo.caption || '照片大图'} />
+          ) : (
+            <Empty title="照片暂不可用" description="请关闭后刷新页面重新获取访问链接。" />
+          )}
+          <div className="lightbox-caption">
+            <h3>{photo.caption}</h3>
+            <span>
+              {memoryDateLabel(photo) || '发生日期未记录'} · 上传于 {dateLabel(photo.created_at)}
+            </span>
+          </div>
+          {photo.story && <p className="memory-story">{photo.story}</p>}
+          {photo.event_id && (
+            <p className="memory-link">
+              关联事件：{event?.title || '当前列表未加载'} ·{' '}
+              <a href={referenceLink('event', photo.event_id)} onClick={onClose}>
+                去时间线
+              </a>
+            </p>
+          )}
+          {photo.message_id && (
+            <div className="memory-link">
+              关联悄悄话：
+              <blockquote>{message?.content || '该消息不在当前已加载的聊天记录中'}</blockquote>
+              <a href={referenceLink('message', photo.message_id)} onClick={onClose}>
+                去悄悄话
+              </a>
+            </div>
+          )}
+          {controller?.space?.me.id === photo.uploaded_by && (
+            <Button tone="pink" onClick={() => setDeleting(true)}>
+              删除这份回忆
+            </Button>
+          )}
+          {controller?.space?.me.id === photo.uploaded_by && (
+            <Button
+              tone="white"
+              onClick={() => {
+                setCaption(photo.caption)
+                setMemory(memoryInput(photo))
+                setEditing(true)
+              }}
+            >
+              编辑回忆
+            </Button>
+          )}
+        </>
       )}
-      <div className="lightbox-caption">
-        <h3>{photo.caption}</h3>
-        <span>{dateLabel(photo.created_at)}</span>
-      </div>
     </Modal>
   )
 }
@@ -52,15 +189,27 @@ export function Photos({ controller, demo }: { controller: SpaceController; demo
   const [selected, setSelected] = useState<Photo | null>(null),
     [adding, setAdding] = useState(false),
     [file, setFile] = useState<File | null>(null),
-    [caption, setCaption] = useState('')
+    [caption, setCaption] = useState(''),
+    [memory, setMemory] = useState(() => memoryInput()),
+    [eventFilter, setEventFilter] = useState('')
+  const pages = usePhotoPages(
+    controller.space!.couple!.id,
+    eventFilter || null,
+    !demo && !controller.cachedAt,
+  )
   const { busy, run } = useTask(),
     toast = useToast(),
-    photos = controller.space!.photos
+    photos =
+      demo || controller.cachedAt
+        ? sortedMemories(controller.space!.photos).filter(
+            (p) => !eventFilter || p.event_id === eventFilter,
+          )
+        : pages.photos
   return (
     <>
       <PageHeading
         eyebrow="COLLECT MOMENTS, NOT THINGS"
-        title="照片墙"
+        title="共同记忆"
         subtitle="把日子过成一帧一帧，想念的时候就翻一翻。"
       >
         <Button tone="pink" onClick={() => setAdding(true)}>
@@ -68,19 +217,53 @@ export function Photos({ controller, demo }: { controller: SpaceController; demo
           上传照片
         </Button>
       </PageHeading>
+      <label className="memory-filter">
+        按事件看回忆
+        <select value={eventFilter} onChange={(e) => setEventFilter(e.target.value)}>
+          <option value="">全部共同记忆</option>
+          {controller.space!.events.map((e) => (
+            <option key={e.id} value={e.id}>
+              {e.title}
+            </option>
+          ))}
+        </select>
+      </label>
       <div className="collection-label">
         <span>
-          <b>{String(photos.length).padStart(2, '0')}</b> 个被收藏的瞬间
+          <b>{String(photos.length).padStart(2, '0')}</b>{' '}
+          {demo || controller.cachedAt ? '个已加载瞬间' : '个本页瞬间'}
         </span>
-        <span className="micro">NEWEST FIRST ↓</span>
+        <span className="micro">OUR MEMORY TIMELINE ↓</span>
       </div>
+      {!demo && !controller.cachedAt && (
+        <div className="memory-pagination">
+          <Button
+            tone="white"
+            disabled={pages.busy || pages.pageNumber === 1}
+            onClick={pages.previous}
+          >
+            上一页回忆
+          </Button>
+          <span>第 {pages.pageNumber} 页 · 按上传时间倒序，每页 30 张</span>
+          <Button tone="white" disabled={pages.busy || !pages.hasMore} onClick={pages.next}>
+            下一页回忆
+          </Button>
+          <Button tone="white" disabled={pages.busy} onClick={pages.refresh}>
+            刷新当前页
+          </Button>
+          {pages.busy && <p role="status">正在读取回忆与私有图片链接…</p>}
+          {pages.error && (
+            <p role="alert">回忆读取失败：{pages.error}。可刷新重试，不会删除你的资料。</p>
+          )}
+        </div>
+      )}
       {photos.length ? (
         <div className="photos-grid">
           {photos.map((photo, i) => (
             <PhotoCard key={photo.id} photo={photo} index={i} onClick={() => setSelected(photo)} />
           ))}
         </div>
-      ) : (
+      ) : pages.busy || pages.error ? null : (
         <Empty
           icon="📷"
           title="第一张照片，会是什么呢？"
@@ -99,7 +282,17 @@ export function Photos({ controller, demo }: { controller: SpaceController; demo
           </span>
         </p>
       </div>
-      {selected && <PhotoViewer photo={selected} onClose={() => setSelected(null)} />}{' '}
+      {selected && (
+        <PhotoViewer
+          key={selected.id}
+          controller={controller}
+          photo={selected}
+          onClose={() => {
+            setSelected(null)
+            pages.refresh()
+          }}
+        />
+      )}{' '}
       {adding && (
         <Modal
           title="收藏一个小瞬间"
@@ -113,10 +306,12 @@ export function Photos({ controller, demo }: { controller: SpaceController; demo
               e.preventDefault()
               if (file)
                 void run(async () => {
-                  await controller.upload(file, caption.trim())
+                  await controller.upload(file, caption.trim(), memory)
                   setAdding(false)
                   setFile(null)
                   setCaption('')
+                  setMemory(memoryInput())
+                  pages.refresh()
                   toast('新的回忆，收藏成功！')
                 })
             }}
@@ -141,6 +336,7 @@ export function Photos({ controller, demo }: { controller: SpaceController; demo
                 placeholder="比如：今天的夕阳和你都很好看"
               />
             </label>
+            <MemoryFields value={memory} onChange={setMemory} space={controller.space!} />
             <p className="form-note">请勿上传敏感证件。MVP 不会自动移除照片的 EXIF 元数据。</p>
             <Button type="submit" tone="green" disabled={busy || !file}>
               {busy ? '正在收藏，请稍等…' : '放进我们的照片墙'}

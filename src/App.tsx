@@ -1,3 +1,6 @@
+import { registerDeviceInstallation } from './lib/api'
+import { BiboNative } from './native'
+import { parseRoute } from './lib/routes'
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { configured, errorText, supabase } from './lib/supabase'
@@ -16,11 +19,6 @@ import { Photos } from './pages/Photos'
 import { Focus } from './pages/Focus'
 import { Settings } from './pages/Settings'
 import { Auth, Onboarding } from './pages/Auth'
-const pages: Page[] = ['home', 'chat', 'events', 'photos', 'focus', 'settings']
-function currentPage(): Page {
-  const hash = window.location.hash.slice(1) as Page
-  return pages.includes(hash) ? hash : 'home'
-}
 function Workspace({
   session,
   demo,
@@ -31,20 +29,21 @@ function Workspace({
   exitDemo: () => void
 }) {
   const controller = useSpace(session, demo),
-    [page, setPage] = useState<Page>(currentPage),
+    [route, setRoute] = useState(() => parseRoute(window.location.hash)),
     [sound, setSound] = useState(false)
+  const page = route.page
   const bibu = useBibu(controller, demo)
   useEffect(() => {
     disableFeedback()
     return () => disableFeedback()
   }, [])
   useEffect(() => {
-    const onHash = () => setPage(currentPage())
+    const onHash = () => setRoute(parseRoute(window.location.hash))
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
   function navigate(value: Page) {
-    setPage(value)
+    setRoute({ page: value })
     window.location.hash = value
     window.scrollTo({ top: 0, behavior: 'instant' })
   }
@@ -77,6 +76,17 @@ function Workspace({
         connection={controller.connection}
         bibu={bibu}
       >
+        {controller.cachedAt && (
+          <div className="waiting-banner" role="status">
+            当前显示本机离线快照，保存于 {new Date(controller.cachedAt).toLocaleString()}
+            。成员与记录可能已变化；照片需联网重新获取，待发消息仍须服务器验证权限。
+          </div>
+        )}
+        {controller.cacheError && (
+          <div className="error-banner" role="alert">
+            本机快照保存失败：{controller.cacheError}。云端数据不受影响。
+          </div>
+        )}
         {controller.error && (
           <div className="error-banner" role="alert">
             同步失败，以下可能是旧数据：{controller.error}
@@ -92,8 +102,10 @@ function Workspace({
         {page === 'home' && (
           <Home controller={controller} navigate={navigate} demo={demo} bibu={bibu} />
         )}{' '}
-        {page === 'chat' && <Chat controller={controller} demo={demo} />}{' '}
-        {page === 'events' && <Events controller={controller} />}{' '}
+        {page === 'chat' && (
+          <Chat controller={controller} demo={demo} referenceId={route.referenceId} />
+        )}{' '}
+        {page === 'events' && <Events controller={controller} referenceId={route.referenceId} />}{' '}
         {page === 'photos' && <Photos controller={controller} demo={demo} />}{' '}
         {page === 'focus' && <Focus controller={controller} />}{' '}
         {page === 'settings' && (
@@ -111,10 +123,63 @@ function Workspace({
   )
 }
 export default function App() {
+  useEffect(() => {
+    let disposed = false
+    let stop: (() => void) | undefined
+    void BiboNative.deepLinks
+      .listen((route) => {
+        window.location.hash = route
+      })
+      .then((cleanup) => {
+        if (disposed) cleanup()
+        else stop = cleanup
+      })
+      .catch((error) => console.warn('无法初始化通知跳转', errorText(error)))
+    return () => {
+      disposed = true
+      stop?.()
+    }
+  }, [])
+  useEffect(() => {
+    let disposed = false
+    let stop: (() => void) | undefined
+    void BiboNative.push
+      .listenAction((route) => {
+        window.location.hash = route
+      })
+      .then((cleanup) => {
+        if (disposed) cleanup()
+        else stop = cleanup
+      })
+      .catch(() => {})
+    return () => {
+      disposed = true
+      stop?.()
+    }
+  }, [])
   const [session, setSession] = useState<Session | null>(null),
     [initializing, setInitializing] = useState(configured),
     [demo, setDemo] = useState(!configured),
     [toast, setToast] = useState<{ message: string; error: boolean } | null>(null)
+  useEffect(() => {
+    if (!session || !configured) return
+    let active = true
+    let stop: (() => void) | undefined
+    void BiboNative.push
+      .listenRegistration((token) => {
+        if (active)
+          void registerDeviceInstallation(session.user.id, token, 'bibo-0.1.0').catch(() => {})
+      })
+      .then((cleanup) => {
+        if (active) stop = cleanup
+        else cleanup()
+      })
+      .catch(() => {})
+    return () => {
+      active = false
+      stop?.()
+    }
+  }, [session?.user.id])
   useEffect(() => {
     if (!supabase) return
     let active = true

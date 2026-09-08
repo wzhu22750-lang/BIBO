@@ -1,3 +1,4 @@
+import { pingFeedback } from '../lib/ping'
 import { useEffect } from 'react'
 import { EventArt } from './EventArt'
 import { Icon } from './PixelArt'
@@ -6,13 +7,14 @@ export function PingEffect({
   ping,
   onClose,
 }: {
-  ping: { name: string; kind: string }
+  ping: { id: string; name: string; kind: string }
   onClose: () => void
 }) {
+  const feedback = pingFeedback(ping.kind)
   useEffect(() => {
     const timer = setTimeout(onClose, 6500)
     return () => clearTimeout(timer)
-  }, [onClose])
+  }, [onClose, ping.id])
   return (
     <Modal title="INCOMING LOVE!" onClose={onClose} className="ping-modal">
       <div className="ping-scene">
@@ -26,21 +28,18 @@ export function PingEffect({
                 animationDuration: `${1.8 + (i % 3) * 0.4}s`,
               }}
             >
-              <EventArt
-                value={['heart', 'bunny', 'dog', 'gift', 'trophy', 'plane'][i % 6]}
-                size={32}
-              />
+              <EventArt value={i % 3 === 0 ? 'heart' : feedback.art} size={32} />
             </span>
           ))}
         </div>
-        <Icon name="heart" size={90} />
+        <EventArt value={feedback.art} size={90} />
         <span className="micro">SPECIAL DELIVERY</span>
         <h2>
           {ping.name}
           <br />
           发来{ping.kind}！
         </h2>
-        <p>叮！你被一颗小小的心击中了。</p>
+        <p>{feedback.message}</p>
         <Button tone="yellow" onClick={onClose}>
           接住这份想念 <Icon name="check" size={16} />
         </Button>

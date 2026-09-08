@@ -1,7 +1,14 @@
+import { InactiveEventOutbox } from '../components/InactiveEventOutbox'
+import { downloadSpace } from '../lib/spaceExport'
+import { PushRegistrationPanel } from '../components/PushRegistrationPanel'
+import { AccountDeletion } from '../components/AccountDeletion'
+import { InactiveOutbox } from '../components/InactiveOutbox'
+import { InvitationManager } from '../components/InvitationManager'
+import { BiboNative } from '../native'
 import { useState } from 'react'
 import type { SpaceController } from '../hooks/useSpace'
 import type { AvatarType } from '../lib/types'
-import { Button, PageHeading, Panel, useTask, useToast } from '../components/ui'
+import { Button, Modal, PageHeading, Panel, useTask, useToast } from '../components/ui'
 import { Icon, PixelPal, AVATAR_LIST } from '../components/PixelArt'
 import { db } from '../lib/supabase'
 import { disableFeedback, enableFeedback } from '../lib/notifications'
@@ -46,12 +53,58 @@ export function Settings({
     [name, setName] = useState(space.me.name),
     [since, setSince] = useState(space.couple?.together_since || localDateInput()),
     [avatar, setAvatar] = useState<AvatarType>(space.me.avatar || 'cat'),
-    [code, setCode] = useState(controller.inviteCode),
     [newPass, setNewPass] = useState(''),
+    [closing, setClosing] = useState(false),
+    [closeText, setCloseText] = useState(''),
     { busy, run } = useTask(),
     toast = useToast()
   return (
     <>
+      {closing && (
+        <Modal
+          title="解除当前关系？"
+          onClose={() => {
+            if (!busy) setClosing(false)
+          }}
+        >
+          <form
+            className="form-stack"
+            onSubmit={(e) => {
+              e.preventDefault()
+              if (closeText !== '解除绑定') return
+              void run(async () => {
+                await controller.closeRelationship(space.couple!.id)
+                setClosing(false)
+                toast('双方已解除绑定，旧空间已封存。可创建或加入新空间。')
+              })
+            }}
+          >
+            <p>
+              此操作会同时移除你和另一位玩家的成员关系，撤销邀请码并结束共享专注。双方将无法继续访问旧空间，但云端资料尚未删除。
+            </p>
+            <p>
+              旧照片、聊天与回忆不会带入新空间。本版本没有封存空间恢复入口；如需保留可见副本，请先自行保存。其他设备离线缓存无法即时远程清除，已安排的本机提醒需在本机取消。
+            </p>
+            <p>
+              未同步到旧空间的消息不会发送到新空间；它们仍留在本机原账号队列中。解除不是账号注销或彻底数据删除。
+            </p>
+            <label>
+              输入“解除绑定”确认
+              <input
+                value={closeText}
+                onChange={(e) => setCloseText(e.target.value)}
+                autoComplete="off"
+              />
+            </label>
+            <Button tone="pink" type="submit" disabled={busy || closeText !== '解除绑定'}>
+              {busy ? '正在解除…' : '确认解除并封存'}
+            </Button>
+            <Button tone="white" type="button" disabled={busy} onClick={() => setClosing(false)}>
+              保留当前关系
+            </Button>
+          </form>
+        </Modal>
+      )}
       <PageHeading
         eyebrow="OUR SPACE, OUR RULES"
         title="空间设置"
@@ -126,6 +179,12 @@ export function Settings({
           </form>
         </Panel>
         <div className="settings-aside">
+          {!demo && (
+            <InactiveOutbox userId={space.me.id} currentCoupleId={space.couple?.id || null} />
+          )}
+          {!demo && (
+            <InactiveEventOutbox userId={space.me.id} currentCoupleId={space.couple?.id || null} />
+          )}
           <Panel title="双人入场券" tag="PRIVATE">
             <div className="settings-section">
               <div className="binding-status">
@@ -143,19 +202,84 @@ export function Settings({
                   </p>
                 </div>
               </div>
-              {!space.partner && (
-                <Button
-                  disabled={busy}
-                  onClick={() => void run(async () => setCode(await controller.refreshInvite()))}
-                >
-                  生成新邀请码
+              {!demo && !space.partner && (
+                <InvitationManager key={space.couple!.id} controller={controller} />
+              )}
+              {!demo && (
+                <Button tone="pink" disabled={busy} onClick={() => setClosing(true)}>
+                  解除并封存当前空间
                 </Button>
               )}
-              {code && <InviteCode code={code} />}
-              <p className="form-note">MVP 暂不支持解除绑定或更换伴侣，避免误操作丢失共同资料。</p>
+              <p className="form-note">
+                解除会封存旧空间。重新绑定只能进入新空间，旧关系内容不会分享给新伴侣。
+              </p>
             </div>
           </Panel>
+          {!demo && (
+            <Panel title="本机离线快照" tag="LOCAL CACHE">
+              <div className="settings-section">
+                <p>
+                  开启后，在这台设备保存最近聊天、事件和回忆文字，最多保留 24
+                  小时；不保存照片签名链接、登录令牌或邀请码。只有曾成功联网读取的账号可离线恢复。
+                </p>
+                <p>
+                  本机数据不是端到端加密存储；共享设备请勿开启。服务器撤销访问后，离线期间无法即时获知。清除快照不删除云端资料或待发消息。
+                </p>
+                <Button
+                  tone="white"
+                  disabled={busy}
+                  onClick={() =>
+                    void run(async () => {
+                      controller.setOfflineCache(!controller.offlineCacheEnabled)
+                      toast(
+                        controller.offlineCacheEnabled
+                          ? '已关闭并清除本机快照'
+                          : '已开启本机离线快照',
+                      )
+                    })
+                  }
+                >
+                  {controller.offlineCacheEnabled ? '关闭并清除本机快照' : '开启本机离线快照'}
+                </Button>
+              </div>
+            </Panel>
+          )}
           <Panel title="提醒偏好" tag="FEEDBACK">
+            <PushRegistrationPanel controller={controller} />
+            <div className="settings-section">
+              <h3>Android 系统通知</h3>
+              <p>只在你点击时申请权限。测试通知不代表伴侣消息已实现后台推送。</p>
+              <Button
+                tone="white"
+                disabled={busy}
+                onClick={() =>
+                  void run(async () => {
+                    const permission = await BiboNative.permissions.requestNotifications()
+                    if (!permission.supported) {
+                      toast(permission.reason || '此环境暂不支持')
+                      return
+                    }
+                    if (!permission.granted) {
+                      toast('通知未开启，可到系统应用设置中调整', true)
+                      return
+                    }
+                    const result = await BiboNative.notifications.show({
+                      id: 1,
+                      title: 'BIBO 通知测试',
+                      body: '点击回到我们的小窝',
+                      route: '#home',
+                    })
+                    toast(
+                      result.supported
+                        ? '通知已交给 Android 系统，请检查通知栏并点击验证'
+                        : result.reason || '通知暂不可用',
+                    )
+                  })
+                }
+              >
+                开启并测试系统通知
+              </Button>
+            </div>
             <div className="settings-section">
               <div className="setting-row">
                 <div>
@@ -201,7 +325,12 @@ export function Settings({
               {!demo && (
                 <form
                   className="form-stack"
-                  style={{ margin: '14px 0', padding: '14px 0', borderTop: '1px solid #e1e7d5', borderBottom: '1px solid #e1e7d5' }}
+                  style={{
+                    margin: '14px 0',
+                    padding: '14px 0',
+                    borderTop: '1px solid #e1e7d5',
+                    borderBottom: '1px solid #e1e7d5',
+                  }}
                   onSubmit={(e) => {
                     e.preventDefault()
                     void run(async () => {
@@ -231,6 +360,21 @@ export function Settings({
                   </Button>
                 </form>
               )}
+              {!demo && (
+                <Button
+                  tone="white"
+                  disabled={busy}
+                  onClick={() =>
+                    void run(async () => {
+                      downloadSpace(space)
+                      toast('当前已加载的空间数据已导出到下载目录；不包含图片文件和完整历史')
+                    })
+                  }
+                >
+                  导出当前已加载的数据
+                </Button>
+              )}
+              <AccountDeletion controller={controller} demo={demo} />
               <Button
                 tone="white"
                 disabled={busy}
@@ -238,6 +382,7 @@ export function Settings({
                   demo
                     ? exitDemo()
                     : void run(async () => {
+                        controller.clearOfflineSnapshot()
                         const { error } = await db().auth.signOut()
                         if (error) throw error
                       })

@@ -1,3 +1,4 @@
+import { mergePings } from './pingHistory'
 import type { Space } from './types'
 const future = (days: number) => {
   const d = new Date()
@@ -96,6 +97,7 @@ export function makeDemo(): Space {
         created_at: new Date(now - DAY * 7).toISOString(),
       },
     ],
+    pings: [],
     focus: [],
   }
 }
@@ -113,7 +115,10 @@ export function readDemo(): Space {
         Array.isArray(data.events) &&
         Array.isArray(data.focus)
       )
-        return data
+        return {
+          ...data,
+          pings: mergePings(data.couple.id, Array.isArray(data.pings) ? data.pings : []),
+        }
     }
   } catch {
     /* Invalid local demo data resets safely. */

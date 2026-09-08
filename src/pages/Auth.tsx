@@ -1,3 +1,6 @@
+import { InactiveEventOutbox } from '../components/InactiveEventOutbox'
+import { AccountDeletion } from '../components/AccountDeletion'
+import { InactiveOutbox } from '../components/InactiveOutbox'
 import { useState } from 'react'
 import { configured, db } from '../lib/supabase'
 import { Button, useTask, useToast } from '../components/ui'
@@ -357,6 +360,19 @@ export function Onboarding({ controller }: { controller: SpaceController }) {
             </Button>
           </form>
         </div>
+      )}
+      {controller.space && <AccountDeletion controller={controller} demo={false} />}
+      {controller.space && (
+        <InactiveEventOutbox
+          userId={controller.space.me.id}
+          currentCoupleId={controller.space.couple?.id || null}
+        />
+      )}
+      {controller.space && (
+        <InactiveOutbox
+          userId={controller.space.me.id}
+          currentCoupleId={controller.space.couple?.id || null}
+        />
       )}
       <button
         className="text-button"
