@@ -8,7 +8,6 @@ import { cleanupAccountLocal, cleanupSessionPrivacy } from '../lib/accountCleanu
 import { clearChatDraftsForUser } from '../lib/chatDraftStorage'
 import { BiboNative } from '../native'
 import { clearStoredPushToken, readStoredPushToken } from '../lib/pushRegistration'
-import { incomingPingNotification } from '../lib/pingNotification'
 import {
   incomingMessageNotification,
   newPartnerMessages,
@@ -234,13 +233,6 @@ export function useSpace(
         const partnerName = current.partner?.name || '另一位玩家'
         setPing({ id: incoming.id, name: partnerName, kind: incoming.kind })
         playFeedback(incoming.kind)
-        // Foreground: the full-screen PingEffect plus sound/vibration already
-        // presents the Ping; a system banner would double-notify. Background
-        // delivery is FCM's job, suppressed server-side by the same heartbeat.
-        if (document.hidden)
-          void BiboNative.notifications
-            .show(incomingPingNotification(incoming.id, incoming.kind, partnerName))
-            .catch(() => {})
       }
     },
   })

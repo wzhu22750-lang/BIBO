@@ -19,7 +19,9 @@ describe('message FCM push payload contract', () => {
     expect(result.message.notification.body).toBe('你今天吃饭了吗？')
     expect(result.message.data.route).toBe(`#chat?message=${record.id}`)
     expect(result.message.data.message_id).toBe(record.id)
+    expect(result.message.android.priority).toBe('HIGH')
     expect(result.message.android.notification.channel_id).toBe(MESSAGE_PUSH_CHANNEL)
+    expect(result.message.android.notification.notification_priority).toBe('PRIORITY_HIGH')
     // The data payload must never carry message content or couple identifiers.
     expect(JSON.stringify(result.message.data)).not.toContain('吃饭')
     expect(JSON.stringify(result)).not.toContain(record.couple_id)

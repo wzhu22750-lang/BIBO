@@ -155,11 +155,12 @@ export const BiboNative = {
         if (permission.receive !== 'granted')
           return { supported: true, reason: 'Android 系统通知权限未开启' }
         await PushNotifications.createChannel({
-          id: 'bibo_love_v1',
+          id: 'bibo_love_v2',
           name: '两个人的哔卟',
           description: '情侣 Ping 通知',
-          importance: 3,
+          importance: 4,
           visibility: 1,
+          sound: 'default',
           vibration: true,
         })
         // Chat messages get their own HIGH-importance channel: heads-up banner,

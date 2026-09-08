@@ -16,6 +16,9 @@ describe('FCM push payload contract', () => {
     expect(result.message.token).toHaveLength(20)
     expect(result.message.data.route).toBe('#home')
     expect(result.message.notification.body).toContain('想你')
+    expect(result.message.android.priority).toBe('HIGH')
+    expect(result.message.android.notification.channel_id).toBe('bibo_love_v2')
+    expect(result.message.android.notification.notification_priority).toBe('PRIORITY_HIGH')
     expect(JSON.stringify(result)).not.toContain(record.couple_id)
   })
   it('rejects invalid tokens and IDs', () => {

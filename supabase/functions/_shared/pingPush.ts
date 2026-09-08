@@ -4,12 +4,21 @@ export type PingPushRecord = {
   sender_id: string | null
   kind: string
 }
+export const PING_PUSH_CHANNEL = 'bibo_love_v2'
 export type FcmMessage = {
   message: {
     token: string
     notification: { title: string; body: string }
     data: { route: string; ping_id: string; kind: string }
-    android: { notification: { channel_id: string } }
+    android: {
+      priority: 'HIGH'
+      notification: {
+        channel_id: string
+        notification_priority: 'PRIORITY_HIGH'
+        default_sound: boolean
+        default_vibrate_timings: boolean
+      }
+    }
   }
 }
 const labels: Record<string, string> = {
@@ -47,7 +56,15 @@ export function buildPingPush(
         body: `${senderName.slice(0, 24)} 发来「${kind}」`,
       },
       data: { route: '#home', ping_id: record.id, kind },
-      android: { notification: { channel_id: 'bibo_love_v1' } },
+      android: {
+        priority: 'HIGH',
+        notification: {
+          channel_id: PING_PUSH_CHANNEL,
+          notification_priority: 'PRIORITY_HIGH',
+          default_sound: true,
+          default_vibrate_timings: true,
+        },
+      },
     },
   }
 }

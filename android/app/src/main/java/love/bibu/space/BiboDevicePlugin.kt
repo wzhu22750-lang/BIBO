@@ -30,7 +30,7 @@ import com.getcapacitor.annotation.PermissionCallback
 
 @CapacitorPlugin(name = "BiboDevice", permissions = [Permission(alias = "notifications", strings = [Manifest.permission.POST_NOTIFICATIONS])])
 class BiboDevicePlugin : Plugin() {
-    private val channel = "bibo_love_v1"
+    private val channel = "bibo_love_v2"
     private val messageChannel = "bibo_messages_v1"
     override fun load() {
         // Create push channels as early as the bridge exists so an FCM
@@ -40,13 +40,18 @@ class BiboDevicePlugin : Plugin() {
     }
     private fun ensureChannels(manager: NotificationManager) {
         if (Build.VERSION.SDK_INT < 26) return
-        manager.createNotificationChannel(NotificationChannel(channel, "两个人的哔卟", NotificationManager.IMPORTANCE_DEFAULT))
+        val pings = NotificationChannel(channel, "两个人的哔卟", NotificationManager.IMPORTANCE_HIGH).apply {
+            description = "情侣 Ping 实时通知"
+            enableVibration(true)
+        }
+        manager.createNotificationChannel(pings)
         // Chat messages: heads-up banner with the system default sound and
         // vibration. Importance/sound/vibration are owned by Android after the
         // user first sees the channel; we never bypass DND or silent mode.
-        val messages = NotificationChannel(messageChannel, "BIBO 悄悄话", NotificationManager.IMPORTANCE_HIGH)
-        messages.description = "伴侣消息通知"
-        messages.enableVibration(true)
+        val messages = NotificationChannel(messageChannel, "BIBO 悄悄话", NotificationManager.IMPORTANCE_HIGH).apply {
+            description = "伴侣消息通知"
+            enableVibration(true)
+        }
         manager.createNotificationChannel(messages)
     }
     private fun result() = JSObject().put("supported", true)

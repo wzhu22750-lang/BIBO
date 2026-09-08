@@ -73,21 +73,12 @@ Deno.serve(async (request) => {
   ])
   if (deviceError) return json({ error: '读取 Push 设备失败', details: deviceError.message }, 502)
   if (!devices?.length) return json({ sent: 0, skipped: '对方没有登记 Android Push 设备' }, 200)
-  // Realtime owns the foreground; FCM owns background/killed. A device that
-  // heartbeated recently is in the app and must not be double-notified.
   const targets = devices.filter(
-    (device) =>
-      typeof device.token === 'string' && !isDeviceRecentlyActive(device.last_seen_at as string),
+    (device) => typeof device.token === 'string' && device.token.length >= 20,
   )
   if (!targets.length)
-    return json(
-      {
-        sent: 0,
-        skipped: '对方设备正在前台活跃，由 Realtime 呈现',
-        skipped_active: devices.length,
-      },
-      200,
-    )
+    return json({ sent: 0, skipped: '对方没有有效 Android Push Token' }, 200)
+  console.log(`[send-message-push] Message ${verifiedRecord.id} -> Partner ${partner} (${targets.length} targets)`)
   let access: string
   try {
     access = await googleAccessToken(account)
@@ -107,6 +98,7 @@ Deno.serve(async (request) => {
       continue
     }
     const result = await sendFcmMessage(account, access, body)
+    console.log(`[send-message-push] Token ${token.slice(0, 10)}... status: ${result.status}, ok: ${result.ok}`)
     if (result.ok) {
       sent++
       continue

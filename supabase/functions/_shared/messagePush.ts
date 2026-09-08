@@ -13,7 +13,15 @@ export type MessageFcmPayload = {
     token: string
     notification: { title: string; body: string }
     data: { route: string; message_id: string; kind: string }
-    android: { notification: { channel_id: string } }
+    android: {
+      priority: 'HIGH'
+      notification: {
+        channel_id: string
+        notification_priority: 'PRIORITY_HIGH'
+        default_sound: boolean
+        default_vibrate_timings: boolean
+      }
+    }
   }
 }
 export const MESSAGE_PUSH_CHANNEL = 'bibo_messages_v1'
@@ -52,7 +60,15 @@ export function buildMessagePush(
       token,
       notification: { title: name, body: messagePreview(record.content) },
       data: { route: `#chat?message=${record.id}`, message_id: record.id, kind: 'message' },
-      android: { notification: { channel_id: MESSAGE_PUSH_CHANNEL } },
+      android: {
+        priority: 'HIGH',
+        notification: {
+          channel_id: MESSAGE_PUSH_CHANNEL,
+          notification_priority: 'PRIORITY_HIGH',
+          default_sound: true,
+          default_vibrate_timings: true,
+        },
+      },
     },
   }
 }
