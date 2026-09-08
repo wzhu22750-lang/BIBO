@@ -2,7 +2,7 @@
 export const lovePings = [
   {
     kind: '哔卟哔卟',
-    label: '哔卟',
+    label: 'BIBU',
     art: 'heart',
     message: '叮！你被一颗小小的心击中了。',
     notes: [523, 784, 1047, 784],
@@ -10,7 +10,7 @@ export const lovePings = [
   },
   {
     kind: '想你',
-    label: '想你',
+    label: 'MISS YOU',
     art: 'bunny',
     message: '这一刻，我正在想你。',
     notes: [659, 784, 988],
@@ -18,7 +18,7 @@ export const lovePings = [
   },
   {
     kind: '抱一下',
-    label: '抱一下',
+    label: 'HUG',
     art: 'bear',
     message: '隔着屏幕，也给你一个大大的拥抱。',
     notes: [392, 523, 659],
@@ -26,7 +26,7 @@ export const lovePings = [
   },
   {
     kind: '快来',
-    label: '快来',
+    label: 'COME OVER',
     art: 'plane',
     message: '有件小事，想和你一起分享！',
     notes: [784, 784, 1047],
@@ -34,7 +34,7 @@ export const lovePings = [
   },
   {
     kind: '晚安',
-    label: '晚安',
+    label: 'GOOD NIGHT',
     art: 'moon',
     message: '今天辛苦啦，愿你的梦里也有我。',
     notes: [659, 523, 392],
@@ -42,7 +42,7 @@ export const lovePings = [
   },
   {
     kind: '我回来啦',
-    label: '我回来啦',
+    label: "I'M BACK",
     art: 'dog',
     message: '忙完啦，回到我们的小窝。',
     notes: [523, 659, 784, 1047],

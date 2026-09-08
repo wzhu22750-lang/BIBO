@@ -1,10 +1,18 @@
+@font-face {
+  font-family: 'Fusion Pixel';
+  src: url('/fonts/fusion-pixel-12px-proportional-zh_hans.otf.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* BIBU Design System — shared tokens, pixel geometry, readable Chinese. */
 :root {
-  font-family: 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  font-family: 'Fusion Pixel', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
   color: #20211d;
   background: #f9f8f2;
   font-synthesis: none;
-  font-weight: 450;
+  font-weight: 400;
   --ink: #20211d;
   --paper: #fffef7;
   --yellow: #fff238;
@@ -578,7 +586,7 @@ img {
 .today-label > span {
   border-left: 1px solid #b6b9ab;
   padding-left: 7px;
-  font-family: system-ui;
+  font-family: inherit;
 }
 .hero-grid {
   display: grid;

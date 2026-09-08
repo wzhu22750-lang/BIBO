@@ -45,7 +45,7 @@ export function BottomNav({
         onClick={() => go('home')}
       >
         <span className="dock-icon dock-blue">
-          <Icon name="home" size={22} />
+          <Icon name="home" size={24} />
         </span>
         <span>小窝</span>
       </button>
@@ -55,7 +55,7 @@ export function BottomNav({
         onClick={() => go('chat')}
       >
         <span className="dock-icon dock-green">
-          <Icon name="chat" size={22} />
+          <Icon name="chat" size={24} />
         </span>
         <span>悄悄话</span>
       </button>
@@ -99,7 +99,7 @@ export function BottomNav({
         onClick={() => go('events')}
       >
         <span className="dock-icon dock-pink">
-          <Icon name="calendar" size={22} />
+          <Icon name="calendar" size={24} />
         </span>
         <span>值得期待</span>
       </button>
@@ -111,7 +111,7 @@ export function BottomNav({
         onClick={() => setMore(!more)}
       >
         <span className="dock-icon dock-lilac">
-          <img src={moreIcon} alt="" aria-hidden="true" width={22} height={22} />
+          <img src={moreIcon} alt="" aria-hidden="true" width={24} height={24} />
         </span>
         <span>更多</span>
       </button>

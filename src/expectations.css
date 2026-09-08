@@ -408,7 +408,7 @@
   margin-top: 4px;
 }
 .milestone-badge > strong > small {
-  font-family: system-ui;
+  font-family: inherit;
   font-size: 10px;
   font-weight: 650;
   margin-left: 5px;
@@ -1227,20 +1227,20 @@
     overflow: visible;
   }
   .bibo-dock > .dock-item {
-    min-height: 48px;
+    min-height: 52px;
     gap: 3px;
     padding: 1px 0;
     color: #737767;
   }
   .bibo-dock > .dock-item > span:last-child {
-    font-size: 10px;
+    font-size: 14px;
     white-space: nowrap;
     font-weight: 650;
     line-height: 1.2;
   }
   .bibo-dock > .dock-item .dock-icon {
-    width: 29px;
-    height: 29px;
+    width: 32px;
+    height: 32px;
     border: 1.5px solid transparent;
     display: flex;
     align-items: center;
@@ -1249,8 +1249,8 @@
   }
   .bibo-dock > .dock-item .dock-icon .pixel-icon,
   .bibo-dock > .dock-item .dock-icon img {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
   }
   .bibo-dock > .dock-item.active {
     background: transparent;
@@ -1418,7 +1418,7 @@
     margin-top: 0;
   }
   .bottom-nav.bibo-dock > .dock-item > span:last-child {
-    font-size: 9.5px;
+    font-size: 11px;
   }
   .postcard-note .micro {
     font-size: 4px;

@@ -5,6 +5,7 @@ function cacheable(request, url) {
   return (
     SHELL_PATHS.has(url.pathname) ||
     url.pathname.startsWith('/assets/') ||
+    url.pathname.startsWith('/fonts/') ||
     url.pathname.startsWith('/demo/')
   )
 }

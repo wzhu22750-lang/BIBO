@@ -235,7 +235,7 @@ export function Home({
             >
               <Icon name="heart" size={36} />
               <strong>{bibu.cooling ? 'SENT!' : 'BIBU!'}</strong>
-              <small>{bibu.cooling ? '想念发射中' : bibu.kind}</small>
+              <small>{bibu.cooling ? '想念发射中' : pingFeedback(bibu.kind).label}</small>
             </button>
           </div>
           <div className="ping-choices" role="group" aria-label="选择哔卟心情">
