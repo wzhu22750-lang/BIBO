@@ -45,7 +45,7 @@ self.addEventListener('fetch', (event) => {
           caches.match('/index.html').then(
             (response) =>
               response ||
-              new Response('BIBO 离线页面尚未缓存，请先联网打开一次。', {
+              new Response('BIBU 离线页面尚未缓存，请先联网打开一次。', {
                 status: 503,
                 headers: { 'Content-Type': 'text/plain; charset=utf-8' },
               }),

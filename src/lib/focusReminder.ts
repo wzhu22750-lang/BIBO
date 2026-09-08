@@ -18,7 +18,7 @@ export async function setFocusReminder(
     const result = await native.reminders.schedule({
       id: FOCUS_REMINDER_ID,
       at: Date.parse(focus.ends_at),
-      title: 'BIBO 专注小约定',
+      title: 'BIBU 专注小约定',
       body: '你为自己安排的专注时间到了，休息一下吧。',
       route: '#focus',
     })

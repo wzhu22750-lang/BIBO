@@ -64,7 +64,7 @@ export function useSpace(
   stateRef.current = space
   const userId = session?.user.id
   // Dedupe by message_id across reloads/Realtime races, and suppress the system
-  // banner when the user is already looking at the one BIBO conversation (the
+  // banner when the user is already looking at the one BIBU conversation (the
   // chat page in the foreground). Background/killed delivery belongs to FCM.
   const notifyIncoming = useCallback(
     (previous: Space | null, next: Space) => {

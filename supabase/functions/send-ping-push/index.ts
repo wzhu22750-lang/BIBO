@@ -16,9 +16,10 @@ function json(body: Record<string, unknown>, status = 200) {
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: cors })
   if (request.method !== 'POST') return json({ error: '仅支持 POST' }, 405)
-  const expected = Deno.env.get('BIBO_WEBHOOK_SECRET')
-  if (!expected || request.headers.get('x-bibo-webhook-secret') !== expected)
-    return json({ error: 'Webhook 未授权' }, 401)
+  const expected = Deno.env.get('BIBU_WEBHOOK_SECRET') || Deno.env.get('BIBO_WEBHOOK_SECRET')
+  const secretHeader =
+    request.headers.get('x-bibu-webhook-secret') || request.headers.get('x-bibo-webhook-secret')
+  if (!expected || secretHeader !== expected) return json({ error: 'Webhook 未授权' }, 401)
   const url = Deno.env.get('SUPABASE_URL'),
     service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
     accountRaw = Deno.env.get('FCM_SERVICE_ACCOUNT_JSON')

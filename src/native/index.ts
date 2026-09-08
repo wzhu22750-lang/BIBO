@@ -168,7 +168,7 @@ export const BiboNative = {
         // (DND/silence still apply — we never bypass them).
         await PushNotifications.createChannel({
           id: 'bibo_messages_v1',
-          name: 'BIBO 悄悄话',
+          name: 'BIBU 悄悄话',
           description: '伴侣消息通知',
           importance: 4,
           visibility: 1,

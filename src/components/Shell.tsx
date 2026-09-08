@@ -86,7 +86,7 @@ export function Shell({
       <div className={`main-wrap page-wrap-${page}`}>
         <header className="topbar">
           <span className="topbar-caption">
-            <Icon name="star" size={15} /> BIBO!
+            <Icon name="star" size={15} /> BIBU!
           </span>
           <div className="topbar-right">
             <button

@@ -6,7 +6,7 @@ This function is intended for a Supabase Database Webhook on `public.messages` I
 
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `BIBO_WEBHOOK_SECRET`: webhook-only secret, sent as `x-bibo-webhook-secret`.
+- `BIBU_WEBHOOK_SECRET` (or `BIBO_WEBHOOK_SECRET`): webhook-only secret, sent as `x-bibu-webhook-secret` (or `x-bibo-webhook-secret`).
 - `FCM_SERVICE_ACCOUNT_JSON`: Firebase service-account JSON containing `project_id`, `client_email`, and `private_key`.
 
 ## Flow

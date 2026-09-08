@@ -55,7 +55,7 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
     try {
       const res = await BiboNative.notifications.show({
         id: 999,
-        title: 'BIBO 悄悄话渠道测试',
+        title: 'BIBU 悄悄话渠道测试',
         body: '如果你看到了这条系统横幅，说明系统通知权限与悄悄话通道（bibo_messages_v1）完全正常！',
         route: '#chat',
         channel: 'messages',
@@ -78,7 +78,7 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
       ? '当前环境没有 Android 系统通知（Web）。通知登记仅对 Android 应用有效。'
       : permission.granted
         ? '✅ 系统通知权限：已开启（GRANTED）'
-        : '❌ 系统通知权限：已被拒绝（DENIED）。BIBO 无法弹出任何系统横幅。'
+        : '❌ 系统通知权限：已被拒绝（DENIED）。BIBU 无法弹出任何系统横幅。'
 
   async function register() {
     setBusy(true)

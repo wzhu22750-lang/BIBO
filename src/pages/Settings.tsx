@@ -265,7 +265,7 @@ export function Settings({
                     }
                     const result = await BiboNative.notifications.show({
                       id: 1,
-                      title: 'BIBO 通知测试',
+                      title: 'BIBU 通知测试',
                       body: '点击回到我们的小窝',
                       route: '#home',
                     })

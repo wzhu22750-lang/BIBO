@@ -3218,7 +3218,7 @@ img {
     width: 26px;
   }
   .chat-composer {
-    padding: 8px 10px;
+    padding: 10px 12px 12px;
     background: #fffef7;
     border-top: var(--line);
     flex-shrink: 0;
@@ -3236,6 +3236,7 @@ img {
     box-sizing: border-box;
     background: #fbfdf5;
     border: var(--line);
+    min-height: 41px;
   }
   .composer-main textarea:focus {
     outline: none;
@@ -3243,15 +3244,19 @@ img {
     border-color: var(--ink);
   }
   .composer-main .button {
-    padding: 9px 10px;
+    padding: 9px 12px;
     min-height: 41px;
   }
   .composer-main .button > span {
     display: none;
   }
   .emoji-toggle {
-    font-size: 27px;
-    padding: 0 2px;
+    font-size: 26px;
+    padding: 0 3px;
+    min-height: 41px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .chat-start-label {
     font-size: 9px;

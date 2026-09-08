@@ -56,7 +56,7 @@ export function ReminderPanel() {
                   const result = await BiboNative.reminders.schedule({
                     id,
                     at: new Date(at).getTime(),
-                    title: 'BIBO 小约定',
+                    title: 'BIBU 小约定',
                     body: '到了你留给自己的提醒时间，回来看看吧。',
                     route: '#focus',
                   })

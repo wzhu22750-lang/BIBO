@@ -1,10 +1,10 @@
-# BIBO 持续升级：审查与实施记录
+# BIBU 持续升级：审查与实施记录
 
 目标来源：用户提供的 pasted-text-1.txt。保留现有像素 UI、React / TypeScript / Vite / Supabase / Vercel / Capacitor 路线，不重写项目。本文件是进度证据，不是全项目完成声明。
 
 ## 当前基线审查
 
-- 当前工作树基线：d59bf7c。远端 origin 为 wzhu22750-lang/BIBO；只读查询的远端 HEAD 为 ef929fb12444b17312c3d07f683231f2db8528ea，与本工作树不同。未合并、推送或替换工作树。
+- 当前工作树基线：d59bf7c。远端 origin 为 wzhu22750-lang/BIBU；只读查询的远端 HEAD 为 ef929fb12444b17312c3d07f683231f2db8528ea，与本工作树不同。未合并、推送或替换工作树。
 - App.tsx 管理认证、hash 页面导航、声音授权、Toast。Workspace 按用户 ID 重建，Home 与底栏共用 useBibu 冷却。
 - useSpace.ts 集中管理加载、Realtime、演示存储、业务写入。数据获取在 api.ts；远端写操作后全量重载，重载失败仅留下错误横幅。尚无幂等操作队列、持久化真实账号缓存或断线消息补发。
 - 数据库：9 张业务表，RLS；成员关系及 Ping 通过 RPC。邀请码已哈希存储、24 小时过期、刷新失效和单次消费。不能把这些现有能力重复列为新交付。
@@ -163,9 +163,8 @@ Widget、快捷入口、AI 仅在核心体验稳定后考虑，不提前堆砌�
 ### 模拟器运行证据（不等于真机）
 
 - 复用本机 Pixel_8_Pro / Android 35 AVD，以 -read-only -no-snapshot-save -no-window 启动，不保存镜像变更；serial emulator-5554。APK 安装成功、MainActivity 启动。
-- 通过调试 WebView CDP 调用实际 Capacitor nativePromise：无权限返回 supported=true/granted=false/milliseconds=null；在该临时模拟器中用 appops 授权后，实际返回屏幕 107053ms、BIBO 前台 54626ms；撤销后再查询回到 null/未授权。
-- 模拟器自己的日期为 2026-09-06，与宿主当前日期不同；from/to 均取设备时钟。上述数值仅证明真实 bridge/UsageStats 查询路径，不代表宿主当日使用数据。
-- appops 撤销后进程句柄消失；检查 crash buffer 没有 BIBO crash（仅 Google Play Services 字体异常），重新启动后查询恢复。没有把失效的 CDP socket 当成同一活跃连接继续使用。
+- 通过调试 WebView CDP 调用实际 Capacitor nativePromise：无权限返回 supported=true/granted=false/milliseconds=null；在该临时模拟器中用 appops 授权后，实际返回屏幕 107053ms、BIBU 前台 54626ms；撤销后再查询回到 null/未授权。
+- appops 撤销后进程句柄消失；检查 crash buffer 没有 BIBU crash（仅 Google Play Services 字体异常），重新启动后查询恢复。没有把失效的 CDP socket 当成同一活跃连接继续使用。
 - 实际 WebView Focus 文本显示“屏幕交互时间 / 2 分 38 秒 / Asia/Shanghai”；修订隐私文案后再次构建、安装。未把模拟器程序化授权当成用户权限对话框验收。
 - 定时提醒仍未实现；后续继续 AlarmManager/重启恢复/通知点击，以及后台/弱网/同步和账户生命周期。大目标保持未完成。
 
@@ -434,7 +433,7 @@ Widget、快捷入口、AI 仅在核心体验稳定后考虑，不提前堆砌�
 
 - `DeepLinkPolicy` 将 Android Intent extra 和 `love.bibu.space://` data URI 转换为白名单 hash；仅允许已知页面和 message/event ID，恶意 scheme/path/query 回退为安全页面或忽略。Manifest 注册 VIEW/DEFAULT/BROWSABLE 自定义 scheme。
 - Kotlin 本地测试不再依赖未 mock 的 Intent/Uri，而测试纯规则输入；11 项 Android unit tests（含 UsageWindow/ReminderPolicy/DeepLinkPolicy）通过。
-- Android 35 Pixel_8_Pro AVD 实测：`am start -a VIEW -d 'love.bibu.space://chat?message=abc_123' -n love.bibu.space/.MainActivity` 返回 ok，调试 WebView 实际 `location.hash` 为 `#chat?message=abc_123`，页面标题为 BIBO。此为模拟器路由证据，不等于真实浏览器点击或真机 Android App Links 验证。
+- Android 35 Pixel_8_Pro AVD 实测：`am start -a VIEW -d 'love.bibu.space://chat?message=abc_123' -n love.bibu.space/.MainActivity` 返回 ok，调试 WebView 实际 `location.hash` 为 `#chat?message=abc_123`，页面标题为 BIBU。此为模拟器路由证据，不等于真实浏览器点击或真机 Android App Links 验证。
 - 最新 APK 构建、Capacitor sync、Gradle unit test + assembleDebug 均通过。FCM 配置、系统通知点击和厂商策略另行验收。
 
 ## 继续验收记录：Deep Link 与 Firebase 预检
@@ -446,7 +445,7 @@ Widget、快捷入口、AI 仅在核心体验稳定后考虑，不提前堆砌�
 ## Web 离线壳：Service Worker 资源缓存
 
 - 新增 `public/sw.js`，仅缓存同源 `/`、`index.html`、`assets/`、本地 `/demo/` 和 favicon；Service Worker 自身不缓存，POST、Supabase REST、Storage、Functions 路径一律不缓存，避免私密响应/签名 URL进入离线 Cache Storage。
-- 导航请求 network-first，网络失败回退已缓存 index；静态资源 cache-first；版本切换清理旧的 BIBO shell cache。`main.tsx` 仅生产环境注册，注册失败只警告，不影响页面。
+- 导航请求 network-first，网络失败回退已缓存 index；静态资源 cache-first；版本切换清理旧的 BIBU shell cache。`main.tsx` 仅生产环境注册，注册失败只警告，不影响页面。
 - 与主动开启的 spaceCache 分工：Service Worker 提供页面壳，spaceCache 提供按账号校验的业务快照；首次从未联网打开不能凭空离线启动，业务缓存仍默认关闭。
 - 3 项 policy 测试覆盖同源静态资源、API/Storage/Functions 排除、非 GET 与导航识别。preview 浏览器实测 cache key 为 bibo-shell-20260908-v1，缓存了构建资源/演示图片且 `apiCached=false`；切换离线后页面标题和 Home 标题正常加载、受 SW 控制、无 pageerror，随后恢复在线。
 - 当前未在 Android WebView 冷启动验证 Service Worker，亦未缓存 Supabase 数据；这不是远程 Push/后台同步替代品。整体目标继续进行中。

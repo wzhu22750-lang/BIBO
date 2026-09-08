@@ -67,7 +67,7 @@ export function BottomNav({
             setMore(false)
             void bibu.send()
           }}
-          aria-label={`BIBO，发送${bibu.kind}`}
+          aria-label={`BIBU，发送${bibu.kind}`}
           title={`发送${bibu.kind}`}
         >
           <svg viewBox="0 0 76 76" aria-hidden="true" shapeRendering="crispEdges">
@@ -91,7 +91,7 @@ export function BottomNav({
             <path fill="#fffef7" d="M24 28h8v4h-8z" />
           </svg>
         </button>
-        <span className="dock-bibo-label">{bibu.cooling ? 'SENT!' : 'BIBO!'}</span>
+        <span className="dock-bibo-label">{bibu.cooling ? 'SENT!' : 'BIBU!'}</span>
       </div>
       <button
         className={`dock-item ${page === 'events' ? 'active' : ''}`}

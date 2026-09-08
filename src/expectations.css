@@ -1211,7 +1211,7 @@
   .main-wrap.page-wrap-chat,
   .main-wrap:has(> .page-chat) {
     padding-bottom: 0;
-    --app-nav: calc(74px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+    --app-nav: calc(78px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
   }
   .bottom-nav.bibo-dock {
     left: 0;

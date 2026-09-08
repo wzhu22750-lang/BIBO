@@ -6,7 +6,7 @@ This function is intended for a Supabase Database Webhook on `public.pings` INSE
 
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `BIBO_WEBHOOK_SECRET`: a random webhook-only secret, configured on the database webhook request header `x-bibo-webhook-secret`.
+- `BIBU_WEBHOOK_SECRET` (or `BIBO_WEBHOOK_SECRET`): a random webhook-only secret, configured on the database webhook request header `x-bibu-webhook-secret` (or `x-bibo-webhook-secret`).
 - `FCM_SERVICE_ACCOUNT_JSON`: Firebase service-account JSON containing `project_id`, `client_email`, and `private_key`.
 
 Never put these values in `.env.local`, Vite variables, the Android project, or `google-services.json` beyond the normal client Firebase configuration.
