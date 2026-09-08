@@ -99,9 +99,6 @@ export function Chat({
       )}
       {!demo && (
         <section className="linked-record-panel" aria-label="消息同步队列">
-          <p>
-            消息先保存到本机，再同步到你们的空间。等待同步不是对方已收到。卸载应用或清除网站数据会删除本机待发送内容。
-          </p>
           {controller.outbox.error && <p role="alert">本机队列异常：{controller.outbox.error}</p>}
           {controller.outbox.rows.map((row) => (
             <div key={row.id}>
