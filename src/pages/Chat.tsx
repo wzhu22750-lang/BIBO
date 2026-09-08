@@ -66,6 +66,46 @@ export function Chat({
     if (nearBottom.current) end.current?.scrollIntoView({ block: 'nearest', behavior: 'instant' })
     else setUnread(true)
   }, [space.messages.at(-1)?.id, referenceId])
+  const [isTyping, setIsTyping] = useState(false)
+
+  // Listen to mobile viewport resize (keyboard show/hide)
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    const onResize = () => {
+      const diff = window.innerHeight - vv.height
+      if (diff > 120) {
+        setIsTyping(true)
+      } else if (!input.current || document.activeElement !== input.current) {
+        setIsTyping(false)
+      }
+    }
+    vv.addEventListener('resize', onResize)
+    return () => vv.removeEventListener('resize', onResize)
+  }, [])
+
+  useEffect(() => {
+    if (isTyping) {
+      document.body.classList.add('chat-keyboard-open')
+      const timer = setTimeout(() => {
+        end.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })
+      }, 50)
+      return () => clearTimeout(timer)
+    } else {
+      document.body.classList.remove('chat-keyboard-open')
+    }
+    return () => {
+      document.body.classList.remove('chat-keyboard-open')
+    }
+  }, [isTyping])
+
+  useLayoutEffect(() => {
+    const el = scroll.current
+    if (el && !referenceId) {
+      el.scrollTop = el.scrollHeight
+    }
+  }, [referenceId])
+
   function submit() {
     if (!text.trim() || busy) return
     // Send haptic: a single light tick. Native Android on device, navigator
@@ -78,6 +118,7 @@ export function Chat({
       draftRef.current = next
       setDraft(next)
       if (!next.text) {
+        if (input.current) input.current.style.height = 'auto'
         try {
           clearChatDraft(space.me.id, space.couple!.id)
         } catch {
@@ -97,62 +138,7 @@ export function Chat({
           id={referenceId}
         />
       )}
-      {!demo && Boolean(controller.outbox.error || controller.outbox.rows.length > 0) && (
-        <section className="linked-record-panel" aria-label="消息同步队列">
-          {controller.outbox.error && <p role="alert">本机队列异常：{controller.outbox.error}</p>}
-          {controller.outbox.rows.map((row) => (
-            <div key={row.id}>
-              <p>{row.content}</p>
-              <small>
-                {row.status === 'blocked'
-                  ? '发送失败，原文已保留'
-                  : row.nextAttemptAt
-                    ? `等待重试 · 最早 ${new Date(row.nextAttemptAt).toLocaleTimeString()}`
-                    : '等待同步'}
-                {row.error ? ` · ${row.error}` : ''}
-              </small>
-              <Button
-                tone="white"
-                disabled={busy}
-                onClick={() => void run(() => controller.outbox.retry(row.id))}
-              >
-                重试同步
-              </Button>
-              <Button
-                tone="white"
-                disabled={busy}
-                onClick={() => {
-                  if (
-                    window.confirm(
-                      '移除本机待发送记录？若此前请求已到达服务器，已发送的消息不会撤回。',
-                    )
-                  )
-                    void run(() => controller.outbox.discard(row.id))
-                }}
-              >
-                移除待发送
-              </Button>
-            </div>
-          ))}
-        </section>
-      )}
       <section className="chat-window">
-        <div className="chat-window-top">
-          <span className="tiny-avatar pink">
-            <PixelPal type={space.partner?.avatar || 'bunny'} />
-          </span>
-          <div>
-            <h2>{space.partner?.name || '另一位玩家'}</h2>
-            <span>
-              {demo
-                ? '本地演示 · 消息不会发送给真实用户'
-                : space.partner
-                  ? '只有彼此的私人频道'
-                  : 'TA 加入后就能看到你留下的话'}
-            </span>
-          </div>
-          <Icon name="lock" size={21} />
-        </div>
         <div
           ref={scroll}
           onScroll={() => {
@@ -299,7 +285,22 @@ export function Chat({
               rows={1}
               maxLength={2000}
               value={text}
-              onChange={(e) => editText(e.target.value)}
+              onFocus={() => setIsTyping(true)}
+              onBlur={() => {
+                setTimeout(() => {
+                  const vv = window.visualViewport
+                  const diff = vv ? window.innerHeight - vv.height : 0
+                  if (document.activeElement !== input.current && diff <= 120) {
+                    setIsTyping(false)
+                  }
+                }, 150)
+              }}
+              onChange={(e) => {
+                editText(e.target.value)
+                const el = e.target
+                el.style.height = 'auto'
+                el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
                   e.preventDefault()

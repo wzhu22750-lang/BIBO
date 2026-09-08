@@ -52,12 +52,27 @@ button {
     box-shadow 0.12s;
 }
 button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible {
+a:focus-visible {
   outline: 3px solid #1663e6;
   outline-offset: 4px;
+}
+input,
+textarea,
+select {
+  outline: none;
+}
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+::selection {
+  background: var(--pink);
+  color: var(--ink);
 }
 button:active:not(:disabled) {
   transform: translate(2px, 2px);
@@ -1360,6 +1375,12 @@ img {
   border-radius: 0;
   font-weight: 400;
 }
+.form-stack input:not([type='checkbox']):not([type='file']):focus,
+.form-stack textarea:focus,
+.form-stack select:focus {
+  outline: none;
+  border-color: var(--ink);
+}
 .form-stack input::placeholder {
   color: #8a8f7d;
   font-size: 12px;
@@ -1679,6 +1700,10 @@ img {
   background: #f5f7e9;
   min-width: 0;
   font-size: 12px;
+}
+.composer-main textarea:focus {
+  outline: none;
+  border-color: var(--ink);
 }
 .emoji-toggle {
   font-size: 30px;
@@ -3171,14 +3196,9 @@ img {
     border: none;
     box-shadow: none;
   }
-  .chat-window-top {
-    padding: 12px 15px;
-  }
-  .chat-window-top div > span {
-    font-size: 9px;
-  }
   .chat-messages {
     padding: 15px 12px;
+    -webkit-overflow-scrolling: touch;
   }
   .message-row {
     gap: 9px;
@@ -3198,15 +3218,33 @@ img {
     width: 26px;
   }
   .chat-composer {
-    padding: 11px 10px 9px;
+    padding: 10px 10px max(9px, env(safe-area-inset-bottom, 0px));
+    background: #fffef7;
+    border-top: var(--line);
+    flex-shrink: 0;
+  }
+  body.chat-keyboard-open .chat-composer,
+  .app-shell:has(.chat-composer:focus-within) .chat-composer {
+    padding-bottom: 9px !important;
   }
   .composer-main {
-    gap: 7px;
+    gap: 8px;
+    align-items: flex-end;
   }
   .composer-main textarea {
-    padding: 9px 8px;
-    font-size: 11px;
+    padding: 9px 10px;
+    font-size: 13px;
+    line-height: 1.4;
     resize: none;
+    border-radius: 6px;
+    box-sizing: border-box;
+    background: #fbfdf5;
+    border: var(--line);
+  }
+  .composer-main textarea:focus {
+    outline: none;
+    background: #ffffff;
+    border-color: var(--ink);
   }
   .composer-main .button {
     padding: 9px 10px;

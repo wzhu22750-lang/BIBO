@@ -1212,6 +1212,24 @@
   .main-wrap:has(> .page-chat) {
     padding-bottom: 0;
   }
+  body.chat-keyboard-open .bottom-nav,
+  .app-shell:has(.chat-composer:focus-within) .bottom-nav,
+  .app-shell:has(.chat-composer textarea:focus) .bottom-nav {
+    display: none !important;
+  }
+  body.chat-keyboard-open .main-wrap.page-wrap-chat,
+  body.chat-keyboard-open .main-wrap:has(> .page-chat),
+  .app-shell:has(.chat-composer:focus-within) .main-wrap.page-wrap-chat,
+  .app-shell:has(.chat-composer:focus-within) .main-wrap:has(> .page-chat) {
+    padding-bottom: 0 !important;
+    --app-nav: 0px !important;
+  }
+  body.chat-keyboard-open .main-wrap > main.page-chat,
+  .app-shell:has(.chat-composer:focus-within) .main-wrap > main.page-chat {
+    height: calc(100dvh - 60px - var(--app-top)) !important;
+    min-height: calc(100dvh - 60px - var(--app-top)) !important;
+    max-height: calc(100dvh - 60px - var(--app-top)) !important;
+  }
   .bottom-nav.bibo-dock {
     left: 0;
     right: 0;
@@ -1455,6 +1473,10 @@
   font-size: 12px;
   background: #f9fbf1;
   border: 1px solid #aab99a;
+}
+.form-stack .expanded-art-picker .art-search input:focus {
+  outline: none;
+  border-color: var(--ink);
 }
 .art-group-tabs {
   display: flex;

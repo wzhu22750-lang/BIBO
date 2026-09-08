@@ -88,18 +88,18 @@ function Workspace({
         connection={controller.connection}
         bibu={bibu}
       >
-        {controller.cachedAt && (
+        {page !== 'chat' && controller.cachedAt && (
           <div className="waiting-banner" role="status">
             当前显示本机离线快照，保存于 {new Date(controller.cachedAt).toLocaleString()}
             。成员与记录可能已变化；照片需联网重新获取，待发消息仍须服务器验证权限。
           </div>
         )}
-        {controller.cacheError && (
+        {page !== 'chat' && controller.cacheError && (
           <div className="error-banner" role="alert">
             本机快照保存失败：{controller.cacheError}。云端数据不受影响。
           </div>
         )}
-        {controller.error && (
+        {page !== 'chat' && controller.error && (
           <div className="error-banner" role="alert">
             同步失败，以下可能是旧数据：{controller.error}
             <button onClick={() => void controller.reload()}>重试</button>
