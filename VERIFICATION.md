@@ -61,7 +61,7 @@
 
 ## 尚未交付
 
-线上 Supabase 部署、Vercel 线上地址、实际双设备送达、后台推送、Android 工程与 APK、已读回执、端到端加密、解绑 / 注销 / 数据导出、自动 EXIF 移除和旧历史分页。这些均不应被本地测试结果替代。
+线上 Supabase / Edge Function 部署、Vercel 线上地址、实际双设备送达、远程 Push、已读回执、端到端加密、注销后的云端管理员删除回读、导出、自动 EXIF 移除和厂商后台策略。当前代码已包含解除封存、注销 Edge Function、消息/照片分页，但本地测试不能替代托管环境验收。这些均不应被本地测试结果替代。
 
 ## 纪念日 / BIBO 底栏增量验证
 
@@ -97,3 +97,12 @@
 - 选择新企鹅图标、创建期待、刷新后仍以 `icon:penguin` 保存并显示；测试后恢复原演示数据。
 
 截图：`output/playwright/picker-friends-40-mobile.png`。浏览器记录：`output/playwright/icon-expansion-result.txt`。本轮无需新 SQL 或后端权限变更，也未修改用户提供的参考 demo。
+
+## 账户生命周期新增验收
+
+1. 独立测试项目部署全部迁移及 `delete-account` Edge Function；确认 service key 仅存在于 Edge Function secret。
+2. A/B 双账号创建空间后，A 先验证解除封存：双方无法读取旧空间，旧资料保留，A/B 可分别创建或加入新空间。
+3. 使用测试账号验证注销确认门槛、准备 RPC 幂等、本人照片 Storage 文件清理、共享记录显示“已注销玩家”、Auth 用户最终删除；模拟 Storage 或 admin 删除失败时不得显示成功。
+4. 验证注销后的旧手机离线快照、IndexedDB 待发送队列、本机提醒和另一设备缓存边界；无法远程删除已下载或离线副本。
+5. 完成真实双账号 Realtime、Storage HTTP、Edge Function、Auth 删除回读后，才可把账户生命周期标为已验收。
+6. 配置 Firebase 客户端与 `send-ping-push` Webhook 后，使用两个登记设备验证 FCM 成功、无 token/失效 token、FCM 5xx 重试和点击内部路由；token 登记与通知送达必须分别记录。

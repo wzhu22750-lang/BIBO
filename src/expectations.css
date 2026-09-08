@@ -1323,3 +1323,19 @@
     display: none;
   }
 }
+
+.celebration-edit {
+  position: absolute;
+  right: 28px;
+  top: 0;
+  width: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  color: #707663;
+  opacity: 0.75;
+}
+.celebration-edit:hover {
+  background: var(--art-color);
+  opacity: 1;
+  color: var(--ink);
+}

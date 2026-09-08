@@ -1,3 +1,5 @@
+import { BiboNative } from '../native'
+import { pingFeedback } from './ping'
 let audio: AudioContext | undefined
 let enabled = false
 const FEEDBACK_KEY = 'bibu-feedback-v1'
@@ -20,6 +22,7 @@ export function storeFeedbackEnabled(on: boolean) {
 }
 
 export async function enableFeedback() {
+  if (typeof AudioContext === 'undefined') throw new Error('此设备不支持声音反馈')
   audio ??= new AudioContext()
   await audio.resume()
   enabled = true
@@ -60,26 +63,30 @@ export function restoreFeedback() {
   window.addEventListener('touchstart', handler)
   window.addEventListener('keydown', handler)
 }
-export function playFeedback() {
+export function playFeedback(kind = '哔卟哔卟') {
   if (!enabled) return
-  if (audio?.state === 'running') {
-    const start = audio.currentTime
-    ;[523.25, 783.99, 1046.5, 783.99].forEach((frequency, index) => {
-      const oscillator = audio!.createOscillator(),
-        gain = audio!.createGain()
-      oscillator.type = 'square'
-      oscillator.frequency.value = frequency
-      gain.gain.setValueAtTime(0.045, start + index * 0.12)
-      gain.gain.exponentialRampToValueAtTime(0.001, start + index * 0.12 + 0.1)
-      oscillator.connect(gain)
-      gain.connect(audio!.destination)
-      oscillator.start(start + index * 0.12)
-      oscillator.stop(start + index * 0.12 + 0.11)
-      oscillator.onended = () => {
-        oscillator.disconnect()
-        gain.disconnect()
-      }
-    })
+  try {
+    if (audio?.state === 'running') {
+      const start = audio.currentTime
+      pingFeedback(kind).notes.forEach((frequency, index) => {
+        const oscillator = audio!.createOscillator(),
+          gain = audio!.createGain()
+        oscillator.type = 'square'
+        oscillator.frequency.value = frequency
+        gain.gain.setValueAtTime(0.045, start + index * 0.12)
+        gain.gain.exponentialRampToValueAtTime(0.001, start + index * 0.12 + 0.1)
+        oscillator.connect(gain)
+        gain.connect(audio!.destination)
+        oscillator.start(start + index * 0.12)
+        oscillator.stop(start + index * 0.12 + 0.11)
+        oscillator.onended = () => {
+          oscillator.disconnect()
+          gain.disconnect()
+        }
+      })
+    }
+  } catch {
+    // Audio can become unavailable while the app is suspended; delivery still succeeded.
   }
-  navigator.vibrate?.([100, 60, 100, 60, 180])
+  void BiboNative.vibration.pulse(pingFeedback(kind).vibration).catch(() => {})
 }

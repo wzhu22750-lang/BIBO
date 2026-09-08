@@ -1,107 +1,282 @@
+import { accessFailure } from '../lib/accessFailure'
+import { clearOutboxForUser } from '../lib/outbox'
+import { clearEventOutboxForUser } from '../lib/eventOutbox'
+import { clearPhotoOutboxForUser } from '../lib/photoOutbox'
+import { useEventOutbox } from './useEventOutbox'
+import { usePhotoOutbox } from './usePhotoOutbox'
+import { cleanupAccountLocal, cleanupSessionPrivacy } from '../lib/accountCleanup'
+import { clearChatDraftsForUser } from '../lib/chatDraftStorage'
+import { BiboNative } from '../native'
+import { incomingPingNotification } from '../lib/pingNotification'
+import {
+  incomingMessageNotification,
+  newPartnerMessages,
+  shouldNotifyIncomingMessage,
+} from '../lib/messageNotification'
+import { withRequestDeadline } from '../lib/requestDeadline'
+import { useSpaceRealtime } from './useSpaceRealtime'
+import type { Focus } from '../lib/types'
+import {
+  cacheEnabled,
+  clearSpaceCache,
+  networkFailure,
+  readSpaceCache,
+  setCacheEnabled,
+  writeSpaceCache,
+} from '../lib/spaceCache'
+import { useMessageOutbox } from './useMessageOutbox'
+import { validReferenceId, type ReferenceKind } from '../lib/routes'
+import type { LinkedRecord } from '../lib/types'
+import { applySavedMemory } from '../lib/memorySave'
+import { memoryInput } from '../lib/memories'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import * as api from '../lib/api'
 import { db, errorText, must, supabase } from '../lib/supabase'
-import { DEMO_KEY, readDemo, saveDemo } from '../lib/demo'
+import { readDemo, saveDemo } from '../lib/demo'
+import { isPing, mergePings, shouldPresentPing } from '../lib/pingHistory'
+import type { PingKind } from '../lib/ping'
 import { playFeedback } from '../lib/notifications'
-import type { AvatarType, EventInput, Ping, Space } from '../lib/types'
+import type { AvatarType, EventInput, MemoryInput, Ping, Space } from '../lib/types'
 
-export function useSpace(session: Session | null, demo: boolean) {
+export function useSpace(
+  session: Session | null,
+  demo: boolean,
+  loadSpace: typeof api.loadSpace = api.loadSpace,
+) {
   const [space, setSpace] = useState<Space | null>(() => (demo ? readDemo() : null))
   const [loading, setLoading] = useState(!demo)
   const [error, setError] = useState('')
+  const [cachedAt, setCachedAt] = useState<number | null>(null)
+  const cachedAtRef = useRef<number | null>(null)
+  cachedAtRef.current = cachedAt
+  const [cacheError, setCacheError] = useState('')
+  const [offlineCacheEnabled, setOfflineCacheEnabled] = useState(
+    () => !!session?.user.id && cacheEnabled(session.user.id),
+  )
   const [inviteCode, setInviteCode] = useState('')
   const [connection, setConnection] = useState(demo ? '本地演示' : '连接中')
-  const [ping, setPing] = useState<{ name: string; kind: string } | null>(null)
+  const [ping, setPing] = useState<{ id: string; name: string; kind: string } | null>(null)
+  const dismissPing = useCallback(() => setPing(null), [])
   const version = useRef(0)
+  const notifiedMessages = useRef(new Set<string>())
   const stateRef = useRef(space)
   stateRef.current = space
   const userId = session?.user.id
+  // Dedupe by message_id across reloads/Realtime races, and suppress the system
+  // banner when the user is already looking at the one BIBO conversation (the
+  // chat page in the foreground). Background/killed delivery belongs to FCM.
+  const notifyIncoming = useCallback(
+    (previous: Space | null, next: Space) => {
+      if (!userId) return
+      // Initial load or couple switch: mark everything seen without notifying.
+      if (!previous || previous.couple?.id !== next.couple?.id) return
+      const incoming = newPartnerMessages(
+        previous ? previous.messages : null,
+        next.messages,
+        userId,
+      )
+      if (!incoming.length) return
+      if (notifiedMessages.current.size > 500) notifiedMessages.current.clear()
+      const notify = shouldNotifyIncomingMessage(document.hidden, window.location.hash)
+      const partnerName = next.partner?.name || '另一位玩家'
+      for (const message of incoming) {
+        if (notifiedMessages.current.has(message.id)) continue
+        notifiedMessages.current.add(message.id)
+        if (!notify) continue
+        void BiboNative.notifications
+          .show(incomingMessageNotification(message, partnerName))
+          .catch(() => {})
+      }
+    },
+    [userId],
+  )
   const reload = useCallback(async () => {
     if (demo || !userId) return
     const current = ++version.current
     try {
-      const data = await api.loadSpace(userId)
+      const data = await withRequestDeadline(
+        (signal) => loadSpace(userId, signal),
+        20000,
+        '空间读取超时（network timeout），请检查网络并重试',
+      )
       if (current === version.current) {
-        setSpace(data)
+        // A live INSERT may arrive after this snapshot began loading.
+        const previous = stateRef.current
+        const next =
+          data.couple && previous?.couple?.id === data.couple.id
+            ? { ...data, pings: mergePings(data.couple.id, data.pings, previous.pings) }
+            : data
+        stateRef.current = next
+        setSpace(next)
+        notifyIncoming(previous, next)
         setError('')
+        setCachedAt(null)
+        try {
+          writeSpaceCache(userId, data)
+          setCacheError('')
+        } catch (cacheFailure) {
+          setCacheError(errorText(cacheFailure))
+        }
       }
     } catch (e) {
-      if (current === version.current) setError(errorText(e))
+      if (current === version.current) {
+        setError(errorText(e))
+        if (networkFailure(e)) {
+          if (!stateRef.current) {
+            const cached = readSpaceCache(userId)
+            if (cached) {
+              stateRef.current = cached.space
+              setSpace(cached.space)
+              setCachedAt(cached.savedAt)
+            }
+          }
+        } else {
+          // Authorization/schema errors are never an excuse to restore private cached content.
+          try {
+            clearSpaceCache(userId)
+          } catch (cacheFailure) {
+            setCacheError(errorText(cacheFailure))
+          }
+          if (cachedAtRef.current !== null || accessFailure(e)) {
+            stateRef.current = null
+            setSpace(null)
+            setCachedAt(null)
+            setPing(null)
+            setInviteCode('')
+          }
+        }
+      }
     } finally {
       if (current === version.current) setLoading(false)
     }
-  }, [demo, userId])
+  }, [demo, userId, loadSpace])
   useEffect(() => {
     void reload()
     return () => {
       version.current++
     }
   }, [reload])
-  const cid = space?.couple?.id
   useEffect(() => {
-    if (demo) {
-      const sync = (event: StorageEvent) => {
-        if (event.key === DEMO_KEY) setSpace(readDemo())
+    if (space?.partner) setInviteCode('')
+  }, [space?.partner?.id])
+  const cid = space?.couple?.id
+  const outbox = useMessageOutbox(userId, cid, !demo, (saved) => {
+    const current = stateRef.current
+    if (current?.couple?.id !== saved.couple_id || current.me.id !== saved.sender_id) return
+    const messages = [...current.messages.filter((m) => m.id !== saved.id), saved].sort(
+      (a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id),
+    )
+    version.current++
+    const next = { ...current, messages }
+    stateRef.current = next
+    setSpace(next)
+    void reload()
+  })
+  const eventOutbox = useEventOutbox(userId, cid, !demo, (value) => {
+    const current = stateRef.current
+    if (!current || current.couple?.id !== cid) return
+    if (value.operation === 'delete') {
+      const next = {
+        ...current,
+        events: current.events.filter((event) => event.id !== value.eventId),
+        photos: current.photos.map((photo) =>
+          photo.event_id === value.eventId ? { ...photo, event_id: null } : photo,
+        ),
       }
-      window.addEventListener('storage', sync)
-      return () => window.removeEventListener('storage', sync)
+      stateRef.current = next
+      setSpace(next)
+    } else {
+      const events = [
+        ...current.events.filter((event) => event.id !== value.event.id),
+        value.event,
+      ].sort((a, b) => a.target_at.localeCompare(b.target_at) || a.id.localeCompare(b.id))
+      const next = { ...current, events }
+      stateRef.current = next
+      setSpace(next)
     }
-    if (!supabase || !userId) return
-    let timer: ReturnType<typeof setTimeout>
-    const schedule = () => {
-      clearTimeout(timer)
-      timer = setTimeout(() => void reload(), 180)
+    void reload()
+  })
+  const photoOutbox = usePhotoOutbox(userId, cid, !demo, (saved) => {
+    const current = stateRef.current
+    if (!current || current.couple?.id !== cid || saved.couple_id !== cid) return
+    const next = {
+      ...current,
+      photos: [
+        { ...saved, url: undefined },
+        ...current.photos.filter((photo) => photo.id !== saved.id),
+      ],
     }
-    const channel = supabase.channel(`space-${userId}-${cid || 'pending'}`)
-    const tables = [
-      'messages',
-      'events',
-      'photos',
-      'focus_sessions',
-      'couple_members',
-      'couples',
-      'profiles',
-    ]
-    for (const table of tables)
-      channel.on('postgres_changes', { event: '*', schema: 'public', table }, schedule)
-    if (cid)
-      channel.on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'pings', filter: `couple_id=eq.${cid}` },
-        (payload) => {
-          const incoming = payload.new as Ping
-          if (incoming.sender_id !== userId) {
-            setPing({ name: stateRef.current?.partner?.name || '另一位玩家', kind: incoming.kind })
-            playFeedback()
-          }
-        },
-      )
-    channel.subscribe((status) => {
-      setConnection(
-        status === 'SUBSCRIBED'
-          ? '实时已连接'
-          : status === 'CHANNEL_ERROR' || status === 'TIMED_OUT'
-            ? '连接中断 · 自动重试'
-            : '连接中',
-      )
-      if (status === 'SUBSCRIBED') schedule()
-    })
-    // Recover missed changes on foreground/reconnect; refresh expiring signed URLs.
-    const refresh = () => {
-      if (!document.hidden) void reload()
-    }
-    const interval = setInterval(refresh, 60000)
-    window.addEventListener('online', refresh)
-    document.addEventListener('visibilitychange', refresh)
-    return () => {
-      clearTimeout(timer)
-      clearInterval(interval)
-      window.removeEventListener('online', refresh)
-      document.removeEventListener('visibilitychange', refresh)
-      void supabase!.removeChannel(channel)
-    }
-  }, [demo, userId, cid, reload])
+    stateRef.current = next
+    setSpace(next)
+    void reload()
+  })
+  useSpaceRealtime({
+    demo,
+    userId,
+    coupleId: cid,
+    reload,
+    onLocal(next) {
+      stateRef.current = next
+      setSpace(next)
+    },
+    onConnection: setConnection,
+    onPing(incoming) {
+      const current = stateRef.current
+      if (!isPing(incoming) || incoming.couple_id !== cid || current?.couple?.id !== cid || !userId)
+        return
+      const present = shouldPresentPing(incoming, current.pings, userId)
+      const next = { ...current, pings: mergePings(cid!, current.pings, [incoming]) }
+      stateRef.current = next
+      setSpace(next)
+      if (present) {
+        const partnerName = current.partner?.name || '另一位玩家'
+        setPing({ id: incoming.id, name: partnerName, kind: incoming.kind })
+        playFeedback(incoming.kind)
+        // Foreground: the full-screen PingEffect plus sound/vibration already
+        // presents the Ping; a system banner would double-notify. Background
+        // delivery is FCM's job, suppressed server-side by the same heartbeat.
+        if (document.hidden)
+          void BiboNative.notifications
+            .show(incomingPingNotification(incoming.id, incoming.kind, partnerName))
+            .catch(() => {})
+      }
+    },
+  })
+  const readReference = useCallback(
+    async (kind: ReferenceKind, id: string): Promise<LinkedRecord | null> => {
+      if (!validReferenceId(id)) throw new Error('关联记录 ID 无效')
+      const current = stateRef.current
+      if (!cid || current?.couple?.id !== cid) return null
+      if (demo) {
+        if (kind === 'message') {
+          const record = current.messages.find((m) => m.id === id && m.couple_id === cid)
+          return record ? { kind, record } : null
+        }
+        const record = current.events.find((e) => e.id === id && e.couple_id === cid)
+        return record ? { kind, record } : null
+      }
+      return api.readLinkedRecord(cid, kind, id)
+    },
+    [cid, demo],
+  )
+  const invitationStatus = useCallback(async (): Promise<{
+    active: boolean
+    expires_at: string
+  } | null> => {
+    const result = await db().rpc('invitation_status').maybeSingle()
+    if (result.error) throw result.error
+    const value = result.data as { active?: unknown; expires_at?: unknown } | null
+    if (value === null) return null
+    if (
+      !value ||
+      typeof value.active !== 'boolean' ||
+      typeof value.expires_at !== 'string' ||
+      !Number.isFinite(Date.parse(value.expires_at))
+    )
+      throw new Error('邀请状态格式无效')
+    return { active: value.active, expires_at: value.expires_at }
+  }, [])
   function local(update: (old: Space) => Space) {
     const next = update(stateRef.current!)
     saveDemo(next) // Do not falsely report success when localStorage quota is exceeded.
@@ -115,19 +290,59 @@ export function useSpace(session: Session | null, demo: boolean) {
       await reload()
     }
   }
+  function validateLocalLinks(memory: MemoryInput) {
+    if (!demo) return // The server checks links outside the currently loaded page too.
+    const current = stateRef.current!
+    if (
+      memory.event_id &&
+      !current.events.some((e) => e.id === memory.event_id && e.couple_id === cid)
+    )
+      throw new Error('关联事件已不存在，请重新选择')
+    if (
+      memory.message_id &&
+      !current.messages.some((m) => m.id === memory.message_id && m.couple_id === cid)
+    )
+      throw new Error('关联消息已不存在，请重新选择')
+  }
   const me = space?.me.id || ''
   return {
     space,
+    readReference,
+    invitationStatus,
+    outbox,
+    eventOutbox,
+    photoOutbox,
+    cachedAt,
+    cacheError,
+    offlineCacheEnabled,
+    setOfflineCache(enabled: boolean) {
+      if (!userId || demo) return
+      setCacheEnabled(userId, enabled)
+      setOfflineCacheEnabled(enabled)
+      if (enabled && stateRef.current && cachedAtRef.current === null)
+        writeSpaceCache(userId, stateRef.current)
+      setCacheError('')
+    },
+    clearOfflineSnapshot() {
+      if (!userId || demo) return
+      setCacheEnabled(userId, false)
+      setOfflineCacheEnabled(false)
+      setCacheError('')
+    },
     loading,
     error,
     connection,
     ping,
     inviteCode,
-    dismissPing: () => setPing(null),
+    dismissPing,
     reload,
     async message(content: string) {
       const clean = content.trim()
       if (!clean || clean.length > 2000) throw new Error('消息需为 1–2000 字')
+      if (!demo) {
+        await outbox.enqueue(clean)
+        return
+      }
       await mutate(
         () => api.sendMessage(cid!, me, clean),
         (s) => ({
@@ -145,25 +360,64 @@ export function useSpace(session: Session | null, demo: boolean) {
         }),
       )
     },
-    async addEvent(input: EventInput) {
+    async addEvent(input: EventInput): Promise<{ queued: boolean }> {
+      if (!cid) throw new Error('请先进入空间')
+      if (!demo) {
+        await eventOutbox.enqueueCreate({ ...input, category: input.category || 'other' })
+        return { queued: true }
+      }
       await mutate(
-        () => api.addEvent(cid!, me, input),
+        () => api.addEvent(cid, me, input),
         (s) => ({
           ...s,
           events: [
             ...s.events,
-            { ...input, id: crypto.randomUUID(), couple_id: cid!, created_by: me },
+            { ...input, id: crypto.randomUUID(), couple_id: cid, created_by: me },
           ],
         }),
       )
+      return { queued: false }
     },
-    async deleteEvent(id: string) {
+    async updateEvent(id: string, input: EventInput): Promise<{ queued: boolean }> {
+      if (!cid) throw new Error('请先进入空间')
+      const current = stateRef.current?.events.find((event) => event.id === id)
+      if (!current) throw new Error('事件不存在或已刷新，请重新打开')
+      const normalized = { ...input, category: input.category || 'other' }
+      if (!demo) {
+        await eventOutbox.enqueueUpdate(id, normalized)
+        return { queued: true }
+      }
+      await mutate(
+        () => api.updateEventOnce(id, cid, normalized),
+        (s) => ({
+          ...s,
+          events: s.events.map((event) => (event.id === id ? { ...event, ...normalized } : event)),
+        }),
+      )
+      return { queued: false }
+    },
+    async deleteEvent(id: string): Promise<{ queued: boolean }> {
+      if (!cid) throw new Error('请先进入空间')
+      if (!demo) {
+        if (!stateRef.current?.events.some((event) => event.id === id))
+          throw new Error('事件不存在或已刷新，请重新打开')
+        await eventOutbox.enqueueDelete(id)
+        return { queued: true }
+      }
       await mutate(
         () => api.deleteEvent(id),
-        (s) => ({ ...s, events: s.events.filter((e) => e.id !== id) }),
+        (s) => ({
+          ...s,
+          events: s.events.filter((e) => e.id !== id),
+          photos: s.photos.map((p) => (p.event_id === id ? { ...p, event_id: null } : p)),
+        }),
       )
+      return { queued: false }
     },
-    async upload(file: File, caption: string) {
+    async upload(file: File, caption: string, memory: Partial<MemoryInput> = {}) {
+      const metadata = memoryInput(memory)
+      validateLocalLinks(metadata)
+      if (caption.length > 120) throw new Error('照片标题最多 120 字')
       api.validatePhoto(file)
       if (demo) {
         if (file.size > 1500000)
@@ -181,6 +435,7 @@ export function useSpace(session: Session | null, demo: boolean) {
               id: crypto.randomUUID(),
               couple_id: cid!,
               uploaded_by: me,
+              ...metadata,
               path: url,
               url,
               caption,
@@ -190,39 +445,136 @@ export function useSpace(session: Session | null, demo: boolean) {
           ],
         }))
       } else {
-        await api.uploadPhoto(cid!, me, file, caption)
+        if (!navigator.onLine) {
+          await photoOutbox.enqueue(file, caption, metadata)
+          return { queued: true }
+        }
+        await api.uploadPhoto(cid!, me, file, caption, metadata)
         await reload()
+        return { queued: false }
+      }
+      return { queued: false }
+    },
+    async deletePhoto(id: string) {
+      const current = stateRef.current
+      const photo = current?.photos.find((p) => p.id === id)
+      if (!cid) throw new Error('请先进入空间')
+      if (demo && (!photo || photo.uploaded_by !== me)) throw new Error('只能删除自己上传的回忆')
+      if (demo) {
+        local((s) => ({ ...s, photos: s.photos.filter((p) => p.id !== id) }))
+        return
+      }
+      await api.deletePhoto(id, cid, me)
+      version.current++
+      const latest = stateRef.current
+      if (latest?.couple?.id === cid && latest.me.id === me) {
+        const next = { ...latest, photos: latest.photos.filter((p) => p.id !== id) }
+        stateRef.current = next
+        setSpace(next)
+        try {
+          writeSpaceCache(me, next)
+        } catch (e) {
+          setCacheError(errorText(e))
+        }
+      }
+      await reload()
+    },
+    async updateMemory(id: string, caption: string, memory: MemoryInput) {
+      const metadata = memoryInput(memory)
+      validateLocalLinks(metadata)
+      if (caption.length > 120) throw new Error('照片标题最多 120 字')
+      const photo = stateRef.current?.photos.find((p) => p.id === id)
+      if (demo && (!photo || photo.uploaded_by !== me)) throw new Error('只能编辑自己上传的回忆')
+      if (demo) {
+        const saved = { ...photo!, caption, ...metadata }
+        local((s) => applySavedMemory(s, saved))
+        return saved
+      } else {
+        const saved = await api.updateMemory(id, caption, metadata)
+        // Invalidate snapshots started before this committed write.
+        version.current++
+        const current = stateRef.current
+        if (current?.me.id === me && current.couple?.id === cid) {
+          const next = applySavedMemory(current, saved)
+          stateRef.current = next
+          setSpace(next)
+        }
+        // Refresh failure remains a separate visible sync error; never resend this edit.
+        await reload()
+        return saved
       }
     },
-    async startFocus(activity: string, minutes: number, allow: boolean) {
-      await mutate(
-        () => api.setFocus(cid!, me, activity, minutes, allow),
-        (s) => ({
-          ...s,
-          focus: [
-            ...s.focus.filter((f) => f.user_id !== me),
-            {
-              user_id: me,
-              couple_id: cid!,
-              activity,
-              ends_at: new Date(Date.now() + minutes * 60000).toISOString(),
-              allow_reminders: allow,
-            },
-          ],
-        }),
+    async startFocus(activity: string, minutes: number, allow: boolean): Promise<Focus> {
+      if (
+        !activity.trim() ||
+        activity.trim().length > 40 ||
+        !Number.isInteger(minutes) ||
+        minutes < 1 ||
+        minutes > 180
       )
+        throw new Error('请输入有效专注内容及 1–180 分钟时长')
+      const value: Focus = {
+        user_id: me,
+        couple_id: cid!,
+        activity: activity.trim(),
+        ends_at: new Date(Date.now() + minutes * 60000).toISOString(),
+        allow_reminders: allow,
+      }
+      if (demo) {
+        local((s) => ({ ...s, focus: [...s.focus.filter((f) => f.user_id !== me), value] }))
+        return value
+      }
+      const saved = (await api.setFocus(cid!, me, value.activity, minutes, allow)) as Focus
+      if (
+        saved.user_id !== me ||
+        saved.couple_id !== cid ||
+        !Number.isFinite(Date.parse(saved.ends_at))
+      )
+        throw new Error('服务端返回的专注记录不匹配，请刷新确认')
+      version.current++
+      const current = stateRef.current
+      if (current?.me.id === me && current.couple?.id === cid) {
+        const next = {
+          ...current,
+          focus: [...current.focus.filter((f) => f.user_id !== me), saved],
+        }
+        stateRef.current = next
+        setSpace(next)
+      }
+      await reload()
+      return saved
     },
     async endFocus() {
-      await mutate(
-        () => api.endFocus(me),
-        (s) => ({ ...s, focus: s.focus.filter((f) => f.user_id !== me) }),
-      )
-    },
-    async sendPing(kind = '哔卟哔卟') {
       if (demo) {
-        setPing({ name: '演示玩家 · ' + space!.partner!.name, kind })
-        playFeedback()
-      } else await api.sendPing(kind)
+        local((s) => ({ ...s, focus: s.focus.filter((f) => f.user_id !== me) }))
+        return
+      }
+      await api.endFocus(me)
+      version.current++
+      const current = stateRef.current
+      if (current?.me.id === me && current.couple?.id === cid) {
+        const next = { ...current, focus: current.focus.filter((f) => f.user_id !== me) }
+        stateRef.current = next
+        setSpace(next)
+      }
+      await reload()
+    },
+    async sendPing(kind: PingKind = '哔卟哔卟') {
+      if (demo) {
+        const incoming: Ping = {
+          id: crypto.randomUUID(),
+          couple_id: cid!,
+          sender_id: me,
+          kind,
+          created_at: new Date().toISOString(),
+        }
+        local((s) => ({ ...s, pings: mergePings(cid!, s.pings, [incoming]) }))
+        setPing({ id: incoming.id, name: '演示预览 · ' + space!.me.name, kind })
+        playFeedback(kind)
+      } else {
+        await api.sendPing(kind)
+        await reload()
+      }
     },
     async save(name: string, since: string, avatar?: AvatarType) {
       await mutate(
@@ -246,6 +598,108 @@ export function useSpace(session: Session | null, demo: boolean) {
         }),
       )
     },
+    async signOut(): Promise<string[]> {
+      if (demo || !userId || !supabase) return []
+      try {
+        const cleanupErrors = await cleanupSessionPrivacy({
+          // Remove the server row before invalidating the local Firebase token.
+          removeDeviceInstallations: () => api.removeAllDeviceInstallations(userId),
+          unregisterPush: async () => {
+            const result = await BiboNative.push.unregister()
+            if (!result.supported && result.reason && !result.reason.includes('Web'))
+              throw new Error(result.reason)
+          },
+          listReminders: () => BiboNative.reminders.list(),
+          cancelReminder: (id) => BiboNative.reminders.cancel(id),
+        })
+        const remoteFailure = cleanupErrors.find((item) => item.startsWith('远程 Push 登记：'))
+        if (remoteFailure)
+          throw new Error(
+            `退出登录前无法清理远程 Push 登记，请保持当前账号登录并重试：${remoteFailure}`,
+          )
+        setCacheEnabled(userId, false)
+        setOfflineCacheEnabled(false)
+        setCacheError('')
+        clearSpaceCache(userId)
+        clearChatDraftsForUser(userId)
+        const signedOut = await supabase.auth.signOut()
+        if (signedOut.error) throw signedOut.error
+        return cleanupErrors
+      } catch (error) {
+        setError(`退出登录前清理失败：${errorText(error)}`)
+        throw error
+      }
+    },
+    async deleteAccount(expectedSpace: string | null): Promise<{ cleanupWarning?: string }> {
+      if (demo || !userId) throw new Error('演示模式不能注销真实账号')
+      await api.deleteAccount(expectedSpace)
+      const cleanupErrors = await cleanupAccountLocal({
+        clearSpaceCache: () => {
+          setCacheEnabled(userId, false)
+          clearSpaceCache(userId)
+        },
+        clearOutbox: async () => {
+          await clearOutboxForUser(userId)
+          await clearEventOutboxForUser(userId)
+          await clearPhotoOutboxForUser(userId)
+        },
+        removeSavedEmail: () => localStorage.removeItem('bibu-saved-email'),
+        clearChatDrafts: () => clearChatDraftsForUser(userId),
+        unregisterPush: async () => {
+          const result = await BiboNative.push.unregister()
+          if (!result.supported && result.reason && !result.reason.includes('Web'))
+            throw new Error(result.reason)
+        },
+        listReminders: () => BiboNative.reminders.list(),
+        cancelReminder: (id) => BiboNative.reminders.cancel(id),
+      })
+      stateRef.current = null
+      setSpace(null)
+      setPing(null)
+      setInviteCode('')
+      setCachedAt(null)
+      setOfflineCacheEnabled(false)
+      try {
+        const signedOut = await supabase?.auth.signOut({ scope: 'local' })
+        if (signedOut?.error) cleanupErrors.push(`本机会话：${errorText(signedOut.error)}`)
+      } catch (error) {
+        cleanupErrors.push(`本机会话：${errorText(error)}`)
+      }
+      return cleanupErrors.length ? { cleanupWarning: cleanupErrors.join('；') } : {}
+    },
+    async closeRelationship(expectedSpace: string) {
+      if (demo) throw new Error('演示模式不能解除真实绑定')
+      if (!cid || cid !== expectedSpace) throw new Error('空间已变化，请刷新后确认')
+      const closed = must(await db().rpc('close_relationship', { expected_space: expectedSpace }))
+      if (closed !== expectedSpace) throw new Error('解除结果未确认，请联网刷新，不要重复创建空间')
+      // Revoke visible state immediately, even if the subsequent refresh or local cleanup fails.
+      version.current++
+      const current = stateRef.current
+      if (current?.couple?.id === expectedSpace) {
+        const next = {
+          ...current,
+          couple: null,
+          partner: null,
+          messages: [],
+          events: [],
+          photos: [],
+          pings: [],
+          focus: [],
+        }
+        stateRef.current = next
+        setSpace(next)
+        setPing(null)
+        setInviteCode('')
+        setCachedAt(null)
+      }
+      try {
+        if (userId) setCacheEnabled(userId, false)
+        setOfflineCacheEnabled(false)
+      } catch (e) {
+        setCacheError(errorText(e))
+      }
+      await reload()
+    },
     async createSpace() {
       const code = must(await db().rpc('create_space')) as string
       setInviteCode(code)
@@ -255,6 +709,11 @@ export function useSpace(session: Session | null, demo: boolean) {
     async joinSpace(code: string) {
       must(await db().rpc('join_space', { invite_code: code }))
       await reload()
+    },
+    async revokeInvitation() {
+      const value = must(await db().rpc('revoke_invitation'))
+      if (value !== true) throw new Error('撤销未确认，请刷新检查')
+      setInviteCode('')
     },
     async refreshInvite() {
       const code = must(await db().rpc('refresh_invite')) as string

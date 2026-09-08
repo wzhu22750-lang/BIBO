@@ -25,11 +25,13 @@ export type Couple = {
 export type Message = {
   id: string
   couple_id: string
-  sender_id: string
+  sender_id: string | null
   content: string
   created_at: string
 }
+export type EventCategory = 'anniversary' | 'date' | 'travel' | 'birthday' | 'other'
 export type EventItem = {
+  category?: EventCategory
   id: string
   couple_id: string
   title: string
@@ -37,12 +39,18 @@ export type EventItem = {
   kind: 'anniversary' | 'countdown'
   yearly: boolean
   emoji: string
-  created_by: string
+  created_by: string | null
 }
-export type Photo = {
+export type MemoryInput = {
+  occurred_on: string | null
+  story: string
+  event_id: string | null
+  message_id: string | null
+}
+export type Photo = Partial<MemoryInput> & {
   id: string
   couple_id: string
-  uploaded_by: string
+  uploaded_by: string | null
   path: string
   caption: string
   created_at: string
@@ -58,7 +66,7 @@ export type Focus = {
 export type Ping = {
   id: string
   couple_id: string
-  sender_id: string
+  sender_id: string | null
   kind: string
   created_at: string
 }
@@ -69,6 +77,10 @@ export type Space = {
   messages: Message[]
   events: EventItem[]
   photos: Photo[]
+  pings: Ping[]
   focus: Focus[]
 }
 export type EventInput = Omit<EventItem, 'id' | 'couple_id' | 'created_by'>
+
+export type LinkedRecord =
+  { kind: 'message'; record: Message } | { kind: 'event'; record: EventItem }

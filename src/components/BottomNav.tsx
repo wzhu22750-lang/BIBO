@@ -67,8 +67,8 @@ export function BottomNav({
             setMore(false)
             void bibu.send()
           }}
-          aria-label="BIBO，发送哔卟哔卟"
-          title="发送哔卟哔卟"
+          aria-label={`BIBO，发送${bibu.kind}`}
+          title={`发送${bibu.kind}`}
         >
           <svg viewBox="0 0 76 76" aria-hidden="true" shapeRendering="crispEdges">
             <path

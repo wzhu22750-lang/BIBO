@@ -1,3 +1,6 @@
+import { setFocusReminder, cancelFocusReminder } from '../lib/focusReminder'
+import { ReminderPanel } from '../components/ReminderPanel'
+import { ScreenTimePanel } from '../components/ScreenTimePanel'
 import { useEffect, useState } from 'react'
 import type { SpaceController } from '../hooks/useSpace'
 import { Button, PageHeading, Panel, useTask, useToast } from '../components/ui'
@@ -7,6 +10,8 @@ export function Focus({ controller }: { controller: SpaceController }) {
     [activity, setActivity] = useState('学习'),
     [minutes, setMinutes] = useState(25),
     [allow, setAllow] = useState(false),
+    [remindMe, setRemindMe] = useState(false),
+    [reminderResult, setReminderResult] = useState(''),
     [now, setNow] = useState(Date.now()),
     { busy, run } = useTask(),
     toast = useToast()
@@ -30,6 +35,13 @@ export function Focus({ controller }: { controller: SpaceController }) {
         title="专注陪伴"
         subtitle="不是监督你，是陪你成为更喜欢的自己。"
       />
+      {reminderResult && (
+        <div className="waiting-banner" role="status">
+          {reminderResult}
+        </div>
+      )}
+      <ReminderPanel />
+      <ScreenTimePanel />
       <div className="focus-layout">
         <Panel className="focus-main" title="我的专注时间" tag="PLAYER 01">
           <div className="focus-timer-area">
@@ -57,7 +69,9 @@ export function Focus({ controller }: { controller: SpaceController }) {
                 onClick={() =>
                   void run(async () => {
                     await controller.endFocus()
-                    toast('专注已结束，辛苦啦！')
+                    const message = await cancelFocusReminder()
+                    setReminderResult(message)
+                    toast(message)
                   })
                 }
               >
@@ -71,8 +85,10 @@ export function Focus({ controller }: { controller: SpaceController }) {
               onSubmit={(e) => {
                 e.preventDefault()
                 void run(async () => {
-                  await controller.startFocus(activity, minutes, allow)
-                  toast('专注开始，慢慢来，你可以的！')
+                  const saved = await controller.startFocus(activity, minutes, allow)
+                  const message = await setFocusReminder(saved, remindMe)
+                  setReminderResult(message)
+                  toast(message)
                 })
               }}
             >
@@ -109,6 +125,17 @@ export function Focus({ controller }: { controller: SpaceController }) {
                   <small>默认关闭。结束本次专注即可撤回授权。</small>
                 </span>
               </label>
+              <label className="check-label">
+                <input
+                  type="checkbox"
+                  checked={remindMe}
+                  onChange={(e) => setRemindMe(e.target.checked)}
+                />
+                专注结束时提醒我（Android 本机，系统可能延后）
+              </label>
+              <p className="form-note">
+                与“允许伴侣提醒”独立。通知只含通用文案；在其他设备结束专注不会立即取消本机闹钟，可从上方列表取消。
+              </p>
               <Button tone="green" disabled={busy} type="submit">
                 <Icon name="focus" size={20} />
                 开始专注
@@ -131,7 +158,7 @@ export function Focus({ controller }: { controller: SpaceController }) {
                 : '不打扰，也是一种温柔的陪伴。'}
             </p>
             <div className="reminder-grid">
-              {['去学习', '去工作', '休息一下', '哔卟哔卟'].map((kind) => (
+              {(['去学习', '去工作', '休息一下', '哔卟哔卟'] as const).map((kind) => (
                 <Button
                   key={kind}
                   tone="white"
@@ -151,8 +178,13 @@ export function Focus({ controller }: { controller: SpaceController }) {
           <div className="consent-note">
             <Icon name="lock" size={25} />
             <h3>陪伴，不是监控</h3>
-            <p>不读取其他 App，不查看屏幕，不偷偷统计。每一次专注，都由本人开启和结束。</p>
-            <p>未来的 Android 屏幕时间或专注锁定能力，也只会在明确授权后作用于本人设备。</p>
+            <p>
+              不查看屏幕内容、不偷偷上传使用记录。设备使用时长仅在本人明确授予 Usage Access
+              后读取；每次专注仍由本人开启和结束。
+            </p>
+            <p>
+              你可以随时在 Android 系统设置中撤销使用情况访问权限。本版本不提供专注锁定或 App 拦截。
+            </p>
           </div>
         </div>
       </div>

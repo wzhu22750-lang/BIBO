@@ -8,6 +8,9 @@ dist/
 output/
 .playwright-cli/
 .DS_Store
-android/
 ios/
 supabase/.temp/
+
+*.jks
+*.keystore
+android/app/google-services.json

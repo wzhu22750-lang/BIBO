@@ -1,3 +1,6 @@
+import { InactiveEventOutbox } from '../components/InactiveEventOutbox'
+import { AccountDeletion } from '../components/AccountDeletion'
+import { InactiveOutbox } from '../components/InactiveOutbox'
 import { useState } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { AUTH_REDIRECT_DEEP_LINK, configured, db } from '../lib/supabase'
@@ -362,12 +365,26 @@ export function Onboarding({ controller }: { controller: SpaceController }) {
           </form>
         </div>
       )}
+      {controller.space && <AccountDeletion controller={controller} demo={false} />}
+      {controller.space && (
+        <InactiveEventOutbox
+          userId={controller.space.me.id}
+          currentCoupleId={controller.space.couple?.id || null}
+        />
+      )}
+      {controller.space && (
+        <InactiveOutbox
+          userId={controller.space.me.id}
+          currentCoupleId={controller.space.couple?.id || null}
+        />
+      )}
       <button
         className="text-button"
         onClick={() =>
           void run(async () => {
-            const { error } = await db().auth.signOut()
-            if (error) throw error
+            const warnings = await controller.signOut()
+            if (warnings.length)
+              toast(`已退出登录；部分本机清理未确认：${warnings.join('；')}`, true)
           })
         }
       >

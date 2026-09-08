@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { daysUntil, nextOccurrence, sortedEvents, togetherDays } from './dates'
+import { daysUntil, localDateTimeInput, nextOccurrence, sortedEvents, togetherDays } from './dates'
 import { validatePhoto } from './api'
 describe('calendar arithmetic', () => {
   it('counts completed local calendar days, starting at zero', () => {
@@ -21,6 +21,11 @@ describe('calendar arithmetic', () => {
     const next = nextOccurrence('2024-02-29T12:00:00', true, new Date('2027-01-01T12:00:00'))
     expect(next.getMonth()).toBe(1)
     expect(next.getDate()).toBe(28)
+  })
+  it('formats event editor values in the device local timezone', () => {
+    const value = localDateTimeInput(new Date(2026, 8, 8, 7, 6))
+    expect(value).toBe('2026-09-08T07:06')
+    expect(localDateTimeInput('invalid')).toBe('')
   })
   it('orders upcoming dates nearest-first, then past dates newest-first', () => {
     const values = [12, 3, 9, 1].map((n) => ({
