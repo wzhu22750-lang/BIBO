@@ -1,5 +1,10 @@
 {
   "appId": "love.bibu.space",
   "appName": "哔卟哔卟",
-  "webDir": "dist"
+  "webDir": "dist",
+  "server": {
+    "url": "https://www.515171.xyz",
+    "cleartext": false,
+    "androidScheme": "https"
+  }
 }

@@ -62,9 +62,9 @@ VITE_SUPABASE_PUBLISHABLE_KEY=你的公开PublishableKey
 
 在 Supabase 后台 **Authentication → URL Configuration** 配置以下三项（这样 Web 和 APK 的邮箱验证链接都能回跳）：
 
-1. **Site URL**：`https://bibo-six.vercel.app`
+1. **Site URL**：`https://www.515171.xyz`
 2. **Redirect URLs** 添加：
-   - `https://bibo-six.vercel.app`（线上 Web）
+   - `https://www.515171.xyz`（线上 Web）
    - `http://localhost:5173`（本地开发）
    - `love.bibu.space://`（安卓 App 深链接，与 `capacitor.config.json` 的 appId 对应）
 3. Email 登录保持开启即可。
