@@ -85,6 +85,29 @@ export function photoDue(row: PhotoOutboxOperation, now = Date.now()) {
   if (!Number.isFinite(row.nextAttemptAt)) return true
   return row.nextAttemptAt! <= now || row.nextAttemptAt! - now > 305000
 }
+// Blocked rows are never due and must not stall the queue behind them; the first
+// pending row that is waiting on backoff stops this pass to preserve order.
+// Mirrors the blocked-skip semantics of the message and event outboxes.
+export function photoRowsReadyForSync(
+  rows: PhotoOutboxOperation[],
+  now = Date.now(),
+): PhotoOutboxOperation[] {
+  const ready: PhotoOutboxOperation[] = []
+  for (const row of rows) {
+    if (row.status === 'blocked') continue
+    if (!photoDue(row, now)) break
+    ready.push(row)
+  }
+  return ready
+}
+// Same retryability contract as the message/event outboxes: transport errors
+// without a Postgres code and transient database classes are retried with
+// backoff; schema/authorization errors (e.g. 42501) block without retry.
+// PHOTO_OUTBOX_MISMATCH is not whitelisted, so it stays blocked for manual retry.
+export function retryablePhotoError(error: unknown) {
+  const code = error && typeof error === 'object' && 'code' in error ? String(error.code || '') : ''
+  return !code || code.startsWith('08') || code === '40001' || code === '40P01' || code === '57014'
+}
 export function photoRetryDelay(attempt: number, id: string) {
   const n = Math.max(1, Math.min(10, Math.floor(Number.isFinite(attempt) ? attempt : 1)))
   const jitter = Array.from(id).reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 0) % 5000

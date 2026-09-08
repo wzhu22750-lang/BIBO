@@ -8,8 +8,9 @@ import {
   enqueuePhoto,
   listPhotoOutbox,
   photoConfirmed,
-  photoDue,
   photoFailure,
+  photoRowsReadyForSync,
+  retryablePhotoError,
   type PhotoOutboxOperation,
 } from '../lib/photoOutbox'
 export function usePhotoOutbox(
@@ -40,9 +41,8 @@ export function usePhotoOutbox(
     running.current.add(scope)
     try {
       const rows = await listPhotoOutbox(userId, coupleId)
-      for (const row of rows) {
+      for (const row of photoRowsReadyForSync(rows)) {
         if (scopeRef.current !== scope || !navigator.onLine) break
-        if (!photoDue(row)) break
         try {
           const file = new File([row.file], row.fileName, { type: row.mime })
           const saved = await withRequestDeadline(
@@ -59,12 +59,7 @@ export function usePhotoOutbox(
           await changePhotoOutbox(row.id, userId, coupleId, () => null)
           if (scopeRef.current === scope) callback.current(saved)
         } catch (error) {
-          const retryable = !(
-            error &&
-            typeof error === 'object' &&
-            'code' in error &&
-            String((error as { code?: unknown }).code || '')
-          )
+          const retryable = retryablePhotoError(error)
           await changePhotoOutbox(row.id, userId, coupleId, (current) =>
             photoFailure(current, errorText(error), retryable),
           )
