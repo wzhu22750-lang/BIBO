@@ -225,7 +225,7 @@ export function BottomNav({
           </svg>
         </button>
         <span className={`dock-bibo-label ${selectorOpen ? 'selecting' : ''}`}>
-          {bibu.cooling ? 'SENT!' : selectorOpen ? (hoveredKind || bibu.kind) : 'BIBU!'}
+          {selectorOpen ? (hoveredKind || bibu.kind) : 'BIBU!'}
         </span>
       </div>
       <button

@@ -234,8 +234,8 @@ export function Home({
               aria-label={`发送${bibu.kind}`}
             >
               <Icon name="heart" size={36} />
-              <strong>{bibu.cooling ? 'SENT!' : 'BIBU!'}</strong>
-              <small>{bibu.cooling ? '想念发射中' : pingFeedback(bibu.kind).label}</small>
+              <strong>BIBU!</strong>
+              <small>{pingFeedback(bibu.kind).label}</small>
             </button>
           </div>
           <div className="ping-choices" role="group" aria-label="选择哔卟心情">
@@ -243,7 +243,7 @@ export function Home({
               <button
                 key={item.kind}
                 aria-pressed={bibu.kind === item.kind}
-                disabled={bibu.busy || bibu.cooling}
+                disabled={bibu.busy}
                 onClick={() => bibu.setKind(item.kind)}
               >
                 {item.label}
