@@ -1,3 +1,4 @@
+import { PhotoOutboxPanel } from '../components/PhotoOutboxPanel'
 import { usePhotoPages } from '../hooks/usePhotoPages'
 import { referenceLink } from '../lib/routes'
 import { MemoryFields } from '../components/MemoryFields'
@@ -235,6 +236,7 @@ export function Photos({ controller, demo }: { controller: SpaceController; demo
         </span>
         <span className="micro">OUR MEMORY TIMELINE ↓</span>
       </div>
+      {!demo && <PhotoOutboxPanel controller={controller} />}
       {!demo && !controller.cachedAt && (
         <div className="memory-pagination">
           <Button
@@ -306,13 +308,17 @@ export function Photos({ controller, demo }: { controller: SpaceController; demo
               e.preventDefault()
               if (file)
                 void run(async () => {
-                  await controller.upload(file, caption.trim(), memory)
+                  const result = await controller.upload(file, caption.trim(), memory)
                   setAdding(false)
                   setFile(null)
                   setCaption('')
                   setMemory(memoryInput())
                   pages.refresh()
-                  toast('新的回忆，收藏成功！')
+                  toast(
+                    result.queued
+                      ? '照片已保存在本机，联网后同步到你们的空间'
+                      : '新的回忆，收藏成功！',
+                  )
                 })
             }}
           >

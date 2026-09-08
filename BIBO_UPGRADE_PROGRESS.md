@@ -453,7 +453,7 @@ Widget、快捷入口、AI 仅在核心体验稳定后考虑，不提前堆砌�
 
 ## 2026-09-08 当前回归基线
 
-- 迁移链当前为初始 SQL + 202609080001–202609080012，必须按文件名顺序执行；README/DATABASE 已同步到 012。
+- 迁移链当前为初始 SQL + 202609080001–202609080013，必须按文件名顺序执行；README/DATABASE 已同步到 012。
 - TypeScript/Vitest 当前 208 tests（30 files）通过；`npm run format:check`、`npm run typecheck`、`npm run test`、`npm run build`、`npm audit --omit=dev`（0）通过。
 - `npm run android:build` 当前可完成 Web build、Capacitor sync、Android debug APK；最新构建含 Push Notifications、Firebase 配置预检、Deep Link、事件队列和 Service Worker 资源。
 - Android 35 AVD 曾实际验证自定义 Deep Link；没有 Firebase 配置时实际 `BiboDevice.firebaseConfiguration` 为 false。不存在真机、真实 Supabase、FCM 或 Edge Function 的当前运行证据，相关目标继续标记为未验收。
@@ -507,3 +507,23 @@ Widget、快捷入口、AI 仅在核心体验稳定后考虑，不提前堆砌�
 
 - 旧空间事件意图面板现在区分创建、编辑、删除三种操作；编辑意图不再误显示为删除，避免用户在解绑后错误理解本机数据。
 - typecheck、216 tests、format/build 回归中的 TypeScript/Vitest 部分通过；剩余 Android build 由事件编辑回归基线覆盖。
+
+## Push 注册竞态修复
+
+- 修复 `BiboNative.push.register` 的监听安装竞态：现在先 await registration/registrationError 两个监听器，再调用官方 Push register；成功、错误、超时均统一清理监听器和 timer，避免极快 token 回调被漏掉或监听泄漏。
+- typecheck、216 tests、Android debug APK build 通过；真实 Firebase 配置下 token 注册仍需设备验收。
+
+## 当前回归基线补充（2026-09-08）
+
+- 当前代码回归基线为 216 tests（31 files）；typecheck、format:check、Web build、Capacitor sync、Gradle assembleDebug 已通过，生产依赖 audit 为 0。
+- 最新功能范围包括：事件创建/编辑/删除队列与分类筛选、Chat 会话草稿恢复、Service Worker 静态离线壳、FCM token 登记与服务端发送模板、Deep Link 运行验收、账号注销准备/Edge Function、当前已加载数据导出。
+- 不能把本地替身、PGlite、Android 模拟器或未部署 Edge Function 当成真实 Supabase/FCM/双设备/真机厂商后台验收。整体目标仍保持未完成。
+
+## Photos 弱网第一阶段：离线前启动上传队列
+
+- 新增 `202609080013_photo_outbox.sql` 的 `create_photo_once`：客户端固定 photo UUID/Storage 路径，服务端 current user/current space 校验，重复登记返回同一元数据行，篡改 ID/path/content 被拒绝。
+- photoOutbox 使用独立 IndexedDB，限制每空间 5 条/25 MB，保存 File Blob、原文件名、MIME、caption 和回忆关联，支持退避、20 秒超时、blocked、同 ID 重试和精确返回行确认。照片上传已开始但响应丢失时不换路径重传，避免假成功/孤立文件风险。
+- 非在线创建照片时，Photos 显示本机照片同步队列；恢复网络后上传 Storage 再登记元数据。照片文件仍不在 Service Worker/spaceCache 中，离线只能保留明确的本机队列意图。
+- Account deletion 清理消息、事件和照片本机队列；解绑后旧空间照片队列仍不会自动迁移（旧照片内容不会跨关系发送）。
+- PGlite 测试执行 013 迁移，覆盖固定路径、幂等登记、篡改和跨空间/匿名拒绝；photoOutbox 单元测试覆盖 exact row/path、退避和 blocked。当前 219 tests（32 files）通过。
+- 当前最终迁移链为初始 SQL + 202609080001–202609080013，README/DATABASE/注销部署说明已同步到 013。真实 Storage HTTP、弱网上传开始后响应丢失、云端孤儿文件扫描仍需独立验收。

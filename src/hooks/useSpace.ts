@@ -1,7 +1,9 @@
 import { accessFailure } from '../lib/accessFailure'
 import { clearOutboxForUser } from '../lib/outbox'
 import { clearEventOutboxForUser } from '../lib/eventOutbox'
+import { clearPhotoOutboxForUser } from '../lib/photoOutbox'
 import { useEventOutbox } from './useEventOutbox'
+import { usePhotoOutbox } from './usePhotoOutbox'
 import { cleanupAccountLocal } from '../lib/accountCleanup'
 import { clearChatDraftsForUser } from '../lib/chatDraftStorage'
 import { BiboNative } from '../native'
@@ -160,6 +162,20 @@ export function useSpace(
     }
     void reload()
   })
+  const photoOutbox = usePhotoOutbox(userId, cid, !demo, (saved) => {
+    const current = stateRef.current
+    if (!current || current.couple?.id !== cid || saved.couple_id !== cid) return
+    const next = {
+      ...current,
+      photos: [
+        { ...saved, url: undefined },
+        ...current.photos.filter((photo) => photo.id !== saved.id),
+      ],
+    }
+    stateRef.current = next
+    setSpace(next)
+    void reload()
+  })
   useSpaceRealtime({
     demo,
     userId,
@@ -256,6 +272,7 @@ export function useSpace(
     invitationStatus,
     outbox,
     eventOutbox,
+    photoOutbox,
     cachedAt,
     cacheError,
     offlineCacheEnabled,
@@ -389,9 +406,15 @@ export function useSpace(
           ],
         }))
       } else {
+        if (!navigator.onLine) {
+          await photoOutbox.enqueue(file, caption, metadata)
+          return { queued: true }
+        }
         await api.uploadPhoto(cid!, me, file, caption, metadata)
         await reload()
+        return { queued: false }
       }
+      return { queued: false }
     },
     async deletePhoto(id: string) {
       const current = stateRef.current
@@ -535,6 +558,7 @@ export function useSpace(
         clearOutbox: async () => {
           await clearOutboxForUser(userId)
           await clearEventOutboxForUser(userId)
+          await clearPhotoOutboxForUser(userId)
         },
         removeSavedEmail: () => localStorage.removeItem('bibu-saved-email'),
         clearChatDrafts: () => clearChatDraftsForUser(userId),

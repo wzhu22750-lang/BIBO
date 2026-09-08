@@ -438,3 +438,34 @@ export async function updateEventOnce(
   })
   return must(await (signal ? request.abortSignal(signal) : request)) as EventItem
 }
+
+export async function uploadPhotoOnce(
+  coupleId: string,
+  userId: string,
+  operationId: string,
+  file: File,
+  caption: string,
+  memory: MemoryInput,
+  signal?: AbortSignal,
+): Promise<Photo> {
+  validatePhoto(file)
+  const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'
+  const path = `${coupleId}/${userId}/${operationId}.${ext}`
+  const upload = db()
+    .storage.from('couple-photos')
+    .upload(path, file, { contentType: file.type, upsert: true })
+  // Supabase Storage upload returns a promise without abortSignal in the current SDK; outer deadline still releases the queue, but late storage work may continue.
+  const uploaded = await upload
+  if (uploaded.error) throw uploaded.error
+  const request = db().rpc('create_photo_once', {
+    photo_id: operationId,
+    space_id: coupleId,
+    photo_path: path,
+    photo_caption: caption,
+    photo_occurred_on: memory.occurred_on,
+    photo_story: memory.story,
+    photo_event_id: memory.event_id,
+    photo_message_id: memory.message_id,
+  })
+  return must(await (signal ? request.abortSignal(signal) : request)) as Photo
+}

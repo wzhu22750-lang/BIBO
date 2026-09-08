@@ -177,19 +177,20 @@ export const BiboNative = {
             () => fail(new Error('FCM token 获取超时；请确认 google-services.json 已配置')),
             20000,
           )
-          void PushNotifications.addListener('registration', (value) => succeed(value.value)).then(
-            (value) => {
-              registration = value
-            },
-          )
-          void PushNotifications.addListener('registrationError', (value) =>
-            fail(new Error(value.error || 'FCM token 注册失败')),
-          ).then((value) => {
-            registrationError = value
-          })
-          void PushNotifications.register().catch((error) =>
-            fail(error instanceof Error ? error : new Error(String(error))),
-          )
+          void (async () => {
+            try {
+              registration = await PushNotifications.addListener('registration', (value) =>
+                succeed(value.value),
+              )
+              registrationError = await PushNotifications.addListener(
+                'registrationError',
+                (value) => fail(new Error(value.error || 'FCM token 注册失败')),
+              )
+              await PushNotifications.register()
+            } catch (error) {
+              fail(error instanceof Error ? error : new Error(String(error)))
+            }
+          })()
         })
         if (!token || token.length < 20)
           return { supported: false, reason: 'Android 返回了无效的 Push token' }

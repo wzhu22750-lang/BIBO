@@ -59,6 +59,7 @@ beforeAll(async () => {
   await pg.exec(readFileSync('supabase/migrations/202609080010_device_push_tokens.sql', 'utf8'))
   await pg.exec(readFileSync('supabase/migrations/202609080011_event_outbox.sql', 'utf8'))
   await pg.exec(readFileSync('supabase/migrations/202609080012_event_edit.sql', 'utf8'))
+  await pg.exec(readFileSync('supabase/migrations/202609080013_photo_outbox.sql', 'utf8'))
   legacyAfter = (await pg.query<Record<string, unknown>>('select * from public.photos')).rows[0]
   legacyEvent = (await pg.query<Record<string, unknown>>('select * from public.events')).rows[0]
   await pg.exec(
@@ -657,6 +658,48 @@ describe.sequential('private two-player database boundary', () => {
         'icon:dog',
         'date',
       ]),
+    ).rejects.toThrow()
+  })
+  it('creates photo metadata idempotently and validates fixed ownership/path', async () => {
+    await asUser(D)
+    const id = '40000000-0000-4000-8000-000000000001'
+    const path = `${otherCouple}/${D}/${id}.jpg`
+    const args = [id, otherCouple, path, 'offline memory', '2026-01-02', 'story', null, null]
+    const first = (
+      await pg.query('select * from public.create_photo_once($1,$2,$3,$4,$5,$6,$7,$8)', args)
+    ).rows[0]
+    expect(
+      (await pg.query('select * from public.create_photo_once($1,$2,$3,$4,$5,$6,$7,$8)', args))
+        .rows[0],
+    ).toEqual(first)
+    await expect(
+      pg.query('select * from public.create_photo_once($1,$2,$3,$4,$5,$6,$7,$8)', [
+        id,
+        otherCouple,
+        `${otherCouple}/${D}/other.jpg`,
+        'tamper',
+        '2026-01-02',
+        'story',
+        null,
+        null,
+      ]),
+    ).rejects.toThrow('ID')
+    await asUser(C)
+    await expect(
+      pg.query('select * from public.create_photo_once($1,$2,$3,$4,$5,$6,$7,$8)', [
+        '40000000-0000-4000-8000-000000000002',
+        otherCouple,
+        `${otherCouple}/${D}/x.jpg`,
+        'cross',
+        '2026-01-02',
+        '',
+        null,
+        null,
+      ]),
+    ).rejects.toThrow('当前账号')
+    await pg.exec('reset role; set role anon')
+    await expect(
+      pg.query('select * from public.create_photo_once($1,$2,$3,$4,$5,$6,$7,$8)', args),
     ).rejects.toThrow()
   })
   it('isolates device Push tokens to the owning account and cascades them on deletion', async () => {
