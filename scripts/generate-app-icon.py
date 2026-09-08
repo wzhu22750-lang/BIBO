@@ -105,39 +105,9 @@ def adaptive_foreground(src: Image.Image, size: int) -> Image.Image:
     return canvas
 
 
-def silhouette_alpha(src: Image.Image, work: int = 192) -> Image.Image:
-    """Alpha mask of the drawn art: mint background -> transparent, art -> opaque.
-
-    Computed on a compact working canvas (still 2x the largest density) so the
-    per-pixel RGB distance loop stays fast, then LANCZOS-upscaled per size.
-    """
-    rgb = src.convert("RGB").resize((work, work), Image.Resampling.LANCZOS)
-    px = rgb.load()
-    alpha = Image.new("L", (work, work), 0)
-    ap = alpha.load()
-    for y in range(work):
-        for x in range(work):
-            r, g, b = px[x, y]
-            d = math.hypot(r - MINT[0], g - MINT[1], b - MINT[2])
-            # Map a gradient band (24..50) so edges stay smooth; anything close
-            # to mint is transparent, anything clearly drawn is solid white.
-            ap[x, y] = 0 if d <= 24 else (255 if d >= 50 else int(255 * (d - 24) / 26))
-    return alpha
-
-
-def notification_small_icon(alpha: Image.Image, size: int) -> Image.Image:
-    """White notification small-icon at the requested side length.
-
-    Android notification small icons must be a single-colour (here: white)
-    alpha-only silhouette on a transparent background; colour or photo art gets
-    flattened into an unreadable blob by the system, so we never reuse the
-    colourful launcher PNG here.
-    """
-    mask = alpha.resize((size, size), Image.Resampling.LANCZOS)
-    out = Image.new("RGBA", (size, size), TRANSPARENT)
-    white = Image.new("RGBA", (size, size), (255, 255, 255, 255))
-    out.paste(white, (0, 0), mask)
-    return out
+def notification_icon(src: Image.Image, size: int) -> Image.Image:
+    """Notification icon synchronized with the launcher artwork."""
+    return squircle_icon(src, size)
 
 
 def save(img: Image.Image, path: Path) -> None:
@@ -170,16 +140,13 @@ def main() -> None:
     (PUBLIC / "favicon.svg").write_text(svg_with_png(full), encoding="utf-8")
     print("  public/favicon.svg")
 
-    print("Android notification small icon (white silhouette)")
-    alpha = silhouette_alpha(full)
+    print("Android notification icon (synchronized with launcher art)")
     stale = RES / "drawable" / "ic_stat_bibo.xml"
     if stale.exists():
         stale.unlink()
         print(f"  removed {stale.relative_to(ROOT)}")
     for name, size in NOTIFICATION_ICON_SIZES.items():
-        # A single white shape must not touch the 24dp canvas edge; the
-        # artwork already leaves generous margins.
-        save(notification_small_icon(alpha, size), RES / f"drawable-{name}" / "ic_stat_bibo.png")
+        save(notification_icon(full, size), RES / f"drawable-{name}" / "ic_stat_bibo.png")
 
     print("Android legacy + adaptive PNG")
     for name, factor in DENSITIES.items():

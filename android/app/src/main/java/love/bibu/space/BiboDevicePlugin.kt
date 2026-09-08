@@ -16,6 +16,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
+import android.graphics.BitmapFactory
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.google.firebase.FirebaseApp
@@ -82,8 +83,14 @@ class BiboDevicePlugin : Plugin() {
             putExtra("biboRoute", safeRoute(call.getString("route")))
         }
         val pending = PendingIntent.getActivity(context, id, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val largeIcon = try {
+            BitmapFactory.decodeResource(context.resources, love.bibu.space.R.mipmap.ic_launcher)
+        } catch (_: Exception) { null }
         val notification = NotificationCompat.Builder(context, target)
-            .setSmallIcon(love.bibu.space.R.drawable.ic_stat_bibo)
+            .setSmallIcon(love.bibu.space.R.mipmap.ic_launcher)
+            .apply {
+                if (largeIcon != null) setLargeIcon(largeIcon)
+            }
             .setContentTitle((call.getString("title") ?: "BIBO").take(80))
             .setContentText((call.getString("body") ?: "收到一个小小的想念").take(240))
             .setContentIntent(pending).setAutoCancel(true).build()
