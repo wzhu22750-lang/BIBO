@@ -66,39 +66,6 @@ export function Chat({
     if (nearBottom.current) end.current?.scrollIntoView({ block: 'nearest', behavior: 'instant' })
     else setUnread(true)
   }, [space.messages.at(-1)?.id, referenceId])
-  const [isTyping, setIsTyping] = useState(false)
-
-  // Listen to mobile viewport resize (keyboard show/hide)
-  useEffect(() => {
-    const vv = window.visualViewport
-    if (!vv) return
-    const onResize = () => {
-      const diff = window.innerHeight - vv.height
-      if (diff > 120) {
-        setIsTyping(true)
-      } else if (!input.current || document.activeElement !== input.current) {
-        setIsTyping(false)
-      }
-    }
-    vv.addEventListener('resize', onResize)
-    return () => vv.removeEventListener('resize', onResize)
-  }, [])
-
-  useEffect(() => {
-    if (isTyping) {
-      document.body.classList.add('chat-keyboard-open')
-      const timer = setTimeout(() => {
-        end.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })
-      }, 50)
-      return () => clearTimeout(timer)
-    } else {
-      document.body.classList.remove('chat-keyboard-open')
-    }
-    return () => {
-      document.body.classList.remove('chat-keyboard-open')
-    }
-  }, [isTyping])
-
   useLayoutEffect(() => {
     const el = scroll.current
     if (el && !referenceId) {
@@ -285,16 +252,6 @@ export function Chat({
               rows={1}
               maxLength={2000}
               value={text}
-              onFocus={() => setIsTyping(true)}
-              onBlur={() => {
-                setTimeout(() => {
-                  const vv = window.visualViewport
-                  const diff = vv ? window.innerHeight - vv.height : 0
-                  if (document.activeElement !== input.current && diff <= 120) {
-                    setIsTyping(false)
-                  }
-                }, 150)
-              }}
               onChange={(e) => {
                 editText(e.target.value)
                 const el = e.target

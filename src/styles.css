@@ -3223,10 +3223,6 @@ img {
     border-top: var(--line);
     flex-shrink: 0;
   }
-  body.chat-keyboard-open .chat-composer,
-  .app-shell:has(.chat-composer:focus-within) .chat-composer {
-    padding-bottom: 9px !important;
-  }
   .composer-main {
     gap: 8px;
     align-items: flex-end;
