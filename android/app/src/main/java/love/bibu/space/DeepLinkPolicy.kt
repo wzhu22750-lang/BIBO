@@ -9,8 +9,19 @@ object DeepLinkPolicy {
     fun route(intent: Intent, scheme: String): String? {
         val explicit = intent.getStringExtra("biboRoute")
         if (explicit != null) return if (validHash(explicit)) explicit else "#home"
-        val data = intent.data ?: return null
-        return dataRoute(data.scheme, data.host, data.path, data.getQueryParameter("message"), data.getQueryParameter("event"), scheme)
+        val data = intent.data
+        if (data != null)
+            return dataRoute(data.scheme, data.host, data.path, data.getQueryParameter("message"), data.getQueryParameter("event"), scheme)
+        // FCM notification click on a cold-started process: the Capacitor PushNotifications
+        // plugin replays only messages received while running, so the launch intent here
+        // carries the push data as extras (route/ping_id/kind) plus google.message_id and
+        // no data URI. Treat it as a navigation only when it looks like an FCM click intent.
+        return fcmClickRoute(intent.getStringExtra("google.message_id"), intent.getStringExtra("route"))
+    }
+
+    fun fcmClickRoute(messageId: String?, route: String?): String? {
+        if (messageId == null || route == null) return null
+        return if (validHash(route)) route else "#home"
     }
 
     fun dataRoute(scheme: String?, host: String?, path: String?, message: String?, event: String?, expectedScheme: String): String? {

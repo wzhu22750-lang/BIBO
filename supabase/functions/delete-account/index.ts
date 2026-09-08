@@ -21,6 +21,36 @@ function validUuid(value: unknown): value is string {
   )
 }
 
+async function listStorageObjectPaths(
+  admin: ReturnType<typeof createClient>,
+  prefix: string,
+): Promise<string[]> {
+  const queue = [prefix]
+  const visited = new Set<string>()
+  const paths: string[] = []
+  while (queue.length) {
+    const current = queue.shift()!
+    if (visited.has(current)) continue
+    visited.add(current)
+    let offset = 0
+    while (true) {
+      const { data: entries, error } = await admin.storage
+        .from('couple-photos')
+        .list(current, { limit: 1000, offset })
+      if (error) throw error
+      for (const entry of entries || []) {
+        if (!entry.name) continue
+        const child = `${current}/${entry.name}`
+        if (entry.id) paths.push(child)
+        else queue.push(child)
+      }
+      if (!entries || entries.length < 1000) break
+      offset += entries.length
+    }
+  }
+  return paths
+}
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: cors })
   if (request.method !== 'POST') return json({ error: '仅支持 POST' }, 405)
@@ -92,18 +122,10 @@ Deno.serve(async (request) => {
   }
   const paths = new Set(ownedRegistered)
   try {
-    for (const prefix of prefixes) {
-      let offset = 0
-      while (true) {
-        const { data: entries, error: listError } = await admin.storage
-          .from('couple-photos')
-          .list(prefix, { limit: 1000, offset })
-        if (listError) throw listError
-        for (const entry of entries || []) if (entry.id) paths.add(`${prefix}/${entry.name}`)
-        if (!entries || entries.length < 1000) break
-        offset += entries.length
-      }
-    }
+    // Storage.list is not recursive: walk every directory under each user prefix
+    // so unregistered or nested objects cannot survive account deletion.
+    for (const prefix of prefixes)
+      for (const path of await listStorageObjectPaths(admin, prefix)) paths.add(path)
     const allPaths = [...paths]
     for (let index = 0; index < allPaths.length; index += 100) {
       const { error: storageError } = await admin.storage
@@ -112,20 +134,8 @@ Deno.serve(async (request) => {
       if (storageError) throw storageError
     }
     const remaining = new Set<string>()
-    for (const prefix of prefixes) {
-      let offset = 0
-      while (true) {
-        const { data: entries, error: listError } = await admin.storage
-          .from('couple-photos')
-          .list(prefix, { limit: 1000, offset })
-        if (listError) throw listError
-        for (const entry of entries || [])
-          if (entry.id && paths.has(`${prefix}/${entry.name}`))
-            remaining.add(`${prefix}/${entry.name}`)
-        if (!entries || entries.length < 1000) break
-        offset += entries.length
-      }
-    }
+    for (const prefix of prefixes)
+      for (const path of await listStorageObjectPaths(admin, prefix)) remaining.add(path)
     if (remaining.size) throw new Error(`删除后仍有 ${remaining.size} 个本人照片对象`)
   } catch (storageError) {
     return json(

@@ -16,4 +16,14 @@ class DeepLinkPolicyTest {
     @Test fun explicitNotificationExtraHasSameValidation() {
         assertTrue(DeepLinkPolicy.validHash("#chat?message=abc"));assertFalse(DeepLinkPolicy.validHash("https://evil"));assertFalse(DeepLinkPolicy.validHash("#chat?message=../x"))
     }
+    @Test fun fcmColdStartClickRoutesFromDataExtras() {
+        // App process was killed: the Capacitor push plugin replays no action event, so the
+        // launch intent's message data extras must carry the whitelisted route themselves.
+        assertEquals("#events?event=abc_123",DeepLinkPolicy.fcmClickRoute("0:1234","#events?event=abc_123"))
+        assertEquals("#home",DeepLinkPolicy.fcmClickRoute("0:1","https://evil.test"))
+        assertEquals("#home",DeepLinkPolicy.fcmClickRoute("0:1","#home"))
+        // Plain third-party launch intents without an FCM message id are not click navigation.
+        assertNull(DeepLinkPolicy.fcmClickRoute(null,"#settings"))
+        assertNull(DeepLinkPolicy.fcmClickRoute("0:1",null))
+    }
 }

@@ -60,6 +60,8 @@ beforeAll(async () => {
   await pg.exec(readFileSync('supabase/migrations/202609080011_event_outbox.sql', 'utf8'))
   await pg.exec(readFileSync('supabase/migrations/202609080012_event_edit.sql', 'utf8'))
   await pg.exec(readFileSync('supabase/migrations/202609080013_photo_outbox.sql', 'utf8'))
+  await pg.exec(readFileSync('supabase/migrations/202609080014_relationship_seal.sql', 'utf8'))
+  await pg.exec(readFileSync('supabase/migrations/202609080015_photo_path_hardening.sql', 'utf8'))
   legacyAfter = (await pg.query<Record<string, unknown>>('select * from public.photos')).rows[0]
   legacyEvent = (await pg.query<Record<string, unknown>>('select * from public.events')).rows[0]
   await pg.exec(
@@ -233,6 +235,11 @@ describe.sequential('private two-player database boundary', () => {
     await pg.query("insert into storage.objects(bucket_id,name) values('couple-photos',$1)", [
       `${couple}/${A}/photo.jpg`,
     ])
+    await expect(
+      pg.query("insert into storage.objects(bucket_id,name) values('couple-photos',$1)", [
+        `${couple}/${A}/nested/orphan.jpg`,
+      ]),
+    ).rejects.toThrow()
     await expect(
       pg.query("insert into storage.objects(bucket_id,name) values('couple-photos',$1)", [
         `${couple}/${B}/forged.jpg`,
@@ -674,6 +681,18 @@ describe.sequential('private two-player database boundary', () => {
     ).toEqual(first)
     await expect(
       pg.query('select * from public.create_photo_once($1,$2,$3,$4,$5,$6,$7,$8)', [
+        '40000000-0000-4000-8000-000000000003',
+        otherCouple,
+        `${otherCouple}/${D}/nested/file.jpg`,
+        'nested',
+        '2026-01-02',
+        'story',
+        null,
+        null,
+      ]),
+    ).rejects.toThrow('路径')
+    await expect(
+      pg.query('select * from public.create_photo_once($1,$2,$3,$4,$5,$6,$7,$8)', [
         id,
         otherCouple,
         `${otherCouple}/${D}/other.jpg`,
@@ -733,6 +752,23 @@ describe.sequential('private two-player database boundary', () => {
       await scalar('select count(*)::int from public.device_installations where id=$1', [row]),
     ).toBe(0)
   })
+  it('does not let a second account claim an existing device token through direct upsert', async () => {
+    await asUser(A)
+    const token = 'fcm-token-shared-for-upsert-probe-0001'
+    const id = await scalar(
+      "insert into public.device_installations(user_id,platform,token,app_version) values($1,'android',$2,'test') returning id",
+      [A, token],
+    )
+    await asUser(B)
+    await expect(
+      pg.query(
+        "insert into public.device_installations(user_id,platform,token,app_version) values($1,'android',$2,'test') on conflict(token) do update set user_id=excluded.user_id, app_version=excluded.app_version",
+        [B, token],
+      ),
+    ).rejects.toThrow()
+    await asUser(A)
+    await pg.query('delete from public.device_installations where id=$1', [id])
+  })
   it('prepares account deletion atomically, anonymizes shared authorship, and is idempotent', async () => {
     await asUser(A)
     const current = (await scalar('select public.my_couple_id()')) as string
@@ -786,8 +822,11 @@ describe.sequential('private two-player database boundary', () => {
       await scalar('select count(*)::int from public.couple_members where couple_id=$1', [current]),
     ).toBe(1)
     expect(
-      await scalar('select closed_at is null from public.couples where id=$1', [current]),
+      await scalar('select closed_at is not null from public.couples where id=$1', [current]),
     ).toBe(true)
+    await asUser(B)
+    await expect(pg.query('select public.refresh_invite()')).rejects.toThrow('封存')
+    await pg.exec('reset role')
     await pg.query('delete from auth.users where id=$1', [A])
     expect(await scalar('select count(*)::int from public.profiles where id=$1', [A])).toBe(0)
     expect(

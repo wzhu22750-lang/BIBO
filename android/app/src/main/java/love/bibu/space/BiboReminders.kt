@@ -65,7 +65,7 @@ object BiboReminders {
         }
         val click=PendingIntent.getActivity(context,id,intent,PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         try {
-            val notification=NotificationCompat.Builder(context,CHANNEL).setSmallIcon(android.R.drawable.btn_star_big_on)
+            val notification=NotificationCompat.Builder(context,CHANNEL).setSmallIcon(love.bibu.space.R.drawable.ic_stat_bibo)
                 .setContentTitle(row.getString("title")).setContentText(row.getString("body"))
                 .setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setContentIntent(click).setAutoCancel(true).build()
             (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).notify("reminder",id,notification)

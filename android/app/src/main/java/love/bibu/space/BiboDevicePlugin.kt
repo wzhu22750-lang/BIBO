@@ -59,7 +59,7 @@ class BiboDevicePlugin : Plugin() {
         }
         val pending = PendingIntent.getActivity(context, id, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val notification = NotificationCompat.Builder(context, channel)
-            .setSmallIcon(android.R.drawable.btn_star_big_on)
+            .setSmallIcon(love.bibu.space.R.drawable.ic_stat_bibo)
             .setContentTitle((call.getString("title") ?: "BIBO").take(80))
             .setContentText((call.getString("body") ?: "收到一个小小的想念").take(240))
             .setContentIntent(pending).setAutoCancel(true).build()
@@ -151,6 +151,7 @@ class BiboDevicePlugin : Plugin() {
     @PluginMethod fun launchRoute(call: PluginCall) {
         val route = routeFromIntent(activity.intent)
         activity.intent.removeExtra("biboRoute")
+        activity.intent.removeExtra("route")
         activity.intent.data = null
         call.resolve(if(route == null) JSObject() else JSObject().put("route", safeRoute(route)))
     }
