@@ -3,6 +3,9 @@ import type { Page } from '../lib/types'
 import type { BibuAction } from '../hooks/useBibu'
 import { Icon } from './PixelArt'
 import moreIcon from 'pixelarticons/svg/more-horizontal.svg'
+import { lovePings, type LovePingKind } from '../lib/ping'
+import { BiboNative } from '../native'
+
 export function BottomNav({
   page,
   navigate,
@@ -13,16 +16,29 @@ export function BottomNav({
   bibu: BibuAction
 }) {
   const [more, setMore] = useState(false)
+  const [selectorOpen, setSelectorOpen] = useState(false)
+  const [hoveredKind, setHoveredKind] = useState<LovePingKind | null>(null)
+  const [isPressing, setIsPressing] = useState(false)
   const ref = useRef<HTMLElement>(null),
     trigger = useRef<HTMLButtonElement>(null)
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const isLongPress = useRef(false)
+  const itemRefs = useRef<Map<LovePingKind, HTMLButtonElement>>(new Map())
+  const hoveredKindRef = useRef<LovePingKind | null>(null)
+  hoveredKindRef.current = hoveredKind
+
   useEffect(() => {
-    if (!more) return
+    if (!more && !selectorOpen) return
     const close = (e: PointerEvent) => {
-      if (e.target instanceof Node && !ref.current?.contains(e.target)) setMore(false)
+      if (e.target instanceof Node && !ref.current?.contains(e.target)) {
+        setMore(false)
+        setSelectorOpen(false)
+      }
     }
     const escape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setMore(false)
+        setSelectorOpen(false)
         trigger.current?.focus()
       }
     }
@@ -32,11 +48,94 @@ export function BottomNav({
       document.removeEventListener('pointerdown', close)
       document.removeEventListener('keydown', escape)
     }
-  }, [more])
+  }, [more, selectorOpen])
+
+  useEffect(() => {
+    return () => {
+      if (longPressTimer.current) clearTimeout(longPressTimer.current)
+    }
+  }, [])
+
   function go(target: Page) {
     setMore(false)
+    setSelectorOpen(false)
     navigate(target)
   }
+
+  // Pointer / Touch interaction handlers for long-press & slide-to-select
+  const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (bibu.disabled) return
+    setIsPressing(true)
+    isLongPress.current = false
+    setHoveredKind(bibu.kind)
+
+    longPressTimer.current = setTimeout(() => {
+      isLongPress.current = true
+      setSelectorOpen(true)
+      void BiboNative.vibration.pulse([40, 30, 40]).catch(() => {})
+    }, 280)
+  }
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isLongPress.current) return
+    // Check which item the user's finger is currently over
+    const clientX = e.clientX
+    const clientY = e.clientY
+
+    let matched: LovePingKind | null = null
+    itemRefs.current.forEach((el, k) => {
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      // Generous hit box for mobile finger drag
+      if (
+        clientX >= rect.left - 10 &&
+        clientX <= rect.right + 10 &&
+        clientY >= rect.top - 18 &&
+        clientY <= rect.bottom + 18
+      ) {
+        matched = k
+      }
+    })
+
+    if (matched && matched !== hoveredKindRef.current) {
+      setHoveredKind(matched)
+      void BiboNative.vibration.pulse([25]).catch(() => {})
+    }
+  }
+
+  const handlePointerUp = () => {
+    setIsPressing(false)
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = undefined
+    }
+
+    if (isLongPress.current) {
+      const selected = hoveredKindRef.current
+      setSelectorOpen(false)
+      if (selected) {
+        void bibu.send(selected)
+      }
+      isLongPress.current = false
+    }
+  }
+
+  const handlePointerCancel = () => {
+    setIsPressing(false)
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = undefined
+    }
+    setSelectorOpen(false)
+    isLongPress.current = false
+  }
+
+  const handleClick = () => {
+    if (isLongPress.current) return
+    setMore(false)
+    void bibu.send()
+  }
+
   return (
     <nav ref={ref} className="bottom-nav bibo-dock" aria-label="移动端导航">
       <button
@@ -60,15 +159,49 @@ export function BottomNav({
         <span>悄悄话</span>
       </button>
       <div className="dock-center">
+        {selectorOpen && (
+          <div
+            className="dock-bibu-picker"
+            role="dialog"
+            aria-label="滑动选择想发送的情绪"
+          >
+            <span className="picker-tip micro">SLIDE TO SELECT ✦ RELEASE TO SEND</span>
+            <div className="picker-track">
+              {lovePings.map((item) => {
+                const isCurrent = (hoveredKind || bibu.kind) === item.kind
+                return (
+                  <button
+                    key={item.kind}
+                    ref={(el) => {
+                      if (el) itemRefs.current.set(item.kind, el)
+                      else itemRefs.current.delete(item.kind)
+                    }}
+                    type="button"
+                    className={`picker-pill ${isCurrent ? 'selected' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelectorOpen(false)
+                      void bibu.send(item.kind)
+                    }}
+                  >
+                    <span className="pill-dot">{isCurrent ? '♥' : '•'}</span>
+                    <span className="pill-name">{item.kind}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
         <button
-          className="dock-bibo"
+          className={`dock-bibo ${isPressing ? 'is-pressing' : ''} ${selectorOpen ? 'selector-active' : ''}`}
           disabled={bibu.disabled}
-          onClick={() => {
-            setMore(false)
-            void bibu.send()
-          }}
-          aria-label={`BIBU，发送${bibu.kind}`}
-          title={`发送${bibu.kind}`}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
+          onClick={handleClick}
+          aria-label={`BIBU，长按滑动切换情绪，当前：${bibu.kind}`}
+          title={`点击发送，长按滑动切换：${bibu.kind}`}
         >
           <svg viewBox="0 0 76 76" aria-hidden="true" shapeRendering="crispEdges">
             <path
@@ -81,7 +214,7 @@ export function BottomNav({
             />
             <path
               className="dock-bibo-face"
-              fill="#fff238"
+              fill={selectorOpen ? '#ff85d8' : '#fff238'}
               d="M24 8h28v4h8v8h4v36h-4v8H20v-4h-8V20h4v-8h8z"
             />
             <path
@@ -91,7 +224,9 @@ export function BottomNav({
             <path fill="#fffef7" d="M24 28h8v4h-8z" />
           </svg>
         </button>
-        <span className="dock-bibo-label">{bibu.cooling ? 'SENT!' : 'BIBU!'}</span>
+        <span className={`dock-bibo-label ${selectorOpen ? 'selecting' : ''}`}>
+          {bibu.cooling ? 'SENT!' : selectorOpen ? (hoveredKind || bibu.kind) : 'BIBU!'}
+        </span>
       </div>
       <button
         className={`dock-item ${page === 'events' ? 'active' : ''}`}

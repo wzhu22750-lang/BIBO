@@ -1231,12 +1231,25 @@
     gap: 3px;
     padding: 1px 0;
     color: #737767;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s ease, transform 0.12s ease;
+  }
+  .bibo-dock > .dock-item:active {
+    transform: scale(0.92);
   }
   .bibo-dock > .dock-item > span:last-child {
     font-size: 14px;
     white-space: nowrap;
     font-weight: 650;
     line-height: 1.2;
+    transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.15s ease;
+  }
+  .bibo-dock > .dock-item.active > span:last-child {
+    transform: translateY(-1px);
+    font-weight: 750;
   }
   .bibo-dock > .dock-item .dock-icon {
     width: 32px;
@@ -1246,11 +1259,14 @@
     align-items: center;
     justify-content: center;
     font-size: initial;
+    transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform-origin: center bottom;
   }
   .bibo-dock > .dock-item .dock-icon .pixel-icon,
   .bibo-dock > .dock-item .dock-icon img {
     width: 24px;
     height: 24px;
+    transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   .bibo-dock > .dock-item.active {
     background: transparent;
@@ -1261,6 +1277,22 @@
   .bibo-dock > .dock-item.active .dock-icon {
     border-color: var(--ink);
     box-shadow: 2px 2px 0 var(--ink);
+    animation: dock-tab-pop 0.32s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  }
+  .bibo-dock > .dock-item.active .dock-icon .pixel-icon,
+  .bibo-dock > .dock-item.active .dock-icon img {
+    transform: scale(1.06);
+  }
+  @keyframes dock-tab-pop {
+    0% {
+      transform: scale(0.85) translateY(2px);
+    }
+    55% {
+      transform: scale(1.15) translateY(-4px);
+    }
+    100% {
+      transform: scale(1) translateY(0);
+    }
   }
   .dock-icon.dock-blue {
     --dock-active: var(--blue);
@@ -1295,6 +1327,27 @@
     display: block;
     filter: drop-shadow(2px 2px 0 var(--ink));
     pointer-events: auto;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.12s ease;
+    transform-origin: center bottom;
+  }
+  .bottom-nav .dock-bibo.is-pressing {
+    transform: scale(0.9) translateY(2px);
+    filter: drop-shadow(1px 1px 0 var(--ink));
+  }
+  .bottom-nav .dock-bibo.selector-active {
+    transform: scale(1.1) translateY(-3px);
+    filter: drop-shadow(3px 4px 0 #ff85d8);
+    animation: bibu-heartbeat 0.6s infinite alternate ease-in-out;
+  }
+  @keyframes bibu-heartbeat {
+    from {
+      transform: scale(1.08) translateY(-3px);
+    }
+    to {
+      transform: scale(1.15) translateY(-5px);
+    }
   }
   .dock-bibo > svg {
     width: 100%;
@@ -1308,7 +1361,7 @@
     fill: #ffabe7;
   }
   .bottom-nav .dock-bibo:active:not(:disabled) {
-    transform: translate(1.5px, 1.5px);
+    transform: translate(1.5px, 1.5px) scale(0.92);
     filter: none;
   }
   .dock-bibo-label {
@@ -1320,17 +1373,112 @@
     border: 1px solid var(--ink);
     margin-bottom: 1px;
     color: var(--ink);
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+  .dock-bibo-label.selecting {
+    background: #ff85d8;
+    color: #fff;
+    transform: scale(1.1);
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+  /* Floating Mood Selector above BIBU button */
+  .dock-bibu-picker {
+    position: absolute;
+    bottom: calc(100% + 12px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--paper);
+    border: var(--line);
+    box-shadow: 4px 4px 0 var(--ink);
+    padding: 8px 10px 10px;
+    pointer-events: auto;
+    z-index: 50;
+    width: max-content;
+    max-width: 90vw;
+    animation: picker-appear 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  }
+  @keyframes picker-appear {
+    from {
+      opacity: 0;
+      transform: translateX(-50%) translateY(10px) scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0) scale(1);
+    }
+  }
+  .dock-bibu-picker .picker-tip {
+    font-size: 6px;
+    display: block;
+    text-align: center;
+    color: #7a836a;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px dashed #cfd6c4;
+    white-space: nowrap;
+  }
+  .dock-bibu-picker .picker-track {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 2px 2px 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .picker-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1.5px solid var(--ink);
+    background: #fff;
+    padding: 5px 8px;
+    font-size: 11px;
+    font-family: inherit;
+    color: var(--ink);
+    cursor: pointer;
+    white-space: nowrap;
+    touch-action: manipulation;
+    transition: all 0.12s ease;
+    border-radius: 2px;
+  }
+  .picker-pill .pill-dot {
+    font-size: 9px;
+    color: #9da391;
+  }
+  .picker-pill.selected {
+    background: var(--yellow);
+    border-color: var(--ink);
+    transform: translateY(-2px) scale(1.08);
+    box-shadow: 2px 2px 0 var(--ink);
+    font-weight: bold;
+  }
+  .picker-pill.selected .pill-dot {
+    color: #ff3366;
   }
   .dock-more {
     position: absolute;
     right: 8px;
-    bottom: calc(100% + 4px);
+    bottom: calc(100% + 6px);
     width: 200px;
     background: var(--paper);
     border: var(--line);
-    box-shadow: 3px 3px 0 var(--ink);
+    box-shadow: 4px 4px 0 var(--ink);
     padding: 10px;
     z-index: 40;
+    transform-origin: bottom right;
+    animation: dock-more-open 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes dock-more-open {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.94);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
   }
   .dock-more > .micro {
     font-size: 6px;
@@ -1344,6 +1492,7 @@
     width: 100%;
     display: flex;
     flex-direction: row;
+    align-items: center;
     justify-content: flex-start;
     gap: 9px;
     min-height: 40px;
@@ -1351,6 +1500,12 @@
     border: 0;
     text-align: left;
     background: var(--paper);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.12s ease, transform 0.12s ease;
+  }
+  .bottom-nav .dock-more button:active {
+    transform: scale(0.96);
   }
   .bottom-nav .dock-more button:hover,
   .bottom-nav .dock-more button[aria-current='page'] {
@@ -1363,6 +1518,11 @@
   }
   .bottom-nav .dock-more button > .pixel-icon:last-child {
     width: 12px;
+    transition: transform 0.15s ease;
+  }
+  .bottom-nav .dock-more button:hover > .pixel-icon:last-child,
+  .bottom-nav .dock-more button:active > .pixel-icon:last-child {
+    transform: translateX(2px);
   }
   .toast {
     bottom: calc(72px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));

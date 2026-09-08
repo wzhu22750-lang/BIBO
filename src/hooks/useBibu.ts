@@ -12,12 +12,16 @@ export function useBibu(controller: SpaceController, demo: boolean) {
   const toast = useToast()
   const [kind, setKind] = useState<LovePingKind>('哔卟哔卟')
   useEffect(() => () => clearTimeout(timer.current), [])
-  const send = useCallback(async () => {
+  const send = useCallback(async (customKind?: LovePingKind) => {
     if (locked.current || !controller.space?.partner) return
+    const targetKind = customKind ?? kind
     locked.current = true
     setBusy(true)
+    if (customKind && customKind !== kind) {
+      setKind(customKind)
+    }
     try {
-      await controller.sendPing(kind)
+      await controller.sendPing(targetKind)
       setCooling(true)
       timer.current = setTimeout(() => {
         locked.current = false

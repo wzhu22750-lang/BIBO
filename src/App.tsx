@@ -55,9 +55,16 @@ function Workspace({
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
   function navigate(value: Page) {
-    setRoute({ page: value })
-    window.location.hash = value
-    window.scrollTo({ top: 0, behavior: 'instant' })
+    const update = () => {
+      setRoute({ page: value })
+      window.location.hash = value
+      window.scrollTo({ top: 0, behavior: 'instant' })
+    }
+    if (typeof document !== 'undefined' && 'startViewTransition' in document) {
+      ;(document as any).startViewTransition(update)
+    } else {
+      update()
+    }
   }
   if (controller.loading)
     return (
