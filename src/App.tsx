@@ -3,12 +3,19 @@ import { BiboNative, isAndroidApp } from './native'
 import { createDeviceActivityHeartbeat } from './lib/deviceActivity'
 import { parseRoute } from './lib/routes'
 import { useEffect, useState } from 'react'
+import { Capacitor } from '@capacitor/core'
+import { App as CapApp } from '@capacitor/app'
 import type { Session } from '@supabase/supabase-js'
 import { configured, errorText, supabase } from './lib/supabase'
 import { useBibu } from './hooks/useBibu'
 import { useSpace } from './hooks/useSpace'
-import { disableFeedback } from './lib/notifications'
 import { readStoredPushToken, storePushToken } from './lib/pushRegistration'
+import {
+  disableFeedback,
+  loadFeedbackEnabled,
+  restoreFeedback,
+  storeFeedbackEnabled,
+} from './lib/notifications'
 import type { Page } from './lib/types'
 import { Shell } from './components/Shell'
 import { ToastContext, Button } from './components/ui'
@@ -32,13 +39,16 @@ function Workspace({
 }) {
   const controller = useSpace(session, demo),
     [route, setRoute] = useState(() => parseRoute(window.location.hash)),
-    [sound, setSound] = useState(false)
+    [sound, setSound] = useState<boolean>(() => loadFeedbackEnabled())
   const page = route.page
   const bibu = useBibu(controller, demo)
   useEffect(() => {
-    disableFeedback()
+    // 声音/震动偏好持久化到本机：退出或刷新后保持开启，声音在首次点击时自动恢复
+    storeFeedbackEnabled(sound)
+    if (sound) restoreFeedback()
+    else disableFeedback()
     return () => disableFeedback()
-  }, [])
+  }, [sound])
   useEffect(() => {
     const onHash = () => setRoute(parseRoute(window.location.hash))
     window.addEventListener('hashchange', onHash)
@@ -226,6 +236,26 @@ export default function App() {
     return () => {
       active = false
       subscription.unsubscribe()
+    }
+  }, [])
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+    // 原生 App：处理邮箱验证深链接 love.bibu.space://?code=... （PKCE 回调）
+    const listener = CapApp.addListener('appUrlOpen', (data) => {
+      void (async () => {
+        try {
+          const url = new URL(data.url)
+          const code = url.searchParams.get('code')
+          if (!code) return
+          const { error } = await supabase.auth.exchangeCodeForSession(code)
+          if (error) setToast({ message: errorText(error), error: true })
+        } catch (e) {
+          setToast({ message: errorText(e), error: true })
+        }
+      })()
+    })
+    return () => {
+      void listener.then((l) => l.remove())
     }
   }, [])
   useEffect(() => {

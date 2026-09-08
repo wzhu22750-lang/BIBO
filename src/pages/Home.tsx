@@ -4,13 +4,33 @@ import { dailyPrompt, dailyMemories, upcomingEvents } from '../lib/home'
 import { useNow } from '../hooks/useNow'
 import { useState } from 'react'
 import { Icon, PixelFlower, PixelPal } from '../components/PixelArt'
-import { Empty, PageHeading, Panel } from '../components/ui'
+import { Button, Empty, Modal, PageHeading, Panel, useTask, useToast } from '../components/ui'
 import { clock, dateLabel, togetherDays } from '../lib/dates'
 import type { Page, Photo } from '../lib/types'
 import type { SpaceController } from '../hooks/useSpace'
 import type { BibuAction } from '../hooks/useBibu'
 import { EventCard, EventForm } from './Events'
 import { PhotoCard, PhotoViewer } from './Photos'
+
+const GREETING_PRESETS = [
+  {
+    title: '今天也喜欢你，多一点',
+    subtitle: '生活不是每天都浪漫，但每天都有你。',
+  },
+  {
+    title: '宇宙很大，但我们很近',
+    subtitle: '只要你在身边，连发呆都觉得很有意义。',
+  },
+  {
+    title: '今日份开心来源是你',
+    subtitle: '好好吃饭、好好生活，想我的时候就哔卟一声。',
+  },
+  {
+    title: '和你在一起的每天都是纪念日',
+    subtitle: '柴米油盐与晨昏朝暮，我只贪恋有你的温度。',
+  },
+]
+
 export function Home({
   controller,
   navigate,
@@ -25,8 +45,17 @@ export function Home({
   const space = controller.space!
   const [adding, setAdding] = useState(false),
     [photo, setPhoto] = useState<Photo | null>(null)
+
+  const greetingTitle = space.couple?.greeting_title || '今天也喜欢你，多一点'
+  const greetingSubtitle = space.couple?.greeting_subtitle || '生活不是每天都浪漫，但每天都有你。'
+  const [editingGreeting, setEditingGreeting] = useState(false)
+  const [tempTitle, setTempTitle] = useState(greetingTitle)
+  const [tempSubtitle, setTempSubtitle] = useState(greetingSubtitle)
+  const { busy, run } = useTask()
+  const toast = useToast()
+
   const now = useNow()
-  const events = upcomingEvents(space, now)
+  const events = upcomingEvents(space, now).slice(0, 3)
   const prompt = dailyPrompt(space.couple!.id, now)
   const memories = dailyMemories(space.photos, space.couple!.id, now)
   const partnerFocus = space.focus.find(
@@ -41,8 +70,14 @@ export function Home({
     <>
       <PageHeading
         eyebrow="WELCOME TO OUR LITTLE UNIVERSE"
-        title="今天也喜欢你，多一点"
-        subtitle="生活不是每天都浪漫，但每天都有你。"
+        title={greetingTitle}
+        subtitle={greetingSubtitle}
+        onEdit={() => {
+          setTempTitle(greetingTitle)
+          setTempSubtitle(greetingSubtitle)
+          setEditingGreeting(true)
+        }}
+        editLabel="双方均可编辑小宇宙寄语"
       >
         <span className="today-label">
           <Icon name="calendar" size={16} />
@@ -50,6 +85,84 @@ export function Home({
           <span>星期{'日一二三四五六'[now.getDay()]}</span>
         </span>
       </PageHeading>
+      {editingGreeting && (
+        <Modal title="✏️ 编辑我们的小宇宙寄语" onClose={() => setEditingGreeting(false)}>
+          <form
+            className="form-stack"
+            onSubmit={(e) => {
+              e.preventDefault()
+              void run(async () => {
+                const finalTitle = tempTitle.trim() || '今天也喜欢你，多一点'
+                const finalSub = tempSubtitle.trim() || '生活不是每天都浪漫，但每天都有你。'
+                await controller.updateGreeting(finalTitle, finalSub)
+                setEditingGreeting(false)
+                toast('寄语已保存，双方小窝实时同步 ✨')
+              })
+            }}
+          >
+            <label>
+              今日主标题
+              <input
+                required
+                maxLength={40}
+                value={tempTitle}
+                onChange={(e) => setTempTitle(e.target.value)}
+                placeholder="输入想对 TA 说的一句话"
+              />
+            </label>
+            <label>
+              副标寄语与碎碎念
+              <textarea
+                rows={3}
+                maxLength={100}
+                value={tempSubtitle}
+                onChange={(e) => setTempSubtitle(e.target.value)}
+                placeholder="输入日常心语或情侣密语"
+              />
+            </label>
+
+            <div>
+              <span
+                className="micro"
+                style={{ color: '#687358', marginBottom: '6px', display: 'block' }}
+              >
+                💡 快速换上情侣灵感寄语
+              </span>
+              <div className="greeting-presets">
+                {GREETING_PRESETS.map((preset, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    className="greeting-preset-item"
+                    onClick={() => {
+                      setTempTitle(preset.title)
+                      setTempSubtitle(preset.subtitle)
+                    }}
+                  >
+                    <span className="greeting-preset-title">{preset.title}</span>
+                    <span className="greeting-preset-sub">{preset.subtitle}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+              <Button
+                type="button"
+                tone="white"
+                onClick={() => setEditingGreeting(false)}
+                disabled={busy}
+              >
+                取消
+              </Button>
+              <Button type="submit" tone="yellow" disabled={busy || !tempTitle.trim()}>
+                {busy ? '正在保存…' : '保存寄语'}
+                <Icon name="check" size={16} />
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
       <div className="hero-grid">
         <section className="together-card">
           <div className="card-window-bar">

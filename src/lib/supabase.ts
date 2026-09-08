@@ -1,12 +1,27 @@
 import { createClient } from '@supabase/supabase-js'
-const url = import.meta.env.VITE_SUPABASE_URL?.trim()
-const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim()
-export const configured = Boolean(url && key)
-export const supabase = configured
-  ? createClient(url!, key!, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
-    })
-  : null
+
+// 哔卟哔卟 默认 Supabase 项目（浏览器公开凭据，数据安全由 RLS 保证）。
+// 所有用户开箱即用同一数据库，无需自己填写环境变量。
+// 若想切换/指向其他项目，可用环境变量覆盖：VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY。
+const DEFAULT_URL = 'https://zqwzdoejxsfscisudacu.supabase.co'
+const DEFAULT_KEY = 'sb_publishable_nxRhiAvRRQ_lwAQ9vaz_Og_yEqfC-V8'
+
+// 原生 App 的邮箱验证回跳地址（与 AndroidManifest 里的 scheme 一致）。
+// 需在 Supabase 后台 Auth → URL Configuration → Redirect URLs 中加入该地址。
+export const AUTH_REDIRECT_DEEP_LINK = 'love.bibu.space://'
+
+const url = import.meta.env.VITE_SUPABASE_URL?.trim() || DEFAULT_URL
+const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim() || DEFAULT_KEY
+export const configured = true
+export const supabase = createClient(url, key, {
+  auth: {
+    // PKCE：验证链接只携带一次性 code，不携带 token，更适合原生深链接回跳。
+    flowType: 'pkce',
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+})
 export function db() {
   if (!supabase) throw new Error('尚未配置 Supabase')
   return supabase

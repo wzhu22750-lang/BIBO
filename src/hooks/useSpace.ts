@@ -587,6 +587,18 @@ export function useSpace(
         }),
       )
     },
+    async updateGreeting(title: string, subtitle: string) {
+      if (!cid) throw new Error('尚未绑定空间')
+      await mutate(
+        () => api.updateGreeting(cid, title, subtitle),
+        (s) => ({
+          ...s,
+          couple: s.couple
+            ? { ...s.couple, greeting_title: title, greeting_subtitle: subtitle }
+            : null,
+        }),
+      )
+    },
     async signOut(): Promise<string[]> {
       if (demo || !userId || !supabase) return []
       try {

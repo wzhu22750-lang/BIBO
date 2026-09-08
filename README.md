@@ -31,13 +31,17 @@ npm run dev
 ### 创建数据库和私有存储桶
 
 1. 创建一个 Supabase 项目。
-2. 在 SQL Editor 或 Supabase CLI 按文件名顺序执行 `supabase/migrations/202609070001_initial.sql` 和 `supabase/migrations/202609080001_*.sql` 至 `202609080017_*.sql`。每个迁移只执行一次；不要把新增迁移单独跳过。
+2. 在 SQL Editor 或 Supabase CLI 按文件名顺序执行 `supabase/migrations/202609070001_initial.sql` 和 `supabase/migrations/202609080001_*.sql` 至 `202609080018_*.sql`。每个迁移只执行一次；不要把新增迁移单独跳过。
 3. 初始 SQL 创建 9 张业务表、RLS 策略、Auth 用户触发器、基础业务 RPC、私有 `couple-photos` 存储桶并加入 Realtime；后续增量迁移继续添加 Ping/回忆字段、幂等消息、分页、生命周期和注销准备 RPC。
 4. 如果使用 Supabase CLI 管理项目，也可在链接项目后通过 `supabase db push` 应用迁移；不要对同一数据库重复在 SQL Editor 和 CLI 中执行同一迁移。
 
 初始迁移**不是幂等重置脚本**。如部分执行过，先检查已有对象和迁移历史，不要删表重来。已有 Auth 用户会补齐默认 profile。
 
-### 配置浏览器凭据
+### 浏览器凭据（开箱即用）
+
+应用已内置哔卟哔卟共享 Supabase 项目（URL + 公开 Publishable Key），**所有用户默认使用同一数据库，无需配置环境变量**。开发时直接 `npm install && npm run dev` 即可，打包 APK 也不需要带任何 env。
+
+仅当你想指向其他 Supabase 项目时才需要覆盖：
 
 ```sh
 cp .env.example .env.local
@@ -50,19 +54,28 @@ VITE_SUPABASE_URL=https://你的项目.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=你的公开PublishableKey
 ```
 
-- 使用项目公开的 Publishable Key；仍使用 legacy keys 的项目可填写 `anon` key。
+- 内置/填写的都是浏览器公开的 Publishable Key；仍使用 legacy keys 的项目可填写 `anon` key。
 - **绝不能填 `service_role`、secret key、数据库密码。** Vite 中 `VITE_` 开头的变量都会进入浏览器构建。
-- `.env.local` 已被 Git 忽略。
-- 修改后重启 `npm run dev`。构建环境变量变更后也需重新构建。
+- `.env.local` 已被 Git 忽略；留空则回退到内置共享数据库。
 
-### 配置邮箱登录
+### 配置邮箱登录（必做一次）
 
-1. 在 Supabase Auth 开启 Email 登录，配置 Site URL 和允许的 Redirect URLs。
-2. 本地开发允许你的实际开发地址，如 `http://localhost:5173`。如果用 `127.0.0.1` 访问，也要添加对应地址。
-3. 生产环境填写 Vercel 的实际 HTTPS 域名，不要把任意第三方域名加入白名单。
-4. 在应用输入邮箱获取魔法链接，在同一设备打开邮件完成登录。
-5. 第一位玩家创建空间，页面转到「空间设置」，复制 24 小时有效的邀请码。
-6. 第二位玩家用自己的邮箱登录，输入邀请码。绑定事务成功后，两人的页面都会刷新；第三位用户不能加入此空间。
+在 Supabase 后台 **Authentication → URL Configuration** 配置以下三项（这样 Web 和 APK 的邮箱验证链接都能回跳）：
+
+1. **Site URL**：`https://www.515171.xyz`
+2. **Redirect URLs** 添加：
+   - `https://www.515171.xyz`（线上 Web）
+   - `http://localhost:5173`（本地开发）
+   - `love.bibu.space://`（安卓 App 深链接，与 `capacitor.config.json` 的 appId 对应）
+3. Email 登录保持开启即可。
+
+应用已内置共享 Supabase 项目并启用 **PKCE** 流程：验证链接只带一次性 code，不暴露 token。Web 由 `detectSessionInUrl` 自动完成；安卓端由 Manifest 中的 `love.bibu.space://` intent-filter + `@capacitor/app` 的 `appUrlOpen` 监听完成回调，代码位置在 `src/App.tsx`。
+
+登录流程：
+
+1. 在应用输入邮箱获取魔法链接，在同一设备打开邮件完成登录。
+2. 第一位玩家创建空间，页面转到「空间设置」，复制 24 小时有效的邀请码。
+3. 第二位玩家用自己的邮箱登录，输入邀请码。绑定事务成功后，两人的页面都会刷新；第三位用户不能加入此空间。
 
 真实使用建议配置自有 SMTP，并按 Supabase 当前项目设置检查邮件发送配额、Auth rate limits 和 CAPTCHA。若只允许两个固定邮箱注册，可先在后台创建这两名用户，再关闭公开注册；本应用的空间隔离本身不等于全站注册白名单。
 

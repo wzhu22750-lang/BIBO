@@ -83,7 +83,7 @@ export function Shell({
           <span className="sidebar-footer micro">MADE FOR US. ONLY US.</span>
         </div>
       </aside>
-      <div className="main-wrap">
+      <div className={`main-wrap page-wrap-${page}`}>
         <header className="topbar">
           <span className="topbar-caption">
             <Icon name="star" size={15} /> BIBO!

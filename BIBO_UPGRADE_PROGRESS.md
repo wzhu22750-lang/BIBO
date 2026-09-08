@@ -453,7 +453,7 @@ Widget、快捷入口、AI 仅在核心体验稳定后考虑，不提前堆砌�
 
 ## 2026-09-08 当前回归基线
 
-- 迁移链当前为初始 SQL + 202609080001–202609080017，必须按文件名顺序执行；README/DATABASE 已同步到 017。
+- 迁移链当前为初始 SQL + 202609080001–202609080018，必须按文件名顺序执行；README/DATABASE 已同步到 018。
 - TypeScript/Vitest 当前 241 tests（35 files）通过；`npm run format:check`、`npm run typecheck`、`npm run test`、`npm run build`、`npm audit --omit=dev`（0）通过。
 - `npm run android:build` 当前可完成 Web build、Capacitor sync、Android debug APK；最新构建含 Push Notifications、Firebase 配置预检、Deep Link、事件队列和 Service Worker 资源。
 - Android 35 AVD 曾实际验证自定义 Deep Link；没有 Firebase 配置时实际 `BiboDevice.firebaseConfiguration` 为 false。不存在真机、真实 Supabase、FCM 或 Edge Function 的当前运行证据，相关目标继续标记为未验收。
@@ -526,7 +526,7 @@ Widget、快捷入口、AI 仅在核心体验稳定后考虑，不提前堆砌�
 - 非在线创建照片时，Photos 显示本机照片同步队列；恢复网络后上传 Storage 再登记元数据。照片文件仍不在 Service Worker/spaceCache 中，离线只能保留明确的本机队列意图。
 - Account deletion 清理消息、事件和照片本机队列；解绑后旧空间照片队列仍不会自动迁移（旧照片内容不会跨关系发送）。
 - PGlite 测试执行 013 迁移，覆盖固定路径、幂等登记、篡改和跨空间/匿名拒绝；photoOutbox 单元测试覆盖 exact row/path、退避和 blocked。当前 219 tests（32 files）通过。
-- 当前最终迁移链为初始 SQL + 202609080001–202609080017，README/DATABASE/注销部署说明已同步到 017。真实 Storage HTTP、弱网上传开始后响应丢失、云端孤儿文件扫描仍需独立验收。
+- 当前最终迁移链为初始 SQL + 202609080001–202609080018，README/DATABASE/注销部署说明已同步到 018。真实 Storage HTTP、弱网上传开始后响应丢失、云端孤儿文件扫描仍需独立验收。
 
 ## 本轮高风险审查与修复（2026-09-08）
 

@@ -207,6 +207,16 @@ export async function saveSettings(
       )
   }
 }
+export async function updateGreeting(coupleId: string, title: string, subtitle: string) {
+  return must(
+    await db()
+      .from('couples')
+      .update({ greeting_title: title.trim(), greeting_subtitle: subtitle.trim() })
+      .eq('id', coupleId)
+      .select('id, greeting_title, greeting_subtitle')
+      .single(),
+  )
+}
 
 export async function updateMemory(
   id: string,
