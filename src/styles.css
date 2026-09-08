@@ -2683,6 +2683,9 @@ img {
   .main-wrap {
     margin-left: 0;
     padding-bottom: 70px;
+    --app-top: env(safe-area-inset-top);
+    --app-bottom: max(8px, env(safe-area-inset-bottom));
+    --app-nav: calc(66px + var(--app-bottom));
   }
   .topbar {
     min-height: 60px;
@@ -3147,9 +3150,9 @@ img {
   }
   .main-wrap > main.page-chat {
     padding: 0;
-    min-height: calc(100dvh - 60px - 70px);
-    height: calc(100dvh - 60px - 70px);
-    max-height: calc(100dvh - 60px - 70px);
+    min-height: calc(100dvh - 60px - var(--app-top) - var(--app-nav));
+    height: calc(100dvh - 60px - var(--app-top) - var(--app-nav));
+    max-height: calc(100dvh - 60px - var(--app-top) - var(--app-nav));
     display: flex;
     flex-direction: column;
     overflow: hidden;
