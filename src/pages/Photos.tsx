@@ -1,9 +1,11 @@
 import { PhotoOutboxPanel } from '../components/PhotoOutboxPanel'
 import { usePhotoPages } from '../hooks/usePhotoPages'
 import { referenceLink } from '../lib/routes'
+import { readPhotoDate } from '../lib/photoDate'
+import type { PhotoDateResult } from '../lib/photoDate'
 import { MemoryFields } from '../components/MemoryFields'
 import { memoryInput, memoryDateLabel, sortedMemories } from '../lib/memories'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { Photo } from '../lib/types'
 import type { SpaceController } from '../hooks/useSpace'
 import { dateLabel } from '../lib/dates'
@@ -192,7 +194,9 @@ export function Photos({ controller, demo }: { controller: SpaceController; demo
     [file, setFile] = useState<File | null>(null),
     [caption, setCaption] = useState(''),
     [memory, setMemory] = useState(() => memoryInput()),
+    [photoDate, setPhotoDate] = useState<PhotoDateResult | null>(null),
     [eventFilter, setEventFilter] = useState('')
+  const pickedFileRef = useRef<File | null>(null)
   const pages = usePhotoPages(
     controller.space!.couple!.id,
     eventFilter || null,
@@ -300,6 +304,8 @@ export function Photos({ controller, demo }: { controller: SpaceController; demo
           title="收藏一个小瞬间"
           onClose={() => {
             if (!busy) setAdding(false)
+            setPhotoDate(null)
+            pickedFileRef.current = null
           }}
         >
           <form
@@ -313,6 +319,8 @@ export function Photos({ controller, demo }: { controller: SpaceController; demo
                   setFile(null)
                   setCaption('')
                   setMemory(memoryInput())
+                  setPhotoDate(null)
+                  pickedFileRef.current = null
                   pages.refresh()
                   toast(
                     result.queued
@@ -330,7 +338,29 @@ export function Photos({ controller, demo }: { controller: SpaceController; demo
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 required
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                onChange={(e) => {
+                  const next = e.target.files?.[0] || null
+                  setFile(next)
+                  if (next) {
+                    pickedFileRef.current = next
+                    setPhotoDate(null)
+                    setMemory((current) => {
+                      if (current.occurred_on) return current
+                      void readPhotoDate(next).then((result) => {
+                        if (pickedFileRef.current !== next) return
+                        setPhotoDate(result)
+                        // 用户已手动填过日期时，不再用照片信息覆盖
+                        setMemory((latest) =>
+                          latest.occurred_on ? latest : { ...latest, occurred_on: result.date },
+                        )
+                      })
+                      return current
+                    })
+                  } else {
+                    pickedFileRef.current = null
+                    setPhotoDate(null)
+                  }
+                }}
               />
             </label>
             <label>
@@ -343,6 +373,13 @@ export function Photos({ controller, demo }: { controller: SpaceController; demo
               />
             </label>
             <MemoryFields value={memory} onChange={setMemory} space={controller.space!} />
+            {photoDate && (
+              <p className="form-note" role="status">
+                {photoDate.date
+                  ? `已从${photoDate.source === 'exif' ? '照片的拍摄时间' : '文件时间'}自动填入「${photoDate.date}」，可再手动修改或清空。`
+                  : '未识别到可信的拍摄日期，可手动填写。'}
+              </p>
+            )}
             <p className="form-note">请勿上传敏感证件。MVP 不会自动移除照片的 EXIF 元数据。</p>
             <Button type="submit" tone="green" disabled={busy || !file}>
               {busy ? '正在收藏，请稍等…' : '放进我们的照片墙'}
