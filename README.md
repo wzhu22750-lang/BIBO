@@ -37,7 +37,11 @@ npm run dev
 
 初始迁移**不是幂等重置脚本**。如部分执行过，先检查已有对象和迁移历史，不要删表重来。已有 Auth 用户会补齐默认 profile。
 
-### 配置浏览器凭据
+### 浏览器凭据（开箱即用）
+
+应用已内置哔卟哔卟共享 Supabase 项目（URL + 公开 Publishable Key），**所有用户默认使用同一数据库，无需配置环境变量**。开发时直接 `npm install && npm run dev` 即可，打包 APK 也不需要带任何 env。
+
+仅当你想指向其他 Supabase 项目时才需要覆盖：
 
 ```sh
 cp .env.example .env.local
@@ -50,10 +54,9 @@ VITE_SUPABASE_URL=https://你的项目.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=你的公开PublishableKey
 ```
 
-- 使用项目公开的 Publishable Key；仍使用 legacy keys 的项目可填写 `anon` key。
+- 内置/填写的都是浏览器公开的 Publishable Key；仍使用 legacy keys 的项目可填写 `anon` key。
 - **绝不能填 `service_role`、secret key、数据库密码。** Vite 中 `VITE_` 开头的变量都会进入浏览器构建。
-- `.env.local` 已被 Git 忽略。
-- 修改后重启 `npm run dev`。构建环境变量变更后也需重新构建。
+- `.env.local` 已被 Git 忽略；留空则回退到内置共享数据库。
 
 ### 配置邮箱登录
 
