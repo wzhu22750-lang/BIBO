@@ -8,6 +8,7 @@ import { configured, errorText, supabase } from './lib/supabase'
 import { useBibu } from './hooks/useBibu'
 import { useSpace } from './hooks/useSpace'
 import { disableFeedback } from './lib/notifications'
+import { readStoredPushToken, storePushToken } from './lib/pushRegistration'
 import type { Page } from './lib/types'
 import { Shell } from './components/Shell'
 import { ToastContext, Button } from './components/ui'
@@ -169,7 +170,9 @@ export default function App() {
     void BiboNative.push
       .listenRegistration((token) => {
         if (active)
-          void registerDeviceInstallation(session.user.id, token, 'bibo-0.1.0').catch(() => {})
+          void registerDeviceInstallation(session.user.id, token, 'bibo-0.1.0')
+            .then(() => storePushToken(token))
+            .catch(() => {})
       })
       .then((cleanup) => {
         if (active) stop = cleanup
@@ -187,7 +190,10 @@ export default function App() {
     // Ping is presented once (Realtime in-app) instead of twice (system banner).
     // The RPC no-ops for accounts without registered devices.
     if (!session || !configured || !isAndroidApp()) return
-    const heartbeat = createDeviceActivityHeartbeat(() => touchDeviceActivity())
+    const heartbeat = createDeviceActivityHeartbeat(() => {
+      const token = readStoredPushToken()
+      return token ? touchDeviceActivity(token) : Promise.resolve(0)
+    })
     heartbeat.start()
     return () => heartbeat.stop()
   }, [session?.user.id])

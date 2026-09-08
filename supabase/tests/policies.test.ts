@@ -810,7 +810,7 @@ describe.sequential('private two-player database boundary', () => {
       [mine, theirs],
     )
     await asUser(A)
-    expect(await scalar('select public.touch_device_activity()')).toBe(1)
+    expect(await scalar('select public.touch_device_activity($1)', [mine])).toBe(1)
     // Verify with elevated rights: under RLS account A cannot even see B's row.
     await pg.exec('reset role')
     expect(
@@ -826,13 +826,15 @@ describe.sequential('private two-player database boundary', () => {
       ),
     ).toBe(1)
     await pg.exec('reset role; set role anon')
-    await expect(pg.query('select public.touch_device_activity()')).rejects.toThrow()
+    await expect(pg.query('select public.touch_device_activity($1)', [mine])).rejects.toThrow()
     await pg.exec('reset role')
     await pg.query('delete from public.device_installations where token in ($1,$2)', [mine, theirs])
   })
   it('returns zero from the heartbeat RPC when the account has no devices', async () => {
     await asUser(C)
-    expect(await scalar('select public.touch_device_activity()')).toBe(0)
+    expect(
+      await scalar('select public.touch_device_activity($1)', ['fcm-token-no-device-0000001']),
+    ).toBe(0)
   })
   it('prepares account deletion atomically, anonymizes shared authorship, and is idempotent', async () => {
     await asUser(A)

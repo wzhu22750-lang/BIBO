@@ -178,6 +178,7 @@ class BiboDevicePlugin : Plugin() {
         super.handleOnNewIntent(intent)
         val route = routeFromIntent(intent) ?: return
         intent.removeExtra("biboRoute")
+        intent.removeExtra("route")
         intent.data = null
         notifyListeners("deepLink", JSObject().put("route", safeRoute(route)), true)
     }

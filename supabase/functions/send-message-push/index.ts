@@ -44,15 +44,27 @@ Deno.serve(async (request) => {
     return json({ error: String(error instanceof Error ? error.message : error) }, 503)
   }
   const admin = createClient(url, service)
+  // The webhook secret authenticates the caller, but its JSON body is still
+  // untrusted. Read the persisted message and use it as the source of truth.
+  const { data: persistedMessage, error: messageError } = await admin
+    .from('messages')
+    .select('id, couple_id, sender_id, content')
+    .eq('id', record.id)
+    .eq('couple_id', record.couple_id)
+    .maybeSingle()
+  if (messageError) return json({ error: '校验消息记录失败', details: messageError.message }, 502)
+  if (!persistedMessage || persistedMessage.sender_id !== record.sender_id)
+    return json({ sent: 0, skipped: '消息不存在或已匿名化' }, 200)
+  const verifiedRecord = persistedMessage as MessagePushRecord
   const { data: members, error: memberError } = await admin
     .from('couple_members')
     .select('user_id')
     .eq('couple_id', record.couple_id)
   if (memberError) return json({ error: '读取空间成员失败', details: memberError.message }, 502)
-  const partner = members?.find((row) => row.user_id !== record.sender_id)?.user_id
+  const partner = members?.find((row) => row.user_id !== verifiedRecord.sender_id)?.user_id
   if (!partner) return json({ sent: 0, skipped: '没有另一位成员' }, 200)
   const [{ data: profile }, { data: devices, error: deviceError }] = await Promise.all([
-    admin.from('profiles').select('name').eq('id', record.sender_id).maybeSingle(),
+    admin.from('profiles').select('name').eq('id', verifiedRecord.sender_id).maybeSingle(),
     admin
       .from('device_installations')
       .select('token,last_seen_at')
@@ -68,7 +80,14 @@ Deno.serve(async (request) => {
       typeof device.token === 'string' && !isDeviceRecentlyActive(device.last_seen_at as string),
   )
   if (!targets.length)
-    return json({ sent: 0, skipped: '对方设备正在前台活跃，由 Realtime 呈现', skipped_active: devices.length }, 200)
+    return json(
+      {
+        sent: 0,
+        skipped: '对方设备正在前台活跃，由 Realtime 呈现',
+        skipped_active: devices.length,
+      },
+      200,
+    )
   let access: string
   try {
     access = await googleAccessToken(account)
@@ -82,7 +101,7 @@ Deno.serve(async (request) => {
     const token = device.token as string
     let body
     try {
-      body = buildMessagePush(record, token, profile?.name || 'TA')
+      body = buildMessagePush(verifiedRecord, token, profile?.name || 'TA')
     } catch {
       invalid++
       continue

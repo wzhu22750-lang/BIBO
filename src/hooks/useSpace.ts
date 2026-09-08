@@ -7,6 +7,7 @@ import { usePhotoOutbox } from './usePhotoOutbox'
 import { cleanupAccountLocal, cleanupSessionPrivacy } from '../lib/accountCleanup'
 import { clearChatDraftsForUser } from '../lib/chatDraftStorage'
 import { BiboNative } from '../native'
+import { clearStoredPushToken, readStoredPushToken } from '../lib/pushRegistration'
 import { incomingPingNotification } from '../lib/pingNotification'
 import {
   incomingMessageNotification,
@@ -590,12 +591,16 @@ export function useSpace(
       if (demo || !userId || !supabase) return []
       try {
         const cleanupErrors = await cleanupSessionPrivacy({
-          // Remove the server row before invalidating the local Firebase token.
-          removeDeviceInstallations: () => api.removeAllDeviceInstallations(userId),
+          // Remove only this installation's row before invalidating the local session.
+          removeDeviceInstallations: async () => {
+            const token = readStoredPushToken()
+            if (token) await api.removeDeviceInstallation(userId, token)
+          },
           unregisterPush: async () => {
             const result = await BiboNative.push.unregister()
             if (!result.supported && result.reason && !result.reason.includes('Web'))
               throw new Error(result.reason)
+            clearStoredPushToken()
           },
           listReminders: () => BiboNative.reminders.list(),
           cancelReminder: (id) => BiboNative.reminders.cancel(id),

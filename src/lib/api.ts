@@ -368,10 +368,10 @@ export async function registerDeviceInstallation(
     }),
   )
 }
-export async function touchDeviceActivity(): Promise<number> {
+export async function touchDeviceActivity(token: string): Promise<number> {
   // Foreground heartbeat for the Realtime/FCM split: server push functions skip
   // devices seen recently. Best-effort; callers must not surface failures.
-  const result = await db().rpc('touch_device_activity')
+  const result = await db().rpc('touch_device_activity', { device_token: token })
   if (result.error) throw result.error
   return typeof result.data === 'number' ? result.data : 0
 }
