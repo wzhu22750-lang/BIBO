@@ -22,11 +22,11 @@ RES = ROOT / "android" / "app" / "src" / "main" / "res"
 PUBLIC = ROOT / "public"
 SOURCE = ROOT / "scripts" / "app-icon-source.png"
 
-YELLOW = (255, 242, 56, 255)  # #fff238
+MINT = (133, 249, 207, 255)  # #85facf
 TRANSPARENT = (0, 0, 0, 0)
 
 # Adaptive icon: content must stay inside the central 66.7% safe zone.
-FIT_FRACTION = 0.66
+FIT_FRACTION = 0.72
 
 DENSITIES = {
     "mdpi": 1,
@@ -73,12 +73,25 @@ def round_icon(src: Image.Image, size: int) -> Image.Image:
     return out
 
 
+def squircle_icon(src: Image.Image, size: int) -> Image.Image:
+    from PIL import ImageDraw
+    square = scale(src, size)
+    out = Image.new("RGBA", (size, size), TRANSPARENT)
+    out.paste(square, (0, 0))
+    mask = Image.new("L", (size, size), 0)
+    draw = ImageDraw.Draw(mask)
+    r = max(4, int(size * 0.22))
+    draw.rounded_rectangle((0, 0, size, size), radius=r, fill=255)
+    out.putalpha(mask)
+    return out
+
+
 def adaptive_foreground(src: Image.Image, size: int) -> Image.Image:
-    """Full-bleed art scaled to the safe zone, centred on transparency."""
+    """Full-bleed art scaled to the safe zone, centred on mint background."""
     target = round(size * FIT_FRACTION)
-    canvas = Image.new("RGBA", (size, size), TRANSPARENT)
+    canvas = Image.new("RGBA", (size, size), MINT)
     content = scale(src, target)
-    canvas.paste(content, ((size - target) // 2, (size - target) // 2), content)
+    canvas.paste(content, ((size - target) // 2, (size - target) // 2))
     return canvas
 
 
@@ -117,12 +130,38 @@ def main() -> None:
         folder = RES / f"mipmap-{name}"
         launcher = int(48 * factor)
         foreground = int(108 * factor)
-        save(scale(full, launcher), folder / "ic_launcher.png")
+        save(squircle_icon(full, launcher), folder / "ic_launcher.png")
         save(round_icon(full, launcher), folder / "ic_launcher_round.png")
         save(adaptive_foreground(full, foreground), folder / "ic_launcher_foreground.png")
 
     playstore = ROOT / "android" / "app" / "src" / "main" / "ic_launcher-playstore.png"
     save(scale(full, 512), playstore)
+
+    (RES / "values" / "ic_launcher_background.xml").write_text(
+        '<?xml version="1.0" encoding="utf-8"?>\n'
+        '<resources>\n'
+        '    <color name="ic_launcher_background">#85FACF</color>\n'
+        '</resources>\n',
+        encoding="utf-8",
+    )
+    print("  android/app/src/main/res/values/ic_launcher_background.xml")
+
+    bg_drawable = RES / "drawable" / "ic_launcher_background.xml"
+    if bg_drawable.exists():
+        bg_drawable.write_text(
+            '<?xml version="1.0" encoding="utf-8"?>\n'
+            '<vector xmlns:android="http://schemas.android.com/apk/res/android"\n'
+            '    android:width="108dp"\n'
+            '    android:height="108dp"\n'
+            '    android:viewportWidth="108"\n'
+            '    android:viewportHeight="108">\n'
+            '    <path\n'
+            '        android:fillColor="#85FACF"\n'
+            '        android:pathData="M0,0h108v108h-108z" />\n'
+            '</vector>\n',
+            encoding="utf-8",
+        )
+        print("  android/app/src/main/res/drawable/ic_launcher_background.xml")
 
     # The vector heart foreground is no longer used; adaptive icons now point
     # at the regenerated @mipmap/ic_launcher_foreground bitmaps.
