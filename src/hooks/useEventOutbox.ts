@@ -52,7 +52,21 @@ export function useEventOutbox(
       const rows = await listEventOutbox(userId, coupleId)
       for (const row of rows) {
         if (scopeRef.current !== scope || !navigator.onLine) break
-        if (row.status === 'blocked') continue
+        if (row.status === 'blocked') {
+          if (row.error && /mismatch|不匹配/i.test(row.error)) {
+            await changeEventOutbox(row.id, userId, coupleId, (current) => ({
+              ...current,
+              status: 'pending',
+              error: undefined,
+              nextAttemptAt: undefined,
+              attempts: 0,
+            }))
+            row.status = 'pending'
+            row.error = undefined
+          } else {
+            continue
+          }
+        }
         if (!eventDue(row)) break // Preserve create/delete order while an earlier operation backs off
         try {
           if (row.operation === 'create' || row.operation === 'update') {

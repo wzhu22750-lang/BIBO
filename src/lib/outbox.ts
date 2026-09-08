@@ -56,7 +56,7 @@ export function confirmedOutboxRow(queued: OutboxMessage, server: Message) {
     server.id === queued.id &&
     server.sender_id === queued.userId &&
     server.couple_id === queued.coupleId &&
-    server.content === queued.content
+    server.content.trim() === queued.content.trim()
   )
 }
 export function retryableOutboxError(error: unknown) {

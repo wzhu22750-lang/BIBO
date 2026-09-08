@@ -136,7 +136,7 @@ export function photoConfirmed(row: PhotoOutboxOperation, saved: Photo) {
     saved.id === row.photoId &&
     saved.couple_id === row.coupleId &&
     saved.uploaded_by === row.userId &&
-    saved.caption === row.caption &&
+    (saved.caption || '').trim() === (row.caption || '').trim() &&
     saved.path.startsWith(`${row.coupleId}/${row.userId}/${row.photoId}.`)
   )
 }

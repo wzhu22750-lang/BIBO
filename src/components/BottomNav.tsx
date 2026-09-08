@@ -63,7 +63,7 @@ export function BottomNav({
   }
 
   // Pointer / Touch interaction handlers for long-press & slide-to-select
-  const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+  const handlePointerDown = () => {
     if (bibu.disabled) return
     setIsPressing(true)
     isLongPress.current = false

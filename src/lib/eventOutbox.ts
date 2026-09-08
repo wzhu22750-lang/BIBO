@@ -104,6 +104,13 @@ export function eventOperationForDelete(
     status: 'pending',
   }
 }
+export function sameInstant(a?: string, b?: string) {
+  if (!a || !b) return false
+  if (a === b) return true
+  const ta = new Date(a).getTime()
+  const tb = new Date(b).getTime()
+  return Number.isFinite(ta) && Number.isFinite(tb) && ta === tb
+}
 export function confirmedEvent(row: EventOutboxOperation, saved: EventItem) {
   const input = row.input
   return (
@@ -112,11 +119,11 @@ export function confirmedEvent(row: EventOutboxOperation, saved: EventItem) {
     saved.id === row.eventId &&
     saved.couple_id === row.coupleId &&
     (row.operation === 'update' || saved.created_by === row.userId) &&
-    saved.title === input.title &&
-    saved.target_at === input.target_at &&
+    saved.title.trim() === input.title.trim() &&
+    sameInstant(saved.target_at, input.target_at) &&
     saved.kind === input.kind &&
-    saved.yearly === input.yearly &&
-    saved.emoji === input.emoji &&
+    Boolean(saved.yearly) === Boolean(input.yearly) &&
+    (saved.emoji || '') === (input.emoji || '') &&
     (saved.category || 'other') === (input.category || 'other')
   )
 }
