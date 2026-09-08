@@ -66,6 +66,7 @@ beforeAll(async () => {
     readFileSync('supabase/migrations/202609080016_device_push_registration.sql', 'utf8'),
   )
   await pg.exec(readFileSync('supabase/migrations/202609080017_message_push_activity.sql', 'utf8'))
+  await pg.exec(readFileSync('supabase/migrations/202609080018_greeting_fields.sql', 'utf8'))
   legacyAfter = (await pg.query<Record<string, unknown>>('select * from public.photos')).rows[0]
   legacyEvent = (await pg.query<Record<string, unknown>>('select * from public.events')).rows[0]
   await pg.exec(
@@ -810,7 +811,7 @@ describe.sequential('private two-player database boundary', () => {
       [mine, theirs],
     )
     await asUser(A)
-    expect(await scalar('select public.touch_device_activity()')).toBe(1)
+    expect(await scalar('select public.touch_device_activity($1)', [mine])).toBe(1)
     // Verify with elevated rights: under RLS account A cannot even see B's row.
     await pg.exec('reset role')
     expect(
@@ -826,13 +827,36 @@ describe.sequential('private two-player database boundary', () => {
       ),
     ).toBe(1)
     await pg.exec('reset role; set role anon')
-    await expect(pg.query('select public.touch_device_activity()')).rejects.toThrow()
+    await expect(pg.query('select public.touch_device_activity($1)', [mine])).rejects.toThrow()
     await pg.exec('reset role')
     await pg.query('delete from public.device_installations where token in ($1,$2)', [mine, theirs])
   })
   it('returns zero from the heartbeat RPC when the account has no devices', async () => {
     await asUser(C)
-    expect(await scalar('select public.touch_device_activity()')).toBe(0)
+    expect(
+      await scalar('select public.touch_device_activity($1)', ['fcm-token-no-device-0000001']),
+    ).toBe(0)
+  })
+  it('updates the shared greeting only inside the current couple and confirms the row', async () => {
+    await asUser(A)
+    const current = (await scalar('select public.my_couple_id()')) as string
+    const updated = (
+      await pg.query(
+        'update public.couples set greeting_title=$1, greeting_subtitle=$2 where id=$3 returning id, greeting_title, greeting_subtitle',
+        ['早安', '今天也要一起吃饭', current],
+      )
+    ).rows[0]
+    expect(updated.greeting_title).toBe('早安')
+    expect(updated.greeting_subtitle).toBe('今天也要一起吃饭')
+    await asUser(C)
+    expect(
+      (
+        await pg.query('update public.couples set greeting_title=$1 where id=$2 returning id', [
+          '越权',
+          couple,
+        ])
+      ).rows,
+    ).toHaveLength(0)
   })
   it('prepares account deletion atomically, anonymizes shared authorship, and is idempotent', async () => {
     await asUser(A)

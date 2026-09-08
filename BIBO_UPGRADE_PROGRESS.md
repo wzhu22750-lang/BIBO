@@ -453,8 +453,8 @@ Widget、快捷入口、AI 仅在核心体验稳定后考虑，不提前堆砌�
 
 ## 2026-09-08 当前回归基线
 
-- 迁移链当前为初始 SQL + 202609080001–202609080016，必须按文件名顺序执行；README/DATABASE 已同步到 016。
-- TypeScript/Vitest 当前 208 tests（30 files）通过；`npm run format:check`、`npm run typecheck`、`npm run test`、`npm run build`、`npm audit --omit=dev`（0）通过。
+- 迁移链当前为初始 SQL + 202609080001–202609080018，必须按文件名顺序执行；README/DATABASE 已同步到 018。
+- TypeScript/Vitest 当前 241 tests（35 files）通过；`npm run format:check`、`npm run typecheck`、`npm run test`、`npm run build`、`npm audit --omit=dev`（0）通过。
 - `npm run android:build` 当前可完成 Web build、Capacitor sync、Android debug APK；最新构建含 Push Notifications、Firebase 配置预检、Deep Link、事件队列和 Service Worker 资源。
 - Android 35 AVD 曾实际验证自定义 Deep Link；没有 Firebase 配置时实际 `BiboDevice.firebaseConfiguration` 为 false。不存在真机、真实 Supabase、FCM 或 Edge Function 的当前运行证据，相关目标继续标记为未验收。
 
@@ -526,11 +526,11 @@ Widget、快捷入口、AI 仅在核心体验稳定后考虑，不提前堆砌�
 - 非在线创建照片时，Photos 显示本机照片同步队列；恢复网络后上传 Storage 再登记元数据。照片文件仍不在 Service Worker/spaceCache 中，离线只能保留明确的本机队列意图。
 - Account deletion 清理消息、事件和照片本机队列；解绑后旧空间照片队列仍不会自动迁移（旧照片内容不会跨关系发送）。
 - PGlite 测试执行 013 迁移，覆盖固定路径、幂等登记、篡改和跨空间/匿名拒绝；photoOutbox 单元测试覆盖 exact row/path、退避和 blocked。当前 219 tests（32 files）通过。
-- 当前最终迁移链为初始 SQL + 202609080001–202609080016，README/DATABASE/注销部署说明已同步到 016。真实 Storage HTTP、弱网上传开始后响应丢失、云端孤儿文件扫描仍需独立验收。
+- 当前最终迁移链为初始 SQL + 202609080001–202609080018，README/DATABASE/注销部署说明已同步到 018。真实 Storage HTTP、弱网上传开始后响应丢失、云端孤儿文件扫描仍需独立验收。
 
 ## 本轮高风险审查与修复（2026-09-08）
 
-- 以 `origin/main..HEAD` 的实际代码和提交为依据完成回归：当前 HEAD 为 `44160eb`，工作树另有本轮审查修复尚未提交；没有把进度文档作为完成证明。
+- 以 `origin/main..HEAD` 的实际代码和提交为依据完成回归：已推送 HEAD 为 `491c5b5`；工作树当前干净；没有把进度文档作为完成证明。
 - 发现并修复关系生命周期风险：账号注销后保留成员的旧空间现在通过新增 `202609080014_relationship_seal.sql` 封存，不能刷新邀请码或让新账号加入；加入路径也拒绝封存空间。共享历史仍可由原存活成员读取。
 - 发现并修复 Storage 路径清理边界：新增 `202609080015_photo_path_hardening.sql` 限制客户端上传和 `create_photo_once` 为固定三段路径；注销 Edge Function 改为递归扫描用户目录，不能遗漏嵌套孤儿对象。
 - 发现并修复账号切换 Push token 边界：新增 `202609080016_device_push_registration.sql`，由服务端从 `auth.uid()` 派生归属并原子转移同一安装 token；客户端不再直接 upsert 设备归属。普通退出登录先清理远程设备登记、本机 Push 和本机提醒，远程清理失败则 fail closed，不注销会话。
@@ -549,7 +549,14 @@ Widget、快捷入口、AI 仅在核心体验稳定后考虑，不提前堆砌�
 - 通知点击 Deep Link 全链路复用现有 `DeepLinkPolicy`/`launchRoute`/`listenAction`：FCM data 的 `#chat?message=<id>` 在前台（pushNotificationActionPerformed）、后台（onNewIntent）、被杀（launch intent extras：google.message_id + route）三种状态都直达对应聊天。未新建第二套 Deep Link 系统。
 - App 内触感：Chat 发送时单次轻震动 tick，经 BiboNative → Kotlin Vibrator，Web 走 navigator.vibrate fallback，不支持时静默 no-op，不崩溃。
 - Push 面板新增系统通知权限状态展示（GRANTED / DENIED / Web 不支持三态），被拒绝时明确说明"不是系统故障"并给出系统设置路径；token 刷新监听（Phase 1）继续负责 refresh 重登记，账号切换由 `register_device_installation` 原子转移，退出登录/注销清理登记。
-- 验证：typecheck、format:check、241 tests（35 files，含 messagePush 合同、心跳、通知决策、PGlite 心跳 RPC 边界、bridge channel 透传）、Web build、Capacitor sync、Gradle testDebugUnitTest（DeepLinkPolicy/ReminderPolicy/UsageWindow 全过）+ assembleDebug 通过。Android 35 模拟器实测：killed 冷启动 `love.bibu.space://chat?message=…`、后台回前台、前台 onNewIntent、以及模拟 FCM 点击 intent（google.message_id + route extras）四种入口均直达聊天页；`dumpsys notification` 确认 `bibo_messages_v1` importance=4、震动开启、默认声音、bypassDnd=false。
-- **未进行真实设备 FCM 验证**：仓库无 google-services.json、无 Firebase 项目与 service account，未部署 send-message-push/send-ping-push 与 Database Webhook。token 登记 ≠ 送达；模拟器验证的是 Deep Link 路由与渠道配置，不是 FCM 投递。
+- 验证：本次本地实际运行 typecheck、format:check、241 tests（35 files，含 messagePush 合同、心跳、通知决策、PGlite 心跳 RPC 边界、bridge channel 透传）、Web build、Capacitor sync、assembleDebug 均通过。开发记录另称 Android 35 模拟器曾实测：killed 冷启动 `love.bibu.space://chat?message=…`、后台回前台、前台 onNewIntent、以及模拟 FCM 点击 intent（google.message_id + route extras）四种入口均直达聊天页；`dumpsys notification` 确认 `bibo_messages_v1` importance=4、震动开启、默认声音、bypassDnd=false。
+- **本次未重新取得上述模拟器命令输出；以下仅保留为开发记录，不能作为本轮独立验收证据。未进行真实设备 FCM 验证**：仓库无 google-services.json、无 Firebase 项目与 service account，未部署 send-message-push/send-ping-push 与 Database Webhook。token 登记 ≠ 送达；模拟器验证的是 Deep Link 路由与渠道配置，不是 FCM 投递。
 - 遗留：真实 Firebase 配置下的双设备后台送达、厂商后台心跳策略（国产 ROM 可能冻结 WebView 导致 Realtime 断开，此时 FCM 为唯一通道，属预期分工）、通知点击后已读状态与未读计数的产品化（当前仅有聊天页内滚动未读标记）、FCM 重试可能重复同一通知（best-effort，未做端到端 exactly-once）。
 - 下一阶段建议仅为 Phase 3：UsageStats 基础能力层。本阶段未开始 Phase 3。
+
+## 消息 Push 与多设备前后台边界（2026-09-08）
+
+- 新增消息通知判定：前台正在聊天页不弹系统通知；其他页面由 Android 本机通知承接，首次加载不把旧消息批量当成新消息；通知使用内部 `#chat?message=` 路由和稳定 message_id。
+- 新增 `send-message-push` Edge Function 与 FCM 消息频道模板。Webhook 发送前必须查询持久化 messages 行，不能信任请求 body 的 couple/sender/content；当前工作树已加入此校验，但尚未完成 Deno/托管验证。
+- 新增 `202609080017_message_push_activity.sql` 的按 token 心跳。前台设备只更新自己的 token 行，不能把同一账号的另一台后台设备误标记为前台；这一点必须用双 Android 设备真实验证。
+- 普通退出登录只清理当前安装的远程 token，不删除账号其他设备登记；真实 token 轮换、注销、双设备 Push、厂商后台策略仍未验收。

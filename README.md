@@ -31,7 +31,7 @@ npm run dev
 ### 创建数据库和私有存储桶
 
 1. 创建一个 Supabase 项目。
-2. 在 SQL Editor 或 Supabase CLI 按文件名顺序执行 `supabase/migrations/202609070001_initial.sql` 和 `supabase/migrations/202609080001_*.sql` 至 `202609080017_*.sql`。每个迁移只执行一次；不要把新增迁移单独跳过。
+2. 在 SQL Editor 或 Supabase CLI 按文件名顺序执行 `supabase/migrations/202609070001_initial.sql` 和 `supabase/migrations/202609080001_*.sql` 至 `202609080018_*.sql`。每个迁移只执行一次；不要把新增迁移单独跳过。
 3. 初始 SQL 创建 9 张业务表、RLS 策略、Auth 用户触发器、基础业务 RPC、私有 `couple-photos` 存储桶并加入 Realtime；后续增量迁移继续添加 Ping/回忆字段、幂等消息、分页、生命周期和注销准备 RPC。
 4. 如果使用 Supabase CLI 管理项目，也可在链接项目后通过 `supabase db push` 应用迁移；不要对同一数据库重复在 SQL Editor 和 CLI 中执行同一迁移。
 

@@ -211,8 +211,10 @@ export async function updateGreeting(coupleId: string, title: string, subtitle: 
   return must(
     await db()
       .from('couples')
-      .update({ greeting_title: title, greeting_subtitle: subtitle })
-      .eq('id', coupleId),
+      .update({ greeting_title: title.trim(), greeting_subtitle: subtitle.trim() })
+      .eq('id', coupleId)
+      .select('id, greeting_title, greeting_subtitle')
+      .single(),
   )
 }
 
@@ -376,10 +378,10 @@ export async function registerDeviceInstallation(
     }),
   )
 }
-export async function touchDeviceActivity(): Promise<number> {
+export async function touchDeviceActivity(token: string): Promise<number> {
   // Foreground heartbeat for the Realtime/FCM split: server push functions skip
   // devices seen recently. Best-effort; callers must not surface failures.
-  const result = await db().rpc('touch_device_activity')
+  const result = await db().rpc('touch_device_activity', { device_token: token })
   if (result.error) throw result.error
   return typeof result.data === 'number' ? result.data : 0
 }
