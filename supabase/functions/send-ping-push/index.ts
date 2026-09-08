@@ -40,15 +40,27 @@ Deno.serve(async (request) => {
     return json({ error: String(error instanceof Error ? error.message : error) }, 503)
   }
   const admin = createClient(url, service)
+  // The webhook secret authenticates the caller, but its JSON body is still
+  // untrusted. Read the persisted Ping and use it as the source of truth.
+  const { data: persistedPing, error: pingError } = await admin
+    .from('pings')
+    .select('id, couple_id, sender_id, kind')
+    .eq('id', record.id)
+    .eq('couple_id', record.couple_id)
+    .maybeSingle()
+  if (pingError) return json({ error: '校验 Ping 记录失败', details: pingError.message }, 502)
+  if (!persistedPing || persistedPing.sender_id !== record.sender_id)
+    return json({ sent: 0, skipped: 'Ping 不存在或已匿名化' }, 200)
+  const verifiedRecord = persistedPing as PingPushRecord
   const { data: members, error: memberError } = await admin
     .from('couple_members')
     .select('user_id')
-    .eq('couple_id', record.couple_id)
+    .eq('couple_id', verifiedRecord.couple_id)
   if (memberError) return json({ error: '读取空间成员失败', details: memberError.message }, 502)
-  const partner = members?.find((row) => row.user_id !== record.sender_id)?.user_id
+  const partner = members?.find((row) => row.user_id !== verifiedRecord.sender_id)?.user_id
   if (!partner) return json({ sent: 0, skipped: '没有另一位成员' }, 200)
   const [{ data: profile }, { data: devices, error: deviceError }] = await Promise.all([
-    admin.from('profiles').select('name').eq('id', record.sender_id).maybeSingle(),
+    admin.from('profiles').select('name').eq('id', verifiedRecord.sender_id).maybeSingle(),
     admin
       .from('device_installations')
       .select('token,last_seen_at')
@@ -64,7 +76,14 @@ Deno.serve(async (request) => {
       typeof device.token === 'string' && !isDeviceRecentlyActive(device.last_seen_at as string),
   )
   if (!targets.length)
-    return json({ sent: 0, skipped: '对方设备正在前台活跃，由 Realtime 呈现', skipped_active: devices.length }, 200)
+    return json(
+      {
+        sent: 0,
+        skipped: '对方设备正在前台活跃，由 Realtime 呈现',
+        skipped_active: devices.length,
+      },
+      200,
+    )
   let access: string
   try {
     access = await googleAccessToken(account)
@@ -79,7 +98,7 @@ Deno.serve(async (request) => {
     const result = await sendFcmMessage(
       account,
       access,
-      buildPingPush(record, token, profile?.name || 'TA'),
+      buildPingPush(verifiedRecord, token, profile?.name || 'TA'),
     )
     if (result.ok) {
       sent++
