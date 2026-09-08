@@ -955,20 +955,20 @@
   }
   /* Symmetric floating dock, with one intentional stepped central action. */
   .main-wrap {
-    padding-bottom: calc(104px + env(safe-area-inset-bottom));
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
   }
   .bottom-nav.bibo-dock {
-    left: 12px;
-    right: 12px;
-    bottom: max(12px, env(safe-area-inset-bottom));
-    border: 2px solid var(--ink);
-    background: var(--paper);
-    box-shadow: 4px 4px 0 var(--ink);
-    padding: 5px 6px 6px;
-    grid-template-columns: 1fr 1fr 78px 1fr 1fr;
-    min-height: 68px;
-    overflow: visible;
-    isolation: isolate;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 0;
+    border-top: var(--line);
+    background: #fffef7;
+    box-shadow: none;
+    padding: 4px 4px max(8px, env(safe-area-inset-bottom));
+    grid-template-columns: repeat(5, 1fr);
+    min-height: 62px;
+    overflow: hidden;
   }
   .bibo-dock > .dock-item {
     min-height: 52px;
@@ -1022,14 +1022,14 @@
     justify-content: flex-end;
     align-items: center;
     flex-direction: column;
-    margin-top: -31px;
+    margin-top: 0;
     gap: 4px;
     pointer-events: none;
   }
   .bottom-nav .dock-bibo {
     background: transparent;
-    width: 70px;
-    height: 70px;
+    width: 48px;
+    height: 48px;
     padding: 0;
     display: block;
     filter: drop-shadow(3px 3px 0 var(--ink));
@@ -1063,7 +1063,7 @@
   .dock-more {
     position: absolute;
     right: 0;
-    bottom: calc(100% + 14px);
+    bottom: calc(100% + 4px);
     width: 214px;
     background: var(--paper);
     border: var(--line);
@@ -1103,7 +1103,7 @@
     width: 13px;
   }
   .toast {
-    bottom: 110px;
+    bottom: calc(84px + env(safe-area-inset-bottom));
   }
 }
 @media (max-width: 360px) {
@@ -1144,16 +1144,16 @@
     margin-right: -10px;
   }
   .bottom-nav.bibo-dock {
-    left: 8px;
-    right: 8px;
-    grid-template-columns: 1fr 1fr 68px 1fr 1fr;
+    left: 0;
+    right: 0;
+    grid-template-columns: repeat(5, 1fr);
   }
   .bottom-nav .dock-bibo {
-    width: 64px;
-    height: 64px;
+    width: 46px;
+    height: 46px;
   }
   .dock-center {
-    margin-top: -25px;
+    margin-top: 0;
   }
   .bottom-nav.bibo-dock > .dock-item > span:last-child {
     font-size: 8px;

@@ -173,6 +173,8 @@ img {
 }
 .app-shell {
   min-height: 100vh;
+  padding-top: env(safe-area-inset-top);
+  background: #fffef8;
 }
 .sidebar {
   width: 220px;
