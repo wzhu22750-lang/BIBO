@@ -453,7 +453,7 @@ Widget、快捷入口、AI 仅在核心体验稳定后考虑，不提前堆砌�
 
 ## 2026-09-08 当前回归基线
 
-- 迁移链当前为初始 SQL + 202609080001–202609080012，必须按文件名顺序执行；README/DATABASE 已同步到 011。
+- 迁移链当前为初始 SQL + 202609080001–202609080012，必须按文件名顺序执行；README/DATABASE 已同步到 012。
 - TypeScript/Vitest 当前 208 tests（30 files）通过；`npm run format:check`、`npm run typecheck`、`npm run test`、`npm run build`、`npm audit --omit=dev`（0）通过。
 - `npm run android:build` 当前可完成 Web build、Capacitor sync、Android debug APK；最新构建含 Push Notifications、Firebase 配置预检、Deep Link、事件队列和 Service Worker 资源。
 - Android 35 AVD 曾实际验证自定义 Deep Link；没有 Firebase 配置时实际 `BiboDevice.firebaseConfiguration` 为 false。不存在真机、真实 Supabase、FCM 或 Edge Function 的当前运行证据，相关目标继续标记为未验收。
@@ -502,3 +502,8 @@ Widget、快捷入口、AI 仅在核心体验稳定后考虑，不提前堆砌�
 - AccountDeletion 成功后的本机清理加入聊天草稿；普通退出登录和无空间入口退出也清理当前账号草稿。云端注销未确认时不提前删除，避免服务器失败导致不可恢复的本机数据丢失。
 - 新增测试覆盖多空间同账号清理、其他账号保留和清理异常；现有 Chat 草稿恢复/发送保护继续通过。
 - 本轮测试最初暴露测试 sessionStorage 替身缺少 key/length，补齐后 216 tests（31 files）通过。
+
+## 事件队列语义修复
+
+- 旧空间事件意图面板现在区分创建、编辑、删除三种操作；编辑意图不再误显示为删除，避免用户在解绑后错误理解本机数据。
+- typecheck、216 tests、format/build 回归中的 TypeScript/Vitest 部分通过；剩余 Android build 由事件编辑回归基线覆盖。
