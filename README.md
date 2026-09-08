@@ -35,6 +35,24 @@ npm run dev
 3. 初始 SQL 创建 9 张业务表、RLS 策略、Auth 用户触发器、基础业务 RPC、私有 `couple-photos` 存储桶并加入 Realtime；后续增量迁移继续添加 Ping/回忆字段、幂等消息、分页、生命周期和注销准备 RPC。
 4. 如果使用 Supabase CLI 管理项目，也可在链接项目后通过 `supabase db push` 应用迁移；不要对同一数据库重复在 SQL Editor 和 CLI 中执行同一迁移。
 
+#### 共享项目数据库维护（无需 CLI）
+
+共享项目（ref `zqwzdoejxsfscisudacu`）的 Access Token 已保存在本机两处（权限 600，均已 git 忽略）：
+
+- `supabase/.temp/access-token`（项目本地）
+- `~/.supabase/access-token`（Supabase CLI 标准位置，装了 CLI 后 `supabase login` 自动读取）
+
+对线上库执行 SQL / 应用新迁移时，不需要安装 CLI，直接用 Management API：
+
+```sh
+curl -X POST "https://api.supabase.com/v1/projects/zqwzdoejxsfscisudacu/database/query" \
+  -H "Authorization: Bearer $(cat supabase/.temp/access-token)" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"select 1;"}'
+```
+
+迁移应用原则：**已应用过的迁移不要重跑**（`202609070001_initial.sql` 含普通 `create function`，重复执行会报错；后续迁移对已有函数使用 `create or replace` 可安全重入）。
+
 初始迁移**不是幂等重置脚本**。如部分执行过，先检查已有对象和迁移历史，不要删表重来。已有 Auth 用户会补齐默认 profile。
 
 ### 浏览器凭据（开箱即用）
