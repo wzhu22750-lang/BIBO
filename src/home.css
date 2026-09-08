@@ -11,9 +11,10 @@
   box-shadow: 2px 2px 0 #20211d;
   font: inherit;
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 900;
   letter-spacing: 0.02em;
   cursor: pointer;
+  -webkit-text-stroke: 0.6px currentColor;
 }
 .ping-choices button[aria-pressed='true'] {
   background: #fff238;

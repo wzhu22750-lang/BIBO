@@ -835,9 +835,9 @@ img {
   letter-spacing: -1px;
 }
 .bibu-button small {
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 750;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 .bibu-button:hover:not(:disabled) {
   transform: rotate(0) translate(-2px, -3px);
@@ -2883,7 +2883,9 @@ img {
     font-size: 14px;
   }
   .bibu-button small {
-    font-size: 6px;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    -webkit-text-stroke: 0.5px currentColor;
   }
   .bibu-bottom {
     padding: 8px 13px;
