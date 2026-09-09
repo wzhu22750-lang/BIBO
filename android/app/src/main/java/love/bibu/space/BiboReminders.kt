@@ -8,7 +8,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.graphics.BitmapFactory
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import org.json.JSONObject
@@ -65,9 +64,7 @@ object BiboReminders {
             putExtra("biboRoute",row.optString("route","#focus"))
         }
         val click=PendingIntent.getActivity(context,id,intent,PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        val largeIcon = try {
-            BitmapFactory.decodeResource(context.resources, love.bibu.space.R.mipmap.ic_launcher)
-        } catch (_: Exception) { null }
+        val largeIcon = notificationLargeIcon(context)
         try {
             val notification=NotificationCompat.Builder(context,CHANNEL)
                 .setSmallIcon(love.bibu.space.R.drawable.ic_stat_bibo)
