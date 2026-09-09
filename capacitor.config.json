@@ -2,5 +2,10 @@
   "appId": "love.bibu.space",
   "appName": "BIBU！",
   "webDir": "dist",
-  "backgroundColor": "#fffef8"
+  "backgroundColor": "#fffef8",
+  "server": {
+    "url": "https://www.515171.xyz",
+    "cleartext": false,
+    "androidScheme": "https"
+  }
 }
