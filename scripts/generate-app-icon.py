@@ -106,8 +106,88 @@ def adaptive_foreground(src: Image.Image, size: int) -> Image.Image:
 
 
 def notification_icon(src: Image.Image, size: int) -> Image.Image:
-    """Notification icon synchronized with the launcher artwork."""
-    return squircle_icon(src, size)
+    """Monochrome Android notification small icon (white heart on transparent).
+
+    Android renders notification small icons as a single tint (usually white)
+    silhouette: only the alpha channel survives, colour is stripped. A full-
+    colour artwork would collapse into a shapeless white blob, so we use the
+    brand heart glyph (~2/3 of the canvas, per the 24dp status-bar/heads-up
+    guideline) on a transparent background.
+    """
+    glyph = _raster_brand_heart()
+    target = round(size * 0.68)
+    glyph = glyph.resize((target, target), Image.NEAREST)
+    out = Image.new("RGBA", (size, size), (255, 255, 255, 0))
+    out.paste(glyph, ((size - target) // 2, (size - target) // 2), glyph)
+    return out
+
+
+def _raster_brand_heart(grid: int = 24) -> Image.Image:
+    """Rasterize the in-app pixel heart path (24x24) into a white image.
+
+    The path only uses M/h/v/H/V/z commands, so a scanline even-odd fill
+    over the vertical edges gives a crisp pixel heart.
+    """
+    path = "M4 3h5v2h2v2h2V5h2V3h5v2h2v8h-2v2h-2v2h-2v2h-2v2h-4v-2H8v-2H6v-2H4v-2H2V5h2z"
+    import re
+
+    tokens = re.findall(r"[MhvVHz]|-?\d+", path)
+
+    def parse() -> list[tuple[float, float, float]]:
+        """Return vertical segments as (x, min_y, max_y)."""
+        vert: list[tuple[float, float, float]] = []
+        x = y = 0.0
+        i = 0
+        pen = (None, None)
+
+        def num() -> float:
+            nonlocal i
+            value = float(tokens[i])
+            i += 1
+            return value
+
+        while i < len(tokens):
+            cmd = tokens[i]
+            i += 1
+            start = (x, y)
+            if cmd == "M":
+                x, y = num(), num()
+                pen = (x, y)
+                start = pen
+            elif cmd == "h":
+                x += num()
+            elif cmd == "v":
+                y += num()
+            elif cmd == "H":
+                x = num()
+            elif cmd == "V":
+                y = num()
+            elif cmd == "z":
+                x, y = pen
+                start = pen
+            if x == start[0]:
+                vert.append((x, min(y, start[1]), max(y, start[1])))
+        return vert
+
+    vert = parse()
+    img = Image.new("RGBA", (grid, grid), (255, 255, 255, 0))
+    pixels = img.load()
+    for cy in range(grid):
+        crossings = sorted(
+            x
+            for x, lo, hi in vert
+            if lo <= cy + 0.5 < hi
+        )
+        for cx in range(grid):
+            # Even-odd: inside when a filled run contains the pixel centre.
+            inside = False
+            for k in range(0, len(crossings) - 1, 2):
+                if crossings[k] <= cx + 0.5 < crossings[k + 1]:
+                    inside = True
+                    break
+            if inside:
+                pixels[cx, cy] = (255, 255, 255, 255)
+    return img
 
 
 def save(img: Image.Image, path: Path) -> None:
@@ -140,7 +220,7 @@ def main() -> None:
     (PUBLIC / "favicon.svg").write_text(svg_with_png(full), encoding="utf-8")
     print("  public/favicon.svg")
 
-    print("Android notification icon (synchronized with launcher art)")
+    print("Android notification small icon (white heart glyph, monochrome)")
     stale = RES / "drawable" / "ic_stat_bibo.xml"
     if stale.exists():
         stale.unlink()
