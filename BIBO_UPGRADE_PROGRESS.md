@@ -541,7 +541,7 @@ Widget、快捷入口、AI 仅在核心体验稳定后考虑，不提前堆砌�
 ## Phase 2：消息 + Android 原生通知体验闭环（2026-09-08）
 
 - 消息发送链路复核为可靠：optimistic UI → IndexedDB outbox（固定 UUID）→ `send_message_once` 幂等 RPC → exact-row 确认后才移除；网络失败保留 pending、退避重试、约束/权限错误 blocked 不循环；同 UUID 重发服务端返回同一行，不会重复创建消息。本阶段未重写该链路。
-- Realtime / FCM 职责正式分离：前台由 Supabase Realtime 呈现消息与 Ping；后台/被杀由服务端 FCM 推送。新增前台活跃心跳（`202609080017_message_push_activity.sql` 的 `touch_device_activity` RPC + `deviceActivity.ts` 心跳，仅 Android 且页面可见时每 60s 标记一次），`send-message-push` 与 `send-ping-push` 跳过 120s 内活跃的设备，从服务端消除"Realtime + FCM 双通知"。
+- 历史实现曾尝试以 `last_seen_at` / 120s 前台窗口分流 Realtime 与 FCM；2026-09-08 收尾时按用户要求撤销这条时间抑制路径，避免把“前台活跃”误当成 Push 送达保证。
 - 新增 `supabase/functions/send-message-push`（Database Webhook on messages INSERT）与 `_shared/messagePush.ts` 合同：通知标题=发送者昵称、正文=折叠空白后 ≤80 码点预览；data 仅含 `route=#chat?message=<id>`、`message_id`、`kind`，不含正文/空间 ID/用户 ID；channel `bibo_messages_v1`；失效 token 删除，其他失败返回非 2xx 供 Webhook 重试。`_shared/fcm.ts` 抽出 OAuth/发送，两个函数共用。
 - 新增消息通知渠道 `bibo_messages_v1`（IMPORTANCE_HIGH、系统默认声音、震动开启、不绕过 DND），与 `bibo_love_v1`（Ping）、`bibo_reminders_v1`（本机提醒）分离；Kotlin `BiboDevicePlugin.load()` 提前建渠道，`notify()` 支持 `channel:'messages'` 白名单选择。声音/震动完全交给 Android channel 规则，未做任何绕过静音/DND 的实现。
 - 前台消息本地通知：`messageNotification.ts` 按 message_id 去重（notified Set + 快照 diff + 2 分钟新鲜度窗），仅在"App 隐藏"或"前台但不在聊天页"时弹系统通知；用户正停留在唯一会话（聊天页）时不制造干扰通知。初始加载/切换空间不补发历史横幅。Ping 前台不再叠加系统横幅（全屏 PingEffect + 声音/震动已呈现），后台仍由 FCM 负责。
@@ -559,3 +559,81 @@ Widget、快捷入口、AI 仅在核心体验稳定后考虑，不提前堆砌�
 - 新增 `send-message-push` Edge Function 与 FCM 消息频道模板。Webhook 发送前必须查询持久化 messages 行，不能信任请求 body 的 couple/sender/content；当前工作树已加入此校验，但尚未完成 Deno/托管验证。
 - 新增 `202609080017_message_push_activity.sql` 的按 token 心跳。前台设备只更新自己的 token 行，不能把同一账号的另一台后台设备误标记为前台；这一点必须用双 Android 设备真实验证。
 - 普通退出登录只清理当前安装的远程 token，不删除账号其他设备登记；真实 token 轮换、注销、双设备 Push、厂商后台策略仍未验收。
+
+## 2026-09-08 产品级收尾增量：缓存、Picker、通知隐私与一致性
+
+本轮以当前工作树实际代码、构建和测试为准；不把旧进度段落中的历史命令输出倒推为本轮证据。
+
+### 已实施
+
+- 照片统一经过 `src/components/CachedImage.tsx` 和 `src/lib/imageCache.ts`：私有签名 URL 只作为下载源，稳定缓存键使用空间、Storage path 和 `created_at`；IndexedDB 持久化，64 MB 总上限、5 MB 单文件上限、内存 LRU、并发 single-flight、24 小时后台重验证、Blob/Object URL 替换通知和清理代际保护。
+- PhotoCard、PhotoViewer、首页复用照片入口和聊天关联照片均使用同一缓存组件；离线空间快照没有签名 URL 时，会按照片元数据尝试读取本机 Blob 缓存。退出登录、账号注销、关系解除和确认删除照片都会清理缓存；页面分页删除会把完整照片对象传入删除边界。
+- 在线照片上传不再绕过队列；`uploadPhoto` 兼容入口和在线/离线流程统一使用固定 ID 的 `create_photo_once`，避免 Storage 已提交而响应丢失时产生孤儿文件或重复回忆。照片 outbox 的 25 MB 统计改为按账号/空间计算。
+- 日期和时间输入全部替换为应用内 `PixelDatePicker`、`PixelTimePicker`、`PixelDateTimePicker`，使用像素风 Modal + select，不调用 HTML/OEM 原生日期时间 Picker；保留本地时间字符串和数据库时间格式，支持确认、取消、可选清空及闰年/月末日数。
+- 按用户要求清理“120 秒前台抑制”残留：两个 FCM Edge Function 不再使用 `last_seen_at` 或任何前台时间窗口过滤；有效 token 都进入发送目标，Realtime 只负责页面状态更新，不被当作送达抑制证明。系统通知标题/正文使用通用文案，消息只在打开 App 后显示。Android Push 注册在已有通知授权时启动静默补登记，用户主动设置入口仍负责首次权限申请。
+- Android 生产配置移除可变远程 `server.url`，APK 默认捆绑本地 `dist`；通知频道升级到私密版本 `bibo_love_v3` / `bibo_messages_v2`，锁屏可见性设为 PRIVATE，FCM/本机通知统一使用 `ic_stat_bibo` 状态栏图标。冷启动 Auth 回调不再被内部路由消费器无条件清空，并增加 `getLaunchUrl()` 与格式校验。
+- 新增可靠性迁移 `202609080019_reliability_hardening.sql`：撤销客户端直接写照片元数据；新增带 couple 行锁的 `set_focus_session` / `end_focus_session`，与 `send_ping` 串行化专注授权；补齐既有 greeting 列的 NOT NULL、默认值和长度约束。新增 `202609080020_remove_push_heartbeat.sql`，删除旧的 `touch_device_activity` 函数。
+- 修复当前空间消息 outbox 无可见恢复入口的问题：Chat 展示本机待同步/blocked 消息，提供重试与二次确认移除；同步错误也在 Chat 页面可见。修复 skip link 被 hash router 误判为 Home、Android back 路由/弹窗/更多菜单处理、BIBU 长按 pointer capture 与双发送问题、移动端安全区入口状态和本机提醒权限恢复入口。
+
+### 本轮验证证据
+
+- `npm ci`：成功，依赖审计报告 0 vulnerabilities。
+- `npm run typecheck`：通过。
+- `npm test`：38 个文件、253 项通过。
+- `npm run format:check`：通过。
+- `npm run build`：通过；生产 bundle 仍有 Vite 654 kB chunk warning，未把 warning 误报为失败。
+- `ANDROID_HOME=$HOME/Library/Android/sdk ANDROID_SDK_ROOT=$HOME/Library/Android/sdk npm run android:build`：通过，完成 Web build、Capacitor sync、Gradle assembleDebug。第一次不设置 Android SDK 环境变量时会真实失败，说明命令依赖本机 SDK 配置；没有写入未跟踪的 `android/local.properties`。
+- `android/./gradlew testDebugUnitTest`：通过。Kotlin 编译仍有既有 Android API deprecation warning，无编译失败。
+- 临时 smoke keystore 下 `npm run android:release:build` 通过；`apksigner` V2 验证通过，package/version 为 `love.bibu.space` / `2` / `0.1.0`。
+- 生成 Android config 已确认不含 `server.url`；生成 bundle 已确认包含 `bibu-image-cache-v1` 代码。Chrome 演示页实际打开 Events 表单，截图/无障碍树显示日期和时间入口为应用内 Pixel 风格弹窗与年/月/日、时/分选择，不再显示原生 HTML 日期时间控件。
+- PGlite Supabase policy suite：32 项通过，含 019 迁移后 focus RPC 和 photo 写入边界。
+
+### 未解决/未能本地证明
+
+- 没有真实 Firebase service account 内容回读、Database Webhook 触发证据或双 Android 设备，因此不能声称 FCM 真实送达、token 轮换、Webhook 重试和厂商后台策略已验收；Push Function 已部署（send-message-push version 9、send-ping-push version 10），本地 Firebase client config 未提交到仓库。019/020 已通过 Management API SQL 直接应用并回读关键 schema；020 删除旧 Push heartbeat 函数。
+- 未在物理 Android 设备验证 Android 13+ 权限弹窗、锁屏 PRIVATE 文案、API 35/36 手势与三键导航、刘海屏、Doze/强行停止和真实声音/震动。
+- IndexedDB 图片缓存可在当前 Web/Android WebView bundle 使用；401/403 会请求新 signed URL 重试，clear/delete 有下载代际保护，但本地下载副本无法被云端远程撤回；未实现图片压缩、缩略图或 EXIF 清除，原图质量与隐私边界保持原状。
+- Auth 回调、专用通知小图标和真实 Edge Function/Storage 读写仍需要在独立托管 Supabase/Firebase 测试项目再次验证；019 已在默认远程数据库通过 Management API SQL 应用并回读，Push Function 源码已回读为远程 version 9/10，本地 PGlite 和 APK 编译不能替代托管环境验收。
+
+## Android release gate
+
+- 新增 `scripts/check-android-release.mjs` 和 `npm run android:release:check`，检查生产 Capacitor 本地 bundle、通知小图标、appId、版本字段和 Firebase client 配置。
+- 初次运行门禁时，因尚未发现 Firebase client config 和正式签名参数而按预期拒绝；随后本机使用匹配的 ignored Firebase client config 和临时 smoke signing 验证通过，默认 versionName 已改为 `0.1.0`。
+
+## Firebase client config local verification
+
+- 在本机 Downloads 目录发现与 `love.bibu.space` 匹配的 Firebase client config，复制到被 git 忽略的 `android/app/google-services.json`；没有把配置内容写入仓库或报告。
+- `npm run android:release:check` 在 Firebase client config + 临时 smoke signing 环境变量下通过；Android Debug 构建实际执行 `processDebugGoogleServices`。Android 35 模拟器安装启动后，`dumpsys package` 观察到 FirebaseInitProvider、FirebaseInstanceIdReceiver 和 FirebaseMessagingService。
+- 这仍不是 FCM 送达证明：没有获得 token、没有真实双设备、没有触发 Database Webhook，也没有发送真实 Push。两个 Push Function 的远程部署已在后续段落单独记录。
+
+## Android 35 Emulator Firebase / notification evidence
+
+- 使用本机已存在且与 `love.bibu.space` 匹配的 Firebase client config 重新构建并安装 APK；Gradle 实际执行 `processDebugGoogleServices`。
+- Android 35 模拟器中，`dumpsys package love.bibu.space` 观察到 `FirebaseInitProvider`、`FirebaseInstanceIdReceiver` 和 `FirebaseMessagingService`；GMS 组件存在，应用启动无 Firebase 初始化错误。程序化授予 POST_NOTIFICATIONS 后，通过 CDP 调用官方 PushNotifications 插件实际收到 FCM token；未绑定真实登录账号或远程设备登记。
+- `dumpsys notification` 观察到 `bibo_messages_v2` 与 `bibo_love_v3`、IMPORTANCE_HIGH、默认声音和震动。Android channel dump 的 lockscreen 字段仍为 `NO_OVERRIDE`，因此代码同时在本机 Notification Builder 和 FCM payload 设置 PRIVATE；真实锁屏文案仍需实体设备验收。
+- 尚未通过真实登录会话触发远程 token 登记，也没有向该设备发送真实 FCM 消息；模拟器 token 只证明 Firebase client、GMS 和官方注册回调可工作，不等于 Webhook 或送达已证明。
+
+## Supabase Push Function deployment evidence
+
+- 远程项目 `zqwzdoejxsfscisudacu` 的两个 Push Function 已从当前工作树部署；`functions list` 回读为 `send-message-push` ACTIVE version 9、`send-ping-push` ACTIVE version 10。下载远程源码后确认频道、PRIVATE visibility、通用通知文案和 120 秒前台抑制代码已移除。
+- 远程 Secrets 名称列表包含 webhook secret、FCM service account 和 Supabase service keys；只读取名称/哈希元数据，没有读取或输出值。无 secret 的 endpoint POST 均返回 401，未触发发送。
+- `delete-account` 已部署为 ACTIVE version 1、verify_jwt=true；无 Authorization 的调用返回 `UNAUTHORIZED_NO_AUTH_HEADER`。远程 migration tracking 表不存在，019/020 已通过 Management API SQL 直接应用并回读。
+
+## Remote migration 019 application evidence
+
+- 远程 schema 查询确认 `supabase_migrations.schema_migrations` 不存在，因此没有把 CLI migration history 失败误报成状态；先读取 `information_schema`、函数、约束和 privilege。
+- 发现远程 `couples` greeting 列仍为 nullable、客户端 direct photo/focus write privileges 仍存在、019 的 Focus RPC 尚不存在；确认现有 greeting 数据无 null/超长值后，通过 `supabase db query --linked --file supabase/migrations/202609080019_reliability_hardening.sql` 应用 019。
+- 应用后回读：greeting 两列 `is_nullable=NO` 且有长度约束；`set_focus_session` / `end_focus_session` 存在并仅授予 authenticated execute；authenticated 对 photos 没有 INSERT、对 focus_sessions 没有 INSERT/UPDATE/DELETE。
+- 通过管理 API 的临时 `set role authenticated` smoke 无法注入 `auth.uid()`，该测试事务未提交且返回 false；真实认证会话/多连接并发仍未验证。
+
+## Remote Database Webhook evidence
+
+- 远程 `public.messages` 和 `public.pings` 均存在 enabled 的 AFTER INSERT trigger，分别调用 `bibo_webhook_message_push()` 与 `bibo_webhook_ping_push()`。
+- 两个触发器都指向当前项目的 Edge Function URL；触发器中保存的 webhook secret 与远程 `BIBO_WEBHOOK_SECRET` 的管理列表 digest 匹配，但没有把 secret 值写入报告。
+- 远程 `device_installations` 当前有 2 条 Android 登记；本轮没有向真实登记设备写入测试消息，避免产生未授权通知。
+
+## Remote Focus/RLS smoke evidence
+
+- 通过 `supabase db query --linked` 在单语句中设置现有 profile 的 JWT claim，实际调用远程 `set_focus_session` 与 `end_focus_session`；返回 `set_focus_ok=true`、`end_focus_ok=true`、`cleaned_up=true`，未留下 focus row。
+- Management API SQL 将当前角色切换为 `authenticated` 的只读 smoke 显示 `photos INSERT=false`、`focus_sessions UPDATE=false`；没有执行会留下数据的 direct-write 测试。
+- 远程现有 `device_installations` 有 2 条 Android 登记；没有向真实设备写入测试消息或 Ping。

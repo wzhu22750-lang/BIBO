@@ -10,6 +10,7 @@ import { Button, Empty, useTask } from '../components/ui'
 import { Icon, PixelPal } from '../components/PixelArt'
 import { clock, dateLabel } from '../lib/dates'
 import { BiboNative } from '../native'
+import { MessageOutboxPanel } from '../components/MessageOutboxPanel'
 export function Chat({
   controller,
   demo,
@@ -187,6 +188,7 @@ export function Chat({
           })}
           <div ref={end} />
         </div>
+        <MessageOutboxPanel controller={controller} />
         {unread && (
           <Button
             tone="yellow"

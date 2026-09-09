@@ -4,5 +4,5 @@
     <string name="title_activity_main">哔卟哔卟</string>
     <string name="package_name">love.bibu.space</string>
     <string name="custom_url_scheme">love.bibu.space</string>
-    <string name="default_notification_channel_id">bibo_love_v2</string>
+    <string name="default_notification_channel_id">bibo_love_v3</string>
 </resources>

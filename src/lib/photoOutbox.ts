@@ -159,9 +159,10 @@ export async function enqueuePhoto(row: PhotoOutboxOperation) {
     const req = store.getAll()
     req.onsuccess = () => {
       const rows = req.result as PhotoOutboxOperation[]
+      const scoped = rows.filter((item) => samePhotoScope(item, row.userId, row.coupleId))
       if (
-        rows.filter((item) => samePhotoScope(item, row.userId, row.coupleId)).length >= 5 ||
-        rows.reduce((total, item) => total + (item.file?.size || 0), 0) + row.file.size > 25000000
+        scoped.length >= 5 ||
+        scoped.reduce((total, item) => total + (item.file?.size || 0), 0) + row.file.size > 25000000
       ) {
         store.transaction.abort()
         return

@@ -37,8 +37,9 @@ export async function registerDevicePush(
   appVersion = 'unknown',
   native = BiboNative,
   backend: PushBackend = api,
+  requestPermission = true,
 ): Promise<PushRegistration & { stored?: boolean }> {
-  const result = await native.push.register()
+  const result = await native.push.register({ requestPermission })
   if (!result.supported || !result.token) return result
   await backend.registerDeviceInstallation(userId, result.token, appVersion)
   storePushToken(result.token)

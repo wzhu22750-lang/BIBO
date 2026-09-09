@@ -1235,7 +1235,9 @@
     -webkit-tap-highlight-color: transparent;
     cursor: pointer;
     user-select: none;
-    transition: color 0.15s ease, transform 0.12s ease;
+    transition:
+      color 0.15s ease,
+      transform 0.12s ease;
   }
   .bibo-dock > .dock-item:active {
     transform: scale(0.92);
@@ -1245,7 +1247,9 @@
     white-space: nowrap;
     font-weight: 650;
     line-height: 1.2;
-    transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.15s ease;
+    transition:
+      transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
+      color 0.15s ease;
   }
   .bibo-dock > .dock-item.active > span:last-child {
     transform: translateY(-1px);
@@ -1329,7 +1333,9 @@
     pointer-events: auto;
     touch-action: none;
     -webkit-tap-highlight-color: transparent;
-    transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.12s ease;
+    transition:
+      transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1),
+      filter 0.12s ease;
     transform-origin: center bottom;
   }
   .bottom-nav .dock-bibo.is-pressing {
@@ -1502,7 +1508,9 @@
     background: var(--paper);
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
-    transition: background-color 0.12s ease, transform 0.12s ease;
+    transition:
+      background-color 0.12s ease,
+      transform 0.12s ease;
   }
   .bottom-nav .dock-more button:active {
     transform: scale(0.96);

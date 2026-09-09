@@ -70,7 +70,7 @@ object BiboReminders {
         } catch (_: Exception) { null }
         try {
             val notification=NotificationCompat.Builder(context,CHANNEL)
-                .setSmallIcon(love.bibu.space.R.mipmap.ic_launcher)
+                .setSmallIcon(love.bibu.space.R.drawable.ic_stat_bibo)
                 .apply {
                     if (largeIcon != null) setLargeIcon(largeIcon)
                 }

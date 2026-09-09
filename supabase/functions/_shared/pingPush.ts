@@ -4,7 +4,7 @@ export type PingPushRecord = {
   sender_id: string | null
   kind: string
 }
-export const PING_PUSH_CHANNEL = 'bibo_love_v2'
+export const PING_PUSH_CHANNEL = 'bibo_love_v3'
 export type FcmMessage = {
   message: {
     token: string
@@ -15,22 +15,12 @@ export type FcmMessage = {
       notification: {
         channel_id: string
         notification_priority: 'PRIORITY_HIGH'
+        visibility: 'PRIVATE'
         default_sound: boolean
         default_vibrate_timings: boolean
       }
     }
   }
-}
-const labels: Record<string, string> = {
-  哔卟哔卟: '哔卟哔卟',
-  想你: '想你',
-  抱一下: '抱一下',
-  快来: '快来',
-  晚安: '晚安',
-  我回来啦: '我回来啦',
-  去学习: '去学习',
-  去工作: '去工作',
-  休息一下: '休息一下',
 }
 export function isUsablePushToken(value: unknown): value is string {
   return (
@@ -40,20 +30,16 @@ export function isUsablePushToken(value: unknown): value is string {
     !/[\u0000-\u001f\u007f]/.test(value)
   )
 }
-export function buildPingPush(
-  record: PingPushRecord,
-  token: string,
-  senderName = 'TA',
-): FcmMessage {
+export function buildPingPush(record: PingPushRecord, token: string): FcmMessage {
   if (!isUsablePushToken(token)) throw new Error('FCM token 无效')
   if (!/^[0-9a-f-]{20,80}$/i.test(record.id)) throw new Error('Ping ID 无效')
-  const kind = labels[record.kind] || '哔卟'
+  const kind = record.kind.trim().slice(0, 40) || '哔卟'
   return {
     message: {
       token,
       notification: {
         title: '收到一个小小的哔卟',
-        body: `${senderName.slice(0, 24)} 发来「${kind}」`,
+        body: '收到一个小小的哔卟，打开 BIBU 查看',
       },
       data: { route: '#home', ping_id: record.id, kind },
       android: {
@@ -61,6 +47,7 @@ export function buildPingPush(
         notification: {
           channel_id: PING_PUSH_CHANNEL,
           notification_priority: 'PRIORITY_HIGH',
+          visibility: 'PRIVATE',
           default_sound: true,
           default_vibrate_timings: true,
         },
@@ -68,8 +55,6 @@ export function buildPingPush(
     },
   }
 }
-export function isUnregisteredFcmError(status: number, body: string) {
-  return (
-    status === 404 || /UNREGISTERED|registration-token-not-registered|INVALID_ARGUMENT/i.test(body)
-  )
+export function isUnregisteredFcmError(_status: number, body: string) {
+  return /UNREGISTERED|registration-token-not-registered/i.test(body)
 }

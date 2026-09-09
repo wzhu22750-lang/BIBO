@@ -18,6 +18,10 @@ import type {
   Profile,
   Space,
 } from './types'
+export async function refreshPhotoUrl(path: string): Promise<string> {
+  const result = await db().storage.from('couple-photos').createSignedUrl(path, 3600)
+  return must(result).signedUrl
+}
 export async function loadSpace(userId: string, signal?: AbortSignal): Promise<Space> {
   const abort = signal || new AbortController().signal
   const me = must(
@@ -129,27 +133,10 @@ export async function uploadPhoto(
   caption: string,
   memory: Partial<MemoryInput> = {},
 ) {
-  const metadata = memoryInput(memory)
-  validatePhoto(file)
-  const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'
-  const path = `${coupleId}/${userId}/${crypto.randomUUID()}.${ext}`
-  must(
-    await db()
-      .storage.from('couple-photos')
-      .upload(path, file, { contentType: file.type, upsert: false }),
-  )
-  const result = await db()
-    .from('photos')
-    .insert({ couple_id: coupleId, uploaded_by: userId, path, caption, ...metadata })
-    .select()
-    .single()
-  if (result.error) {
-    const cleanup = await db().storage.from('couple-photos').remove([path])
-    if (cleanup.error)
-      throw new Error(`${result.error.message}；清理未完成，请联系管理员删除孤立文件：${path}`)
-    throw result.error
-  }
-  return must(result)
+  // Keep the legacy API entry point, but route it through the same fixed-ID
+  // RPC/storage contract used by the durable outbox. A lost response must not
+  // delete a committed object or create a duplicate on the next attempt.
+  return uploadPhotoOnce(coupleId, userId, crypto.randomUUID(), file, caption, memoryInput(memory))
 }
 export function validatePhoto(file: Pick<File, 'type' | 'size'>) {
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type))
@@ -158,27 +145,22 @@ export function validatePhoto(file: Pick<File, 'type' | 'size'>) {
 }
 export async function setFocus(
   coupleId: string,
-  userId: string,
+  _userId: string,
   activity: string,
   minutes: number,
   allow: boolean,
 ) {
   return must(
-    await db()
-      .from('focus_sessions')
-      .upsert({
-        user_id: userId,
-        couple_id: coupleId,
-        activity,
-        ends_at: new Date(Date.now() + minutes * 60000).toISOString(),
-        allow_reminders: allow,
-      })
-      .select()
-      .single(),
+    await db().rpc('set_focus_session', {
+      space_id: coupleId,
+      focus_activity: activity,
+      duration_minutes: minutes,
+      reminders_allowed: allow,
+    }),
   )
 }
-export async function endFocus(userId: string) {
-  return must(await db().from('focus_sessions').delete().eq('user_id', userId).select().single())
+export async function endFocus(coupleId: string) {
+  return must(await db().rpc('end_focus_session', { space_id: coupleId }))
 }
 export async function sendPing(kind: PingKind) {
   return must(await db().rpc('send_ping', { ping_kind: kind }))
@@ -377,13 +359,6 @@ export async function registerDeviceInstallation(
       device_app_version: appVersion,
     }),
   )
-}
-export async function touchDeviceActivity(token: string): Promise<number> {
-  // Foreground heartbeat for the Realtime/FCM split: server push functions skip
-  // devices seen recently. Best-effort; callers must not surface failures.
-  const result = await db().rpc('touch_device_activity', { device_token: token })
-  if (result.error) throw result.error
-  return typeof result.data === 'number' ? result.data : 0
 }
 export async function removeDeviceInstallation(userId: string, token: string) {
   const result = await db()

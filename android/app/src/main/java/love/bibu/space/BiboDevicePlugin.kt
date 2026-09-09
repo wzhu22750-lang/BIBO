@@ -31,8 +31,8 @@ import com.getcapacitor.annotation.PermissionCallback
 
 @CapacitorPlugin(name = "BiboDevice", permissions = [Permission(alias = "notifications", strings = [Manifest.permission.POST_NOTIFICATIONS])])
 class BiboDevicePlugin : Plugin() {
-    private val channel = "bibo_love_v2"
-    private val messageChannel = "bibo_messages_v1"
+    private val channel = "bibo_love_v3"
+    private val messageChannel = "bibo_messages_v2"
     override fun load() {
         // Create push channels as early as the bridge exists so an FCM
         // notification arriving later (even after process death and relaunch)
@@ -43,6 +43,7 @@ class BiboDevicePlugin : Plugin() {
         if (Build.VERSION.SDK_INT < 26) return
         val pings = NotificationChannel(channel, "两个人的哔卟", NotificationManager.IMPORTANCE_HIGH).apply {
             description = "情侣 Ping 实时通知"
+            setLockscreenVisibility(android.app.Notification.VISIBILITY_PRIVATE)
             enableVibration(true)
         }
         manager.createNotificationChannel(pings)
@@ -51,6 +52,7 @@ class BiboDevicePlugin : Plugin() {
         // user first sees the channel; we never bypass DND or silent mode.
         val messages = NotificationChannel(messageChannel, "BIBU 悄悄话", NotificationManager.IMPORTANCE_HIGH).apply {
             description = "伴侣消息通知"
+            setLockscreenVisibility(android.app.Notification.VISIBILITY_PRIVATE)
             enableVibration(true)
         }
         manager.createNotificationChannel(messages)
@@ -87,7 +89,8 @@ class BiboDevicePlugin : Plugin() {
             BitmapFactory.decodeResource(context.resources, love.bibu.space.R.mipmap.ic_launcher)
         } catch (_: Exception) { null }
         val notification = NotificationCompat.Builder(context, target)
-            .setSmallIcon(love.bibu.space.R.mipmap.ic_launcher)
+            .setSmallIcon(love.bibu.space.R.drawable.ic_stat_bibo)
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .apply {
                 if (largeIcon != null) setLargeIcon(largeIcon)
             }
@@ -183,7 +186,11 @@ class BiboDevicePlugin : Plugin() {
         val route = routeFromIntent(activity.intent)
         activity.intent.removeExtra("biboRoute")
         activity.intent.removeExtra("route")
-        activity.intent.data = null
+        // Do not consume an unknown data URI here: the same Activity also
+        // carries Supabase PKCE auth callbacks, which are handled by the
+        // Capacitor App plugin. Only clear an intent once it is proven to be
+        // an internal navigation/notification route.
+        if (route != null) activity.intent.data = null
         call.resolve(if(route == null) JSObject() else JSObject().put("route", safeRoute(route)))
     }
     override fun handleOnNewIntent(intent: Intent) {

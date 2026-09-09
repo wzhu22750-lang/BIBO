@@ -179,3 +179,102 @@ export function PageHeading({
     </div>
   )
 }
+
+export type PixelSelectOption = {
+  value: string
+  label: string
+  disabled?: boolean
+}
+
+export function PixelSelect({
+  value,
+  onChange,
+  options,
+  placeholder,
+  className = '',
+  'aria-label': ariaLabel,
+  disabled = false,
+  id,
+}: {
+  value: string
+  onChange: (value: string) => void
+  options: PixelSelectOption[]
+  placeholder?: string
+  className?: string
+  'aria-label'?: string
+  disabled?: boolean
+  id?: string
+}) {
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [open])
+
+  const selectedOption = options.find((opt) => opt.value === value)
+  const displayLabel = selectedOption?.label || placeholder || value || '请选择'
+
+  return (
+    <div
+      ref={containerRef}
+      className={`pixel-select-container ${open ? 'is-open' : ''} ${disabled ? 'is-disabled' : ''} ${className}`}
+      id={id}
+    >
+      <button
+        type="button"
+        className="pixel-select-trigger"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={ariaLabel}
+        disabled={disabled}
+        onClick={() => setOpen((prev) => !prev)}
+      >
+        <span className="pixel-select-label">{displayLabel}</span>
+        <span className={`pixel-select-arrow ${open ? 'is-up' : ''}`} aria-hidden="true">
+          ▼
+        </span>
+      </button>
+
+      {open && (
+        <ul className="pixel-select-dropdown" role="listbox" aria-label={ariaLabel}>
+          {options.map((option) => {
+            const isSelected = option.value === value
+            return (
+              <li
+                key={option.value}
+                role="option"
+                aria-selected={isSelected}
+                className={`pixel-select-option ${isSelected ? 'selected' : ''} ${option.disabled ? 'disabled' : ''}`}
+                onClick={() => {
+                  if (option.disabled) return
+                  onChange(option.value)
+                  setOpen(false)
+                }}
+              >
+                <span>{option.label}</span>
+                {isSelected && <span className="pixel-select-check" aria-hidden="true">✔</span>}
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
+  )
+}

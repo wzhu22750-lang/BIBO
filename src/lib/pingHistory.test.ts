@@ -36,12 +36,12 @@ describe('ping history boundary', () => {
     expect(mergePings('c', [row('a'), row('b')]).map((p) => p.id)).toEqual(['b', 'a'])
     expect(mergePings('new', many)).toEqual([])
   })
-  it('presents only fresh unseen incoming pings, never old catch-up or own sends', () => {
-    expect(shouldPresentPing(row('1'), [], 'me', now)).toBe(true)
-    expect(shouldPresentPing(row('1'), [row('1')], 'me', now)).toBe(false)
-    expect(shouldPresentPing(row('1', 0, 'c', 'me'), [], 'me', now)).toBe(false)
-    expect(shouldPresentPing(row('1', 120_001), [], 'me', now)).toBe(false)
-    expect(shouldPresentPing(row('1', -30_001), [], 'me', now)).toBe(false)
+  it('presents only unseen partner pings, never duplicates or own sends', () => {
+    expect(shouldPresentPing(row('1'), [], 'me')).toBe(true)
+    expect(shouldPresentPing(row('1'), [row('1')], 'me')).toBe(false)
+    expect(shouldPresentPing(row('1', 0, 'c', 'me'), [], 'me')).toBe(false)
+    expect(shouldPresentPing(row('1', 10 * 60_000), [], 'me')).toBe(true)
+    expect(shouldPresentPing(row('1', -30_001), [], 'me')).toBe(true)
   })
   it('loads an old demo without losing messages or requiring a reset', () => {
     const old: Partial<ReturnType<typeof makeDemo>> = makeDemo()
@@ -75,6 +75,6 @@ describe('anonymized ping history', () => {
   it('keeps a shared ping visible without presenting it as a new incoming ping', () => {
     const anonymized = row('deleted', 0, 'c', null as unknown as string)
     expect(isPing(anonymized)).toBe(true)
-    expect(shouldPresentPing(anonymized, [], 'me', now)).toBe(false)
+    expect(shouldPresentPing(anonymized, [], 'me')).toBe(false)
   })
 })

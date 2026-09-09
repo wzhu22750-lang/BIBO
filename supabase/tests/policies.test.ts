@@ -67,6 +67,8 @@ beforeAll(async () => {
   )
   await pg.exec(readFileSync('supabase/migrations/202609080017_message_push_activity.sql', 'utf8'))
   await pg.exec(readFileSync('supabase/migrations/202609080018_greeting_fields.sql', 'utf8'))
+  await pg.exec(readFileSync('supabase/migrations/202609080019_reliability_hardening.sql', 'utf8'))
+  await pg.exec(readFileSync('supabase/migrations/202609080020_remove_push_heartbeat.sql', 'utf8'))
   legacyAfter = (await pg.query<Record<string, unknown>>('select * from public.photos')).rows[0]
   legacyEvent = (await pg.query<Record<string, unknown>>('select * from public.events')).rows[0]
   await pg.exec(
@@ -174,22 +176,14 @@ describe.sequential('private two-player database boundary', () => {
     await asUser(A)
     await expect(pg.query("select public.send_ping('去学习')")).rejects.toThrow('尚未开启')
     await asUser(B)
-    await pg.query(
-      "insert into public.focus_sessions values($1,$2,'学习',now()+interval '25 minutes',false)",
-      [B, couple],
-    )
+    await pg.query("select public.set_focus_session($1,'学习',25,false)", [couple])
     await asUser(A)
     await expect(pg.query("select public.send_ping('哔卟哔卟')")).rejects.toThrow('未授权')
-    expect(
-      (
-        await pg.query(
-          'update public.focus_sessions set allow_reminders=true where user_id=$1 returning user_id',
-          [B],
-        )
-      ).rows,
-    ).toHaveLength(0)
+    await expect(
+      pg.query('update public.focus_sessions set allow_reminders=true where user_id=$1', [B]),
+    ).rejects.toThrow()
     await asUser(B)
-    await pg.query('update public.focus_sessions set allow_reminders=true where user_id=$1', [B])
+    await pg.query("select public.set_focus_session($1,'学习',25,true)", [couple])
     await asUser(A)
     expect(await scalar("select public.send_ping('去学习')")).toBeTypeOf('string')
   })
@@ -216,12 +210,14 @@ describe.sequential('private two-player database boundary', () => {
     await expect(pg.query('select public.send_ping(null)')).rejects.toThrow('未知')
     await expect(pg.query("select public.send_ping('去工作')")).rejects.toThrow('尚未开启')
     await asUser(B)
-    await pg.query(
-      "insert into public.focus_sessions values($1,$2,'休息',now()+interval '25 minutes',false)",
-      [B, couple],
-    )
+    await asUser(B)
+    await pg.query("select public.set_focus_session($1,'休息',25,false)", [couple])
     await asUser(A)
     await expect(pg.query("select public.send_ping('抱一下')")).rejects.toThrow('未授权')
+  })
+  it('removes the retired foreground push heartbeat functions', async () => {
+    expect(await scalar("select to_regprocedure('public.touch_device_activity()')")).toBeNull()
+    expect(await scalar("select to_regprocedure('public.touch_device_activity(text)')")).toBeNull()
   })
   it('keeps shared dates writable only inside the member space', async () => {
     await asUser(A)
@@ -293,8 +289,14 @@ describe.sequential('private two-player database boundary', () => {
       [couple, A],
     )
     const photo = await scalar(
-      "insert into public.photos(couple_id,uploaded_by,path,caption,occurred_on,story,event_id,message_id) values($1,$2,$3,'合照','2020-02-29','那天很开心',$4,$5) returning id",
-      [couple, A, `${couple}/${A}/memory.jpg`, event, message],
+      "select (public.create_photo_once($1,$2,$3,'合照','2020-02-29','那天很开心',$4,$5)).id",
+      [
+        '61000000-0000-0000-0000-000000000001',
+        couple,
+        `${couple}/${A}/61000000-0000-0000-0000-000000000001.jpg`,
+        event,
+        message,
+      ],
     )
     await asUser(C)
     const foreignEvent = await scalar(
@@ -408,8 +410,13 @@ describe.sequential('private two-player database boundary', () => {
       [couple, A],
     )
     const photo = await scalar(
-      "insert into public.photos(couple_id,uploaded_by,path,caption,event_id) values($1,$2,$3,'delete me',$4) returning id",
-      [couple, A, `${couple}/${A}/delete-test.jpg`, event],
+      "select (public.create_photo_once($1,$2,$3,'delete me',null, '', $4, null)).id",
+      [
+        '61000000-0000-0000-0000-000000000002',
+        couple,
+        `${couple}/${A}/61000000-0000-0000-0000-000000000002.jpg`,
+        event,
+      ],
     )
     expect(
       (await pg.query('select * from public.photo_deletion_target($1,$2)', [photo, couple])).rows,
@@ -796,47 +803,6 @@ describe.sequential('private two-player database boundary', () => {
     ).toBe(1)
     await pg.query('delete from public.device_installations where token=$1', [token])
   })
-  it('touches only the calling account\u2019s own Android device activity', async () => {
-    await asUser(A)
-    const mine = 'fcm-token-activity-heartbeat-a-00001'
-    await pg.query('select * from public.register_device_installation($1,$2)', [mine, 'test'])
-    await asUser(B)
-    const theirs = 'fcm-token-activity-heartbeat-b-00001'
-    await pg.query('select * from public.register_device_installation($1,$2)', [theirs, 'test'])
-    // Backdate both rows with elevated rights: authenticated UPDATE was revoked
-    // in 202609080016, which is exactly why the heartbeat goes through an RPC.
-    await pg.exec('reset role')
-    await pg.query(
-      "update public.device_installations set last_seen_at = now() - interval '1 hour' where token in ($1,$2)",
-      [mine, theirs],
-    )
-    await asUser(A)
-    expect(await scalar('select public.touch_device_activity($1)', [mine])).toBe(1)
-    // Verify with elevated rights: under RLS account A cannot even see B's row.
-    await pg.exec('reset role')
-    expect(
-      await scalar(
-        "select count(*)::int from public.device_installations where token=$1 and last_seen_at > now() - interval '1 minute'",
-        [mine],
-      ),
-    ).toBe(1)
-    expect(
-      await scalar(
-        "select count(*)::int from public.device_installations where token=$1 and last_seen_at < now() - interval '30 minutes'",
-        [theirs],
-      ),
-    ).toBe(1)
-    await pg.exec('reset role; set role anon')
-    await expect(pg.query('select public.touch_device_activity($1)', [mine])).rejects.toThrow()
-    await pg.exec('reset role')
-    await pg.query('delete from public.device_installations where token in ($1,$2)', [mine, theirs])
-  })
-  it('returns zero from the heartbeat RPC when the account has no devices', async () => {
-    await asUser(C)
-    expect(
-      await scalar('select public.touch_device_activity($1)', ['fcm-token-no-device-0000001']),
-    ).toBe(0)
-  })
   it('updates the shared greeting only inside the current couple and confirms the row', async () => {
     await asUser(A)
     const current = (await scalar('select public.my_couple_id()')) as string
@@ -870,8 +836,12 @@ describe.sequential('private two-player database boundary', () => {
       [current, A],
     )
     const photo = await scalar(
-      "insert into public.photos(couple_id,uploaded_by,path,caption) values($1,$2,$3,'匿名后的回忆') returning id",
-      [current, A, `${current}/${A}/account-delete.jpg`],
+      "select (public.create_photo_once($1,$2,$3,'匿名后的回忆',null,'',null,null)).id",
+      [
+        '61000000-0000-0000-0000-000000000003',
+        current,
+        `${current}/${A}/61000000-0000-0000-0000-000000000003.jpg`,
+      ],
     )
     const first = await scalar('select public.prepare_account_deletion($1)', [current])
     expect(first).toBeTypeOf('string')
@@ -906,7 +876,9 @@ describe.sequential('private two-player database boundary', () => {
         [first],
       )
     ).rows[0].storage_paths
-    expect(JSON.parse(jobPaths)).toContain(`${current}/${A}/account-delete.jpg`)
+    expect(JSON.parse(jobPaths)).toContain(
+      `${current}/${A}/61000000-0000-0000-0000-000000000003.jpg`,
+    )
     expect(
       await scalar('select count(*)::int from public.couple_members where couple_id=$1', [current]),
     ).toBe(1)

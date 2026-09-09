@@ -13,6 +13,7 @@ import { Icon, PixelPal, AVATAR_LIST } from '../components/PixelArt'
 import { db } from '../lib/supabase'
 import { disableFeedback, enableFeedback } from '../lib/notifications'
 import { localDateInput } from '../lib/dates'
+import { PixelDatePicker } from '../components/PixelPickers'
 export function InviteCode({ code }: { code: string }) {
   const { busy, run } = useTask(),
     toast = useToast()
@@ -163,12 +164,12 @@ export function Settings({
             </label>
             <label>
               我们在一起的日期
-              <input
-                type="date"
-                required
-                max={localDateInput()}
+              <PixelDatePicker
                 value={since}
-                onChange={(e) => setSince(e.target.value)}
+                min="1900-01-01"
+                max={localDateInput()}
+                yearMax={new Date().getFullYear()}
+                onChange={setSince}
               />
             </label>
             <p className="form-note">以本地自然日计算经过天数，在一起当天为第 0 天。</p>

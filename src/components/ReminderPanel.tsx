@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { BiboNative, type ReminderRecord } from '../native'
+import { BiboNative, type NotificationPermission, type ReminderRecord } from '../native'
 import { Button, Panel, useTask, useToast } from './ui'
 import { errorText } from '../lib/supabase'
+import { PixelDateTimePicker } from './PixelPickers'
 const labels = {
   scheduled: '等待系统提醒',
   posted: '已交给系统通知栏',
@@ -13,6 +14,7 @@ export function ReminderPanel() {
   const [at, setAt] = useState(''),
     [rows, setRows] = useState<ReminderRecord[]>([]),
     [supported, setSupported] = useState(false),
+    [permission, setPermission] = useState<NotificationPermission | null>(null),
     [error, setError] = useState('')
   const { busy, run } = useTask(),
     toast = useToast()
@@ -21,6 +23,8 @@ export function ReminderPanel() {
       const result = await BiboNative.reminders.list()
       setSupported(result.supported)
       setRows(result.items)
+      const notification = await BiboNative.permissions.notifications()
+      setPermission(notification)
       setError('')
     } catch (e) {
       setError(errorText(e))
@@ -45,11 +49,30 @@ export function ReminderPanel() {
           <p>Android 本机能力；Web 不会用网页计时器假装后台提醒。</p>
         ) : (
           <>
+            {permission && !permission.granted && (
+              <div className="permission-inline" role="status">
+                <p>系统通知权限尚未开启，本机提醒不会出现在通知栏。</p>
+                <Button
+                  tone="yellow"
+                  disabled={busy}
+                  onClick={() =>
+                    void run(async () => {
+                      const next = await BiboNative.permissions.requestNotifications()
+                      setPermission(next)
+                      if (!next.granted) throw new Error('请在 Android 系统设置中允许通知后再重试')
+                    })
+                  }
+                >
+                  申请通知权限
+                </Button>
+              </div>
+            )}
             <form
               className="form-stack"
               onSubmit={(e) => {
                 e.preventDefault()
                 void run(async () => {
+                  if (!at) throw new Error('请选择提醒日期与时间')
                   const permission = await BiboNative.permissions.requestNotifications()
                   if (!permission.granted) throw new Error('请先允许系统通知')
                   const id = (crypto.getRandomValues(new Uint32Array(1))[0] % 2147483646) + 1
@@ -68,12 +91,7 @@ export function ReminderPanel() {
             >
               <label>
                 提醒时间（本机时区）
-                <input
-                  required
-                  type="datetime-local"
-                  value={at}
-                  onChange={(e) => setAt(e.target.value)}
-                />
+                <PixelDateTimePicker value={at} onChange={setAt} />
               </label>
               <Button type="submit" disabled={busy}>
                 保存本机提醒

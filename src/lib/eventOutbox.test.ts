@@ -29,13 +29,9 @@ describe('durable event operation queue', () => {
     expect(create.eventId).not.toBe(create.id)
     expect(confirmedEvent(create, event)).toBe(true)
     // Supabase PostgREST returns timestamptz formatted with +00:00 without milliseconds
-    expect(
-      confirmedEvent(create, { ...event, target_at: '2030-01-02T03:04:05+00:00' }),
-    ).toBe(true)
+    expect(confirmedEvent(create, { ...event, target_at: '2030-01-02T03:04:05+00:00' })).toBe(true)
     // Trimmed title comparison
-    expect(
-      confirmedEvent(create, { ...event, title: '去看海 ' }),
-    ).toBe(true)
+    expect(confirmedEvent(create, { ...event, title: '去看海 ' })).toBe(true)
     expect(confirmedEvent(create, { ...event, title: 'tampered' })).toBe(false)
     expect(sameInstant('2030-01-02T03:04:05.000Z', '2030-01-02T03:04:05+00:00')).toBe(true)
     expect(sameInstant('2030-01-02T03:04:05.000Z', '2030-01-02T04:04:05.000Z')).toBe(false)

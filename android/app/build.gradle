@@ -1,6 +1,18 @@
 apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.android'
 
+def releaseKeystorePath = System.getenv('BIBO_RELEASE_KEYSTORE')
+def releaseStorePassword = System.getenv('BIBO_RELEASE_STORE_PASSWORD')
+def releaseKeyAlias = System.getenv('BIBO_RELEASE_KEY_ALIAS')
+def releaseKeyPassword = System.getenv('BIBO_RELEASE_KEY_PASSWORD')
+def releaseSigningReady = [releaseKeystorePath, releaseStorePassword, releaseKeyAlias, releaseKeyPassword].every { value ->
+    value != null && !value.trim().isEmpty()
+}
+def requestedVersionCode = System.getenv('BIBO_VERSION_CODE')
+def requestedVersionName = System.getenv('BIBO_VERSION_NAME')
+def versionCodeValue = requestedVersionCode?.isInteger() ? requestedVersionCode.toInteger() : 1
+def versionNameValue = requestedVersionName?.trim() ?: '0.1.0'
+
 android {
     kotlinOptions { jvmTarget = "21" }
     compileOptions { sourceCompatibility JavaVersion.VERSION_21; targetCompatibility JavaVersion.VERSION_21 }
@@ -10,8 +22,8 @@ android {
         applicationId "love.bibu.space"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode versionCodeValue
+        versionName versionNameValue
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -19,8 +31,19 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (releaseSigningReady) {
+                storeFile file(releaseKeystorePath)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
     buildTypes {
         release {
+            if (releaseSigningReady) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
