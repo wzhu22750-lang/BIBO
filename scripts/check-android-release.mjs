@@ -21,8 +21,13 @@ if (!existsSync(resolve(root, 'android/app/src/main/res/drawable-mdpi/ic_stat_bi
   failures.push('缺少 Android 通知状态栏图标资源')
 
 const gradle = text('android/app/build.gradle')
-const versionCode = process.env.BIBO_VERSION_CODE || /versionCode\s+(\d+)/.exec(gradle)?.[1] || '1'
+const versionCode =
+  process.env.BIBU_VERSION_CODE ||
+  process.env.BIBO_VERSION_CODE ||
+  /versionCode\s+(\d+)/.exec(gradle)?.[1] ||
+  '1'
 const versionName =
+  process.env.BIBU_VERSION_NAME?.trim() ||
   process.env.BIBO_VERSION_NAME?.trim() ||
   /versionName\s+["']([^"']+)["']/.exec(gradle)?.[1] ||
   '0.1.0'
@@ -30,16 +35,17 @@ if (!/^\d+$/.test(versionCode) || Number(versionCode) < 1) failures.push('versio
 if (versionName === '1.0')
   warnings.push(`versionName 当前为 ${versionName}；发布前应按版本策略更新`)
 
+const keystorePath = process.env.BIBU_RELEASE_KEYSTORE || process.env.BIBO_RELEASE_KEYSTORE
 const signingValues = [
-  process.env.BIBO_RELEASE_KEYSTORE,
-  process.env.BIBO_RELEASE_STORE_PASSWORD,
-  process.env.BIBO_RELEASE_KEY_ALIAS,
-  process.env.BIBO_RELEASE_KEY_PASSWORD,
+  keystorePath,
+  process.env.BIBU_RELEASE_STORE_PASSWORD || process.env.BIBO_RELEASE_STORE_PASSWORD,
+  process.env.BIBU_RELEASE_KEY_ALIAS || process.env.BIBO_RELEASE_KEY_ALIAS,
+  process.env.BIBU_RELEASE_KEY_PASSWORD || process.env.BIBO_RELEASE_KEY_PASSWORD,
 ]
 if (!signingValues.every((value) => value && value.trim())) {
   failures.push('缺少正式 release signing 环境变量；不会把 unsigned APK 当作可发布包')
-} else if (!existsSync(resolve(process.env.BIBO_RELEASE_KEYSTORE))) {
-  failures.push('BIBO_RELEASE_KEYSTORE 指向的签名文件不存在')
+} else if (!existsSync(resolve(keystorePath))) {
+  failures.push('BIBU_RELEASE_KEYSTORE 指向的签名文件不存在')
 }
 
 const firebasePath = resolve(root, 'android/app/google-services.json')

@@ -15,7 +15,7 @@ describe('FCM push payload contract', () => {
     const result = buildPingPush(record, 't'.repeat(20))
     expect(result.message.token).toHaveLength(20)
     expect(result.message.data.route).toBe('#home')
-    expect(result.message.notification.body).toBe('收到一个小小的哔卟，打开 BIBU 查看')
+    expect(result.message.notification.body).toBe('收到一个小小的哔卟，打开 BIBU！查看')
     expect(result.message.android.priority).toBe('HIGH')
     expect(result.message.android.notification.channel_id).toBe('bibo_love_v3')
     expect(result.message.android.notification.notification_priority).toBe('PRIORITY_HIGH')

@@ -25,7 +25,7 @@ describe('private space export', () => {
     expect(serialized).not.toContain('token=secret')
     expect(serialized).not.toContain('demo-me')
     expect(serialized).not.toContain('demo-you')
-    expect(serialized).not.toContain('bibo-demo-v1')
+    expect(serialized).not.toContain('bibu-demo-v1')
   })
   it('preserves chronology and event title but never invents missing links', () => {
     const space = makeDemo()
@@ -41,8 +41,8 @@ describe('private space export', () => {
       download = vi.fn(),
       now = new Date('2026-09-08T00:00:00Z')
     const data = downloadSpace(space, now, download)
-    expect(exportFilename(now)).toBe('bibo-space-2026-09-08.json')
-    expect(download).toHaveBeenCalledWith(expect.any(Blob), 'bibo-space-2026-09-08.json')
+    expect(exportFilename(now)).toBe('bibu-space-2026-09-08.json')
+    expect(download).toHaveBeenCalledWith(expect.any(Blob), 'bibu-space-2026-09-08.json')
     expect(JSON.parse(data).schema).toBe(1)
   })
 })

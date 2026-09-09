@@ -75,11 +75,11 @@ export function WardrobeDrawerLayout(props: SharedWardrobeProps) {
               <div className="drawer-stage-actions">
                 {isDeployed ? (
                   <span className="status-badge deployed">
-                    <Icon name="star" size={11} /> 当前 BIBU 形象
+                    <Icon name="star" size={11} /> 当前 BIBU！形象
                   </span>
                 ) : (
                   <button type="button" className="status-badge deploy-btn" onClick={onSetDeployed}>
-                    设为 BIBU 形象
+                    设为 BIBU！形象
                   </button>
                 )}
               </div>
@@ -138,7 +138,7 @@ export function WardrobeDrawerLayout(props: SharedWardrobeProps) {
               <div className="fitting-actions-right">
                 {isDeployed ? (
                   <span className="status-badge deployed micro">
-                    <Icon name="star" size={11} /> BIBU 形象
+                    <Icon name="star" size={11} /> BIBU！形象
                   </span>
                 ) : (
                   <button

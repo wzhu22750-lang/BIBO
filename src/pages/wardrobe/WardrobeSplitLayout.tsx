@@ -79,7 +79,7 @@ export function WardrobeSplitLayout(props: SharedWardrobeProps) {
                 type="button"
                 className="hud-deploy-btn"
                 onClick={onSetDeployed}
-                title="设为在小窝陪伴的 BIBU 形象"
+                title="设为在小窝陪伴的 BIBU！形象"
               >
                 设为陪伴
               </button>

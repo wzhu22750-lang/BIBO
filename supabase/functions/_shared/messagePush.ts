@@ -38,7 +38,7 @@ export function buildMessagePush(record: MessagePushRecord, token: string): Mess
   return {
     message: {
       token,
-      notification: { title: 'BIBU 悄悄话', body: '收到一条悄悄话，打开 BIBU 查看' },
+      notification: { title: 'BIBU！悄悄话', body: '收到一条悄悄话，打开 BIBU！查看' },
       data: { route: `#chat?message=${record.id}`, message_id: record.id, kind: 'message' },
       android: {
         priority: 'HIGH',

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { BiboNative } from '../native'
+import { BibuNative } from '../native'
 import { FOCUS_REMINDER_ID, setFocusReminder, cancelFocusReminder } from './focusReminder'
 import type { Focus } from './types'
 const focus: Focus = {
@@ -11,14 +11,14 @@ const focus: Focus = {
 }
 function adapter() {
   return {
-    ...BiboNative,
+    ...BibuNative,
     reminders: {
-      ...BiboNative.reminders,
+      ...BibuNative.reminders,
       cancel: vi.fn().mockResolvedValue({ supported: true }),
       schedule: vi.fn().mockResolvedValue({ supported: true }),
     },
     permissions: {
-      ...BiboNative.permissions,
+      ...BibuNative.permissions,
       requestNotifications: vi.fn().mockResolvedValue({ supported: true, granted: true }),
     },
   }

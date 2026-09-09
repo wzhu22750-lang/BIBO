@@ -1,5 +1,5 @@
 import { registerDeviceInstallation } from './lib/api'
-import { BiboNative } from './native'
+import { BibuNative } from './native'
 import { parseRoute } from './lib/routes'
 import { positiveHash } from './lib/pingNotification'
 import { recoverPendingAccountDeletion } from './lib/accountDeletionRecovery'
@@ -151,7 +151,7 @@ export default function App() {
   useEffect(() => {
     let disposed = false
     let stop: (() => void) | undefined
-    void BiboNative.deepLinks
+    void BibuNative.deepLinks
       .listen((route) => {
         window.location.hash = route
       })
@@ -168,7 +168,7 @@ export default function App() {
   useEffect(() => {
     let disposed = false
     let stop: (() => void) | undefined
-    void BiboNative.push
+    void BibuNative.push
       .listenAction((route) => {
         window.location.hash = route
       })
@@ -196,9 +196,9 @@ export default function App() {
         // very fast FCM callback cannot be lost. The silent attempt only
         // repairs an already-granted installation; the visible Settings action
         // remains the place that asks for notification permission.
-        const cleanup = await BiboNative.push.listenRegistration((token) => {
+        const cleanup = await BibuNative.push.listenRegistration((token) => {
           if (active)
-            void registerDeviceInstallation(session.user.id, token, 'bibo-0.1.0')
+            void registerDeviceInstallation(session.user.id, token, 'bibu-0.1.0')
               .then(() => storePushToken(token))
               .catch(() => {})
         })
@@ -209,8 +209,8 @@ export default function App() {
         stop = cleanup
         const result = await registerDevicePush(
           session.user.id,
-          'bibo-0.1.0',
-          BiboNative,
+          'bibu-0.1.0',
+          BibuNative,
           undefined,
           false,
         )
@@ -288,7 +288,7 @@ export default function App() {
   useEffect(() => {
     let disposed = false
     let stop: (() => void) | undefined
-    void BiboNative.push
+    void BibuNative.push
       .listenReceived((value) => {
         if (disposed) return
         const data = value.data || {}
@@ -298,13 +298,13 @@ export default function App() {
         const route = typeof data.route === 'string' ? data.route : '#home'
         const kind = messageId ? 'message' : 'ping'
         const stableId = messageId || pingId
-        void BiboNative.notifications
+        void BibuNative.notifications
           .show({
             id: positiveHash(stableId),
             title: value.title || (kind === 'message' ? '收到一条悄悄话' : '收到一个小小的哔卟'),
             body:
               value.body ||
-              (kind === 'message' ? '打开 BIBU 查看消息' : '打开 BIBU 查看这个小小的想念'),
+              (kind === 'message' ? '打开 BIBU！查看消息' : '打开 BIBU！查看这个小小的想念'),
             route,
             ...(kind === 'message' ? { channel: 'messages' as const } : {}),
           })

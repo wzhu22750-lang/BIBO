@@ -32,7 +32,7 @@ export function Shell({
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <button className="brand" onClick={() => navigate('home')} aria-label="哔卟哔卟首页">
+        <button className="brand" onClick={() => navigate('home')} aria-label="BIBU！首页">
           <span className="brand-word">
             BIBU<span>!</span>
             <i>✳</i>
@@ -90,7 +90,7 @@ export function Shell({
       <div className={`main-wrap page-wrap-${page}`}>
         <header className="topbar">
           <span className="topbar-caption">
-            <Icon name="star" size={15} /> BIBU!
+            <Icon name="star" size={15} /> BIBU！
           </span>
           <div className="topbar-right">
             <button

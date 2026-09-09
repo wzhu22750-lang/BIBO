@@ -5,7 +5,7 @@ import { SettingsNote } from '../components/SettingsNote'
 import { AccountDeletion } from '../components/AccountDeletion'
 import { InactiveOutbox } from '../components/InactiveOutbox'
 import { InvitationManager } from '../components/InvitationManager'
-import { BiboNative } from '../native'
+import { BibuNative } from '../native'
 import { useState } from 'react'
 import type { SpaceController } from '../hooks/useSpace'
 import type { AvatarType, Page } from '../lib/types'
@@ -134,7 +134,7 @@ export function Settings({
               e.preventDefault()
               void run(async () => {
                 await controller.save(name.trim(), since, avatar, outfits)
-                toast('档案与 BIBU 形象已保存')
+                toast('档案与 BIBU！形象已保存')
               })
             }}
           >
@@ -188,7 +188,7 @@ export function Settings({
                 />
               </div>
               <div className="pet-hero-meta">
-                <span className="micro eyebrow">PLAYER 01 · 当前 BIBU 形象</span>
+                <span className="micro eyebrow">PLAYER 01 · 当前 BIBU！形象</span>
                 <h3 className="pet-hero-title">{CHARACTER_MAP[avatar]?.name || '小动物'}</h3>
                 <p className="pet-hero-desc">
                   {CHARACTER_MAP[avatar]?.description || '你的专属像素好伙伴。'}
@@ -200,7 +200,7 @@ export function Settings({
             <div className="settings-section-block">
               <div className="section-block-header">
                 <div className="section-block-title-group">
-                  <label className="avatar-picker-label">选择你的BIBU形象！</label>
+                  <label className="avatar-picker-label">选择你的 BIBU！形象</label>
                   <span className="micro muted">自动穿戴该角色已保存的穿搭</span>
                 </div>
                 <button
@@ -245,7 +245,7 @@ export function Settings({
                   type="button"
                   className="character-selector-collapsed-preview"
                   onClick={() => setShowCharacterPicker(true)}
-                  aria-label="展开选择BIBU形象"
+                  aria-label="展开选择 BIBU！形象"
                 >
                   <div className="collapsed-preview-left">
                     <Icon name="spark" size={12} />
@@ -364,7 +364,7 @@ export function Settings({
                 disabled={busy}
                 onClick={() =>
                   void run(async () => {
-                    const permission = await BiboNative.permissions.requestNotifications()
+                    const permission = await BibuNative.permissions.requestNotifications()
                     if (!permission.supported) {
                       toast(permission.reason || '此环境暂不支持')
                       return
@@ -373,9 +373,9 @@ export function Settings({
                       toast('通知未开启，可到系统应用设置中调整', true)
                       return
                     }
-                    const result = await BiboNative.notifications.show({
+                    const result = await BibuNative.notifications.show({
                       id: 1,
-                      title: 'BIBU 通知测试',
+                      title: 'BIBU！通知测试',
                       body: '点击回到我们的小窝',
                       route: '#home',
                     })

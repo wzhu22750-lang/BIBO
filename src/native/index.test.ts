@@ -17,23 +17,26 @@ vi.mock('@capacitor/core', () => ({
   Capacitor: { getPlatform: () => mocks.platform },
   registerPlugin: () => mocks,
 }))
-import { BiboNative, safeNativeRoute } from './index'
+import { BibuNative, BiboNative, safeNativeRoute } from './index'
 beforeEach(() => {
   mocks.platform = 'web'
   vi.clearAllMocks()
 })
 afterEach(() => vi.unstubAllGlobals())
-describe('BiboNative boundary', () => {
+describe('BibuNative boundary', () => {
+  it('exports BiboNative as an alias for backward compatibility', () => {
+    expect(BiboNative).toBe(BibuNative)
+  })
   it('has safe Web fallbacks for all capability groups without calling the native plugin', async () => {
-    expect((await BiboNative.permissions.notifications()).granted).toBe(false)
-    expect((await BiboNative.permissions.requestNotifications()).supported).toBe(false)
+    expect((await BibuNative.permissions.notifications()).granted).toBe(false)
+    expect((await BibuNative.permissions.requestNotifications()).supported).toBe(false)
     expect(
-      (await BiboNative.notifications.show({ id: 1, title: 'test', body: '', route: '#home' }))
+      (await BibuNative.notifications.show({ id: 1, title: 'test', body: '', route: '#home' }))
         .supported,
     ).toBe(false)
     expect(
       (
-        await BiboNative.reminders.schedule({
+        await BibuNative.reminders.schedule({
           id: 1,
           title: 'test',
           body: '',
@@ -42,8 +45,8 @@ describe('BiboNative boundary', () => {
         })
       ).supported,
     ).toBe(false)
-    expect((await BiboNative.screenTime.today()).milliseconds).toBeNull()
-    expect(typeof (await BiboNative.deepLinks.listen(() => {}))).toBe('function')
+    expect((await BibuNative.screenTime.today()).milliseconds).toBeNull()
+    expect(typeof (await BibuNative.deepLinks.listen(() => {}))).toBe('function')
     expect(mocks.notify).not.toHaveBeenCalled()
   })
   it('normalizes routes without opening external URLs', () => {
@@ -54,7 +57,7 @@ describe('BiboNative boundary', () => {
   it('blocks Push registration before the official plugin when Firebase is absent', async () => {
     mocks.platform = 'android'
     mocks.firebaseConfiguration.mockResolvedValue({ supported: true, configured: false })
-    expect(await BiboNative.push.register()).toEqual({
+    expect(await BibuNative.push.register()).toEqual({
       supported: false,
       reason: 'Android 未配置 Firebase google-services.json，未调用 Push 注册',
     })
@@ -62,19 +65,19 @@ describe('BiboNative boundary', () => {
   it('uses the Android bridge and validates untrusted vibration input', async () => {
     mocks.platform = 'android'
     mocks.vibrate.mockResolvedValue({ supported: true })
-    await BiboNative.vibration.pulse([100, 60, 100])
+    await BibuNative.vibration.pulse([100, 60, 100])
     expect(mocks.vibrate).toHaveBeenCalledWith({ pattern: [100, 60, 100] })
     for (const pattern of [[], [-1], [Infinity], [1001], Array(21).fill(1)])
-      await expect(BiboNative.vibration.pulse(pattern)).rejects.toThrow('无效')
+      await expect(BibuNative.vibration.pulse(pattern)).rejects.toThrow('无效')
   })
   it('does not represent unavailable browser vibration as successful', async () => {
     vi.stubGlobal('navigator', {})
-    expect((await BiboNative.vibration.pulse([100])).supported).toBe(false)
+    expect((await BibuNative.vibration.pulse([100])).supported).toBe(false)
   })
   it('bounds Android notifications and sanitizes navigation at the bridge', async () => {
     mocks.platform = 'android'
     mocks.notify.mockResolvedValue({ supported: true })
-    await BiboNative.notifications.show({
+    await BibuNative.notifications.show({
       id: 3,
       title: 'x'.repeat(100),
       body: 'y'.repeat(300),
@@ -87,13 +90,13 @@ describe('BiboNative boundary', () => {
       route: '#home',
     })
     await expect(
-      BiboNative.notifications.show({ id: -1, title: '', body: '', route: '#home' }),
+      BibuNative.notifications.show({ id: -1, title: '', body: '', route: '#home' }),
     ).rejects.toThrow('ID')
   })
   it('routes message notifications to the messages channel and drops unknown channels', async () => {
     mocks.platform = 'android'
     mocks.notify.mockResolvedValue({ supported: true })
-    await BiboNative.notifications.show({
+    await BibuNative.notifications.show({
       id: 4,
       title: 'Wincy',
       body: '你今天吃饭了吗？',
@@ -107,7 +110,7 @@ describe('BiboNative boundary', () => {
       route: '#chat?message=m1',
       channel: 'messages',
     })
-    await BiboNative.notifications.show({
+    await BibuNative.notifications.show({
       id: 5,
       title: 't',
       body: 'b',
@@ -119,23 +122,23 @@ describe('BiboNative boundary', () => {
   it('keeps permission denial separate from measured zero and passes the app filter', async () => {
     mocks.platform = 'android'
     mocks.screenTimeToday.mockResolvedValue({ supported: true, granted: false, milliseconds: null })
-    expect((await BiboNative.screenTime.today()).milliseconds).toBeNull()
+    expect((await BibuNative.screenTime.today()).milliseconds).toBeNull()
     mocks.screenTimeToday.mockResolvedValue({
       supported: true,
       granted: true,
       milliseconds: 0,
       metric: 'app_foreground',
     })
-    expect((await BiboNative.screenTime.today('com.example.app')).milliseconds).toBe(0)
+    expect((await BibuNative.screenTime.today('com.example.app')).milliseconds).toBe(0)
     expect(mocks.screenTimeToday).toHaveBeenLastCalledWith({ packageName: 'com.example.app' })
-    await expect(BiboNative.screenTime.today('../other')).rejects.toThrow('包名')
+    await expect(BibuNative.screenTime.today('../other')).rejects.toThrow('包名')
   })
   it('opening Usage Access settings does not imply permission was granted', async () => {
     mocks.platform = 'android'
     mocks.openUsageSettings.mockResolvedValue({ supported: true })
     mocks.usagePermission.mockResolvedValue({ supported: true, granted: false })
-    await BiboNative.permissions.openUsageAccessSettings()
-    expect((await BiboNative.permissions.usageAccess()).granted).toBe(false)
+    await BibuNative.permissions.openUsageAccessSettings()
+    expect((await BibuNative.permissions.usageAccess()).granted).toBe(false)
   })
   it('schedules bounded Android reminders and never accepts elapsed dates', async () => {
     mocks.platform = 'android'
@@ -147,11 +150,11 @@ describe('BiboNative boundary', () => {
       body: 'body',
       route: 'https://evil.test',
     }
-    await BiboNative.reminders.schedule(input)
+    await BibuNative.reminders.schedule(input)
     expect(mocks.scheduleReminder).toHaveBeenCalledWith({ ...input, route: '#home' })
     for (const at of [NaN, Date.now() - 1000, Date.now() + 367 * 86400000])
-      await expect(BiboNative.reminders.schedule({ ...input, at })).rejects.toThrow('时间')
-    await expect(BiboNative.reminders.schedule({ ...input, id: 0 })).rejects.toThrow('ID')
+      await expect(BibuNative.reminders.schedule({ ...input, at })).rejects.toThrow('时间')
+    await expect(BibuNative.reminders.schedule({ ...input, id: 0 })).rejects.toThrow('ID')
   })
   it('lists and cancels persisted reminders through the native boundary', async () => {
     mocks.platform = 'android'
@@ -159,10 +162,10 @@ describe('BiboNative boundary', () => {
       supported: true,
       items: [{ id: 2, status: 'blocked' }],
     })
-    expect((await BiboNative.reminders.list()).items[0].status).toBe('blocked')
+    expect((await BibuNative.reminders.list()).items[0].status).toBe('blocked')
     mocks.cancelReminder.mockResolvedValue({ supported: true })
-    await BiboNative.reminders.cancel(2)
+    await BibuNative.reminders.cancel(2)
     expect(mocks.cancelReminder).toHaveBeenCalledWith({ id: 2 })
-    await expect(BiboNative.reminders.cancel(-1)).rejects.toThrow('ID')
+    await expect(BibuNative.reminders.cancel(-1)).rejects.toThrow('ID')
   })
 })

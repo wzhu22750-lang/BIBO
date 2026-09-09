@@ -70,7 +70,7 @@ export function exportSpace(space: Space, now = new Date()): ExportedSpace {
   }
 }
 export function exportFilename(now = new Date()) {
-  return `bibo-space-${now.toISOString().slice(0, 10)}.json`
+  return `bibu-space-${now.toISOString().slice(0, 10)}.json`
 }
 export function downloadSpace(
   space: Space,

@@ -6,7 +6,7 @@ import { useEventOutbox } from './useEventOutbox'
 import { usePhotoOutbox } from './usePhotoOutbox'
 import { cleanupAccountLocal, cleanupSessionPrivacy } from '../lib/accountCleanup'
 import { clearChatDraftsForUser } from '../lib/chatDraftStorage'
-import { BiboNative } from '../native'
+import { BibuNative } from '../native'
 import { clearStoredPushToken, readStoredPushToken } from '../lib/pushRegistration'
 import {
   clearPendingAccountDeletion,
@@ -586,13 +586,13 @@ export function useSpace(
             if (token) await api.removeDeviceInstallation(userId, token)
           },
           unregisterPush: async () => {
-            const result = await BiboNative.push.unregister()
+            const result = await BibuNative.push.unregister()
             if (!result.supported && result.reason && !result.reason.includes('Web'))
               throw new Error(result.reason)
             clearStoredPushToken()
           },
-          listReminders: () => BiboNative.reminders.list(),
-          cancelReminder: (id) => BiboNative.reminders.cancel(id),
+          listReminders: () => BibuNative.reminders.list(),
+          cancelReminder: (id) => BibuNative.reminders.cancel(id),
         })
         const remoteFailure = cleanupErrors.find((item) => item.startsWith('远程 Push 登记：'))
         if (remoteFailure)
@@ -630,13 +630,13 @@ export function useSpace(
         removeSavedEmail: () => localStorage.removeItem('bibu-saved-email'),
         clearChatDrafts: () => clearChatDraftsForUser(userId),
         unregisterPush: async () => {
-          const result = await BiboNative.push.unregister()
+          const result = await BibuNative.push.unregister()
           if (!result.supported && result.reason && !result.reason.includes('Web'))
             throw new Error(result.reason)
           clearStoredPushToken()
         },
-        listReminders: () => BiboNative.reminders.list(),
-        cancelReminder: (id) => BiboNative.reminders.cancel(id),
+        listReminders: () => BibuNative.reminders.list(),
+        cancelReminder: (id) => BibuNative.reminders.cancel(id),
       })
       await clearImageCache()
       clearPendingAccountDeletion()

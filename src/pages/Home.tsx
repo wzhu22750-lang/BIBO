@@ -237,7 +237,7 @@ export function Home({
               aria-label={`发送${bibu.kind}`}
             >
               <Icon name="heart" size={36} />
-              <strong>BIBU!</strong>
+              <strong>BIBU！</strong>
               <small>{pingFeedback(bibu.kind).label}</small>
             </button>
           </div>

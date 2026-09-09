@@ -58,7 +58,7 @@ export function safeNativeRoute(value: string) {
   const key = parsed.page === 'chat' ? 'message' : 'event'
   return `#${parsed.page}${parsed.referenceId ? `?${key}=${encodeURIComponent(parsed.referenceId)}` : ''}`
 }
-export const BiboNative = {
+export const BibuNative = {
   notifications: {
     async show(input: NotificationInput): Promise<CapabilityResult> {
       if (!native()) return unavailable('系统通知仅在 Android 应用内可用')
@@ -177,7 +177,7 @@ export const BiboNative = {
         // (DND/silence still apply — we never bypass them).
         await PushNotifications.createChannel({
           id: 'bibo_messages_v2',
-          name: 'BIBU 悄悄话',
+          name: 'BIBU！悄悄话',
           description: '伴侣消息通知',
           importance: 4,
           visibility: 0,
@@ -309,3 +309,4 @@ export const BiboNative = {
     },
   },
 }
+export const BiboNative = BibuNative

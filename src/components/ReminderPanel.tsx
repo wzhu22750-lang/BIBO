@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BiboNative, type NotificationPermission, type ReminderRecord } from '../native'
+import { BibuNative, type NotificationPermission, type ReminderRecord } from '../native'
 import { Button, Panel, useTask, useToast } from './ui'
 import { SettingsNote } from './SettingsNote'
 import { errorText } from '../lib/supabase'
@@ -21,10 +21,10 @@ export function ReminderPanel() {
     toast = useToast()
   async function refresh() {
     try {
-      const result = await BiboNative.reminders.list()
+      const result = await BibuNative.reminders.list()
       setSupported(result.supported)
       setRows(result.items)
-      const notification = await BiboNative.permissions.notifications()
+      const notification = await BibuNative.permissions.notifications()
       setPermission(notification)
       setError('')
     } catch (e) {
@@ -59,7 +59,7 @@ export function ReminderPanel() {
                   disabled={busy}
                   onClick={() =>
                     void run(async () => {
-                      const next = await BiboNative.permissions.requestNotifications()
+                      const next = await BibuNative.permissions.requestNotifications()
                       setPermission(next)
                       if (!next.granted) throw new Error('请在 Android 系统设置中允许通知后再重试')
                     })
@@ -75,13 +75,13 @@ export function ReminderPanel() {
                 e.preventDefault()
                 void run(async () => {
                   if (!at) throw new Error('请选择提醒日期与时间')
-                  const permission = await BiboNative.permissions.requestNotifications()
+                  const permission = await BibuNative.permissions.requestNotifications()
                   if (!permission.granted) throw new Error('请先允许系统通知')
                   const id = (crypto.getRandomValues(new Uint32Array(1))[0] % 2147483646) + 1
-                  const result = await BiboNative.reminders.schedule({
+                  const result = await BibuNative.reminders.schedule({
                     id,
                     at: new Date(at).getTime(),
-                    title: 'BIBU 小约定',
+                    title: 'BIBU！小约定',
                     body: '到了你留给自己的提醒时间，回来看看吧。',
                     route: '#focus',
                   })
@@ -111,7 +111,7 @@ export function ReminderPanel() {
                     disabled={busy}
                     onClick={() =>
                       void run(async () => {
-                        await BiboNative.reminders.cancel(row.id)
+                        await BibuNative.reminders.cancel(row.id)
                         await refresh()
                       })
                     }

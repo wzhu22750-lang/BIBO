@@ -159,7 +159,11 @@ export function EventForm({
           <PixelDateTimePicker value={target} onChange={setTarget} />
         </label>
         <div>
-          <span style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 650 }}>事件类型</span>
+          <span
+            style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 650 }}
+          >
+            事件类型
+          </span>
           <PixelSelect
             value={category}
             onChange={(val) => setCategory(val as EventCategory)}

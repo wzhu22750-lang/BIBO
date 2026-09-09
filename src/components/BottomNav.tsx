@@ -4,7 +4,7 @@ import type { BibuAction } from '../hooks/useBibu'
 import { Icon } from './PixelArt'
 import moreIcon from 'pixelarticons/svg/more-horizontal.svg'
 import { lovePings, type LovePingKind } from '../lib/ping'
-import { BiboNative } from '../native'
+import { BibuNative } from '../native'
 
 export function BottomNav({
   page,
@@ -80,7 +80,7 @@ export function BottomNav({
     longPressTimer.current = setTimeout(() => {
       isLongPress.current = true
       setSelectorOpen(true)
-      void BiboNative.vibration.pulse([40, 30, 40]).catch(() => {})
+      void BibuNative.vibration.pulse([40, 30, 40]).catch(() => {})
     }, 280)
   }
 
@@ -107,7 +107,7 @@ export function BottomNav({
 
     if (matched && matched !== hoveredKindRef.current) {
       setHoveredKind(matched)
-      void BiboNative.vibration.pulse([25]).catch(() => {})
+      void BibuNative.vibration.pulse([25]).catch(() => {})
     }
   }
 
@@ -224,7 +224,7 @@ export function BottomNav({
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerCancel}
           onClick={handleClick}
-          aria-label={`BIBU，长按滑动切换情绪，当前：${bibu.kind}`}
+          aria-label={`BIBU！，长按滑动切换情绪，当前：${bibu.kind}`}
           title={`点击发送，长按滑动切换：${bibu.kind}`}
         >
           <svg viewBox="0 0 76 76" aria-hidden="true" shapeRendering="crispEdges">
@@ -249,7 +249,7 @@ export function BottomNav({
           </svg>
         </button>
         <span className={`dock-bibo-label ${selectorOpen ? 'selecting' : ''}`}>
-          {selectorOpen ? hoveredKind || bibu.kind : 'BIBU!'}
+          {selectorOpen ? hoveredKind || bibu.kind : 'BIBU！'}
         </span>
       </div>
       <button

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">哔卟哔卟</string>
-    <string name="title_activity_main">哔卟哔卟</string>
+    <string name="app_name">BIBU！</string>
+    <string name="title_activity_main">BIBU！</string>
     <string name="package_name">love.bibu.space</string>
     <string name="custom_url_scheme">love.bibu.space</string>
     <string name="default_notification_channel_id">bibo_love_v3</string>

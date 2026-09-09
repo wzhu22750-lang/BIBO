@@ -272,7 +272,11 @@ export function PixelSelect({
                 }}
               >
                 <span>{option.label}</span>
-                {isSelected && <span className="pixel-select-check" aria-hidden="true">✔</span>}
+                {isSelected && (
+                  <span className="pixel-select-check" aria-hidden="true">
+                    ✔
+                  </span>
+                )}
               </li>
             )
           })}

@@ -35,7 +35,7 @@ describe('incoming message notification decisions', () => {
     expect(input.id).toBeGreaterThan(0)
     expect(input.id).toBe(incomingMessageNotification(message('m2', partner), '其他名字').id)
     expect(input.title).toBe('Wincy')
-    expect(input.body).toBe('收到一条悄悄话，打开 BIBU 查看')
+    expect(input.body).toBe('收到一条悄悄话，打开 BIBU！查看')
     expect(input.route).toBe('#chat?message=m2')
     expect(input.channel).toBe('messages')
   })

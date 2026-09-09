@@ -50,7 +50,7 @@ class BiboDevicePlugin : Plugin() {
         // Chat messages: heads-up banner with the system default sound and
         // vibration. Importance/sound/vibration are owned by Android after the
         // user first sees the channel; we never bypass DND or silent mode.
-        val messages = NotificationChannel(messageChannel, "BIBU 悄悄话", NotificationManager.IMPORTANCE_HIGH).apply {
+        val messages = NotificationChannel(messageChannel, "BIBU！悄悄话", NotificationManager.IMPORTANCE_HIGH).apply {
             description = "伴侣消息通知"
             setLockscreenVisibility(android.app.Notification.VISIBILITY_PRIVATE)
             enableVibration(true)
@@ -94,7 +94,7 @@ class BiboDevicePlugin : Plugin() {
             .apply {
                 if (largeIcon != null) setLargeIcon(largeIcon)
             }
-            .setContentTitle((call.getString("title") ?: "BIBU").take(80))
+            .setContentTitle((call.getString("title") ?: "BIBU！").take(80))
             .setContentText((call.getString("body") ?: "收到一个小小的想念").take(240))
             .setContentIntent(pending).setAutoCancel(true).build()
         try { manager.notify(id, notification); call.resolve(result()) }
@@ -128,7 +128,7 @@ class BiboDevicePlugin : Plugin() {
             activity.startActivity(intent)
             // Opening Settings is not a permission grant. Recheck on foreground.
             call.resolve(result())
-        } catch(error: Exception) { call.reject("无法打开使用情况访问设置，请在系统设置中查找 BIBU", error) }
+        } catch(error: Exception) { call.reject("无法打开使用情况访问设置，请在系统设置中查找 BIBU！", error) }
     }
     @PluginMethod fun screenTimeToday(call: PluginCall) {
         val target = call.getString("packageName")
@@ -167,7 +167,7 @@ class BiboDevicePlugin : Plugin() {
     @PluginMethod fun scheduleReminder(call: PluginCall) {
         try {
             val row=org.json.JSONObject().put("id",call.getInt("id") ?: 0).put("at",call.getLong("at") ?: 0)
-                .put("title",(call.getString("title") ?: "BIBU 提醒").take(80))
+                .put("title",(call.getString("title") ?: "BIBU！提醒").take(80))
                 .put("body",(call.getString("body") ?: "记得你的小约定").take(240))
                 .put("route",safeRoute(call.getString("route")))
             BiboReminders.schedule(context,row)

@@ -22,7 +22,7 @@ export function clearStoredPushToken() {
   } catch {}
 }
 
-import { BiboNative, type PushRegistration } from '../native'
+import { BibuNative, type PushRegistration } from '../native'
 import * as api from './api'
 export type PushBackend = {
   registerDeviceInstallation: (
@@ -35,7 +35,7 @@ export type PushBackend = {
 export async function registerDevicePush(
   userId: string,
   appVersion = 'unknown',
-  native = BiboNative,
+  native = BibuNative,
   backend: PushBackend = api,
   requestPermission = true,
 ): Promise<PushRegistration & { stored?: boolean }> {
@@ -48,7 +48,7 @@ export async function registerDevicePush(
 export async function unregisterDevicePush(
   userId: string,
   token: string | undefined,
-  native = BiboNative,
+  native = BibuNative,
   backend: PushBackend = api,
 ) {
   const currentToken = token || readStoredPushToken()

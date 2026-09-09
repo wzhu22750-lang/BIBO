@@ -39,7 +39,7 @@ export function buildPingPush(record: PingPushRecord, token: string): FcmMessage
       token,
       notification: {
         title: '收到一个小小的哔卟',
-        body: '收到一个小小的哔卟，打开 BIBU 查看',
+        body: '收到一个小小的哔卟，打开 BIBU！查看',
       },
       data: { route: '#home', ping_id: record.id, kind },
       android: {

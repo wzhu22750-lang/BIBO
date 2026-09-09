@@ -93,7 +93,14 @@ export function Focus({ controller }: { controller: SpaceController }) {
               }}
             >
               <div>
-                <span style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 650 }}>
+                <span
+                  style={{
+                    display: 'block',
+                    marginBottom: '6px',
+                    fontSize: '13px',
+                    fontWeight: 650,
+                  }}
+                >
                   现在想做什么？
                 </span>
                 <PixelSelect

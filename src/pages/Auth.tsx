@@ -128,7 +128,7 @@ export function Auth({ enterDemo }: { enterDemo: () => void }) {
       </div>
       <section className="auth-panel">
         <a className="auth-brand" href="#home">
-          BIBU!
+          BIBU！
         </a>
         <span className="micro">WELCOME TO OUR PRIVATE SPACE</span>
         <h2>{configured ? '你的专属入场券' : '小宇宙，准备开门'}</h2>
@@ -293,7 +293,7 @@ export function Onboarding({ controller }: { controller: SpaceController }) {
     toast = useToast()
   return (
     <div className="onboarding">
-      <div className="onboarding-logo">BIBU!</div>
+      <div className="onboarding-logo">BIBU！</div>
       <Icon name="heart" size={56} />
       <h1>宇宙很小，只装得下两个人。</h1>
       <p>创建一个私人空间，或输入 TA 给你的邀请码。</p>

@@ -122,7 +122,11 @@ export function PixelDatePicker({
               />
             </label>
             <div>
-              <span style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 700 }}>月</span>
+              <span
+                style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 700 }}
+              >
+                月
+              </span>
               <PixelSelect
                 value={String(draft.month)}
                 aria-label="选择月份"
@@ -141,13 +145,15 @@ export function PixelDatePicker({
               />
             </div>
             <div>
-              <span style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 700 }}>日</span>
+              <span
+                style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 700 }}
+              >
+                日
+              </span>
               <PixelSelect
                 value={String(draft.day)}
                 aria-label="选择日期"
-                onChange={(val) =>
-                  setDraft((current) => ({ ...current, day: Number(val) }))
-                }
+                onChange={(val) => setDraft((current) => ({ ...current, day: Number(val) }))}
                 options={Array.from({ length: days }, (_, index) => index + 1).map((day) => ({
                   value: String(day),
                   label: `${day} 日`,
@@ -206,13 +212,15 @@ export function PixelTimePicker({ value, onChange, placeholder = '选择时间' 
         <Modal title="选择时间" onClose={() => setOpen(false)} className="pixel-picker-modal">
           <div className="pixel-picker-grid pixel-time-grid">
             <div>
-              <span style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 700 }}>时</span>
+              <span
+                style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 700 }}
+              >
+                时
+              </span>
               <PixelSelect
                 value={String(draft.hour)}
                 aria-label="选择小时"
-                onChange={(val) =>
-                  setDraft((current) => ({ ...current, hour: Number(val) }))
-                }
+                onChange={(val) => setDraft((current) => ({ ...current, hour: Number(val) }))}
                 options={Array.from({ length: 24 }, (_, hour) => hour).map((hour) => ({
                   value: String(hour),
                   label: `${pad(hour)} 时`,
@@ -220,13 +228,15 @@ export function PixelTimePicker({ value, onChange, placeholder = '选择时间' 
               />
             </div>
             <div>
-              <span style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 700 }}>分</span>
+              <span
+                style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 700 }}
+              >
+                分
+              </span>
               <PixelSelect
                 value={String(draft.minute)}
                 aria-label="选择分钟"
-                onChange={(val) =>
-                  setDraft((current) => ({ ...current, minute: Number(val) }))
-                }
+                onChange={(val) => setDraft((current) => ({ ...current, minute: Number(val) }))}
                 options={Array.from({ length: 60 }, (_, minute) => minute).map((minute) => ({
                   value: String(minute),
                   label: `${pad(minute)} 分`,

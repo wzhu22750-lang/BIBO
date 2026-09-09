@@ -14,8 +14,8 @@ describe('message FCM push payload contract', () => {
   it('builds a minimal payload that deep-links to the chat message', () => {
     const result = buildMessagePush(record, 't'.repeat(20))
     expect(result.message.token).toHaveLength(20)
-    expect(result.message.notification.title).toBe('BIBU 悄悄话')
-    expect(result.message.notification.body).toBe('收到一条悄悄话，打开 BIBU 查看')
+    expect(result.message.notification.title).toBe('BIBU！悄悄话')
+    expect(result.message.notification.body).toBe('收到一条悄悄话，打开 BIBU！查看')
     expect(result.message.data.route).toBe(`#chat?message=${record.id}`)
     expect(result.message.data.message_id).toBe(record.id)
     expect(result.message.android.priority).toBe('HIGH')

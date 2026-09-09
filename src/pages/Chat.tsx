@@ -9,7 +9,7 @@ import type { SpaceController } from '../hooks/useSpace'
 import { Button, Empty, useTask } from '../components/ui'
 import { Icon, PixelPal } from '../components/PixelArt'
 import { clock, dateLabel } from '../lib/dates'
-import { BiboNative } from '../native'
+import { BibuNative } from '../native'
 import { mergeMessages } from '../lib/messageHistory'
 
 // Red pixel-style "!"; marks a message that has not reached the server yet
@@ -119,7 +119,7 @@ export function Chat({
     if (!text.trim() || busy) return
     // Send haptic: a single light tick. Native Android on device, navigator
     // .vibrate fallback in browsers that allow it, silent no-op elsewhere.
-    void BiboNative.vibration.pulse([12]).catch(() => {})
+    void BibuNative.vibration.pulse([12]).catch(() => {})
     const sent = { ...draftRef.current }
     void run(async () => {
       await controller.message(sent.text)

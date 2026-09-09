@@ -14,7 +14,7 @@ export function incomingMessageNotification(
   return {
     id: positiveHash(message.id),
     title: partnerName.slice(0, 24) || 'TA',
-    body: '收到一条悄悄话，打开 BIBU 查看',
+    body: '收到一条悄悄话，打开 BIBU！查看',
     route: `#chat?message=${encodeURIComponent(message.id)}`,
     channel: 'messages',
   }

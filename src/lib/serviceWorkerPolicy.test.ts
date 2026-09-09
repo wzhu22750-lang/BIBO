@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { cacheableShellRequest, isNavigationRequest } from './serviceWorkerPolicy'
-const origin = 'https://bibo.example'
+const origin = 'https://bibu.example'
 const url = (pathname: string, base = origin) => ({ origin: base, pathname })
 describe('offline shell cache policy', () => {
   it('caches only same-origin app shell and local demo assets', () => {

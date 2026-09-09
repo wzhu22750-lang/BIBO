@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BiboNative, type ScreenTimeResult } from '../native'
+import { BibuNative, type ScreenTimeResult } from '../native'
 import { errorText } from '../lib/supabase'
 import { Button, Panel } from './ui'
 import { SettingsNote } from './SettingsNote'
@@ -15,7 +15,7 @@ export function ScreenTimePanel() {
     setBusy(true)
     setError('')
     setResult(null)
-    void BiboNative.screenTime
+    void BibuNative.screenTime
       .today(query || undefined)
       .then(
         (value) => {
@@ -86,7 +86,7 @@ export function ScreenTimePanel() {
               <Button
                 tone="yellow"
                 onClick={() =>
-                  void BiboNative.permissions.openUsageAccessSettings().then(
+                  void BibuNative.permissions.openUsageAccessSettings().then(
                     (value) => {
                       if (!value.supported) setError(value.reason || '不支持此功能')
                     },

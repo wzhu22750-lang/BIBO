@@ -74,14 +74,14 @@ function WardrobeMain({ controller, navigate, initialMode: _initialMode }: Wardr
     triggerBounce()
   }
 
-  // 设为当前 BIBU 形象
+  // 设为当前 BIBU！形象
   const handleSetDeployed = () => {
     setDeployedAvatar(activeChar as AvatarType)
     triggerBounce()
-    toast(`已将【${CHARACTER_MAP[activeChar]?.name || activeChar}】设为你的 BIBU 形象！`)
+    toast(`已将【${CHARACTER_MAP[activeChar]?.name || activeChar}】设为你的 BIBU！形象！`)
   }
 
-  // 保存所有穿搭和当前 BIBU 形象
+  // 保存所有穿搭和当前 BIBU！形象
   const handleSave = () => {
     void run(async () => {
       await controller.save(
@@ -90,7 +90,7 @@ function WardrobeMain({ controller, navigate, initialMode: _initialMode }: Wardr
         deployedAvatar,
         outfits,
       )
-      toast('穿搭与 BIBU 形象已保存同步！')
+      toast('穿搭与 BIBU！形象已保存同步！')
     })
   }
 
@@ -128,7 +128,7 @@ function WardrobeMain({ controller, navigate, initialMode: _initialMode }: Wardr
       <PageHeading
         eyebrow="PET & WARDROBE"
         title="萌宠衣橱"
-        subtitle="为 16 款小动物定制专属穿搭，随时试穿、保存，并设为你的 BIBU 形象。"
+        subtitle="为 16 款小动物定制专属穿搭，随时试穿、保存，并设为你的 BIBU！形象。"
         leading={
           <button
             type="button"

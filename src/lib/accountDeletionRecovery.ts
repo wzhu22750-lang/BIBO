@@ -4,7 +4,7 @@ import { clearImageCache } from './imageCache'
 import { clearOutboxForUser } from './outbox'
 import { clearPhotoOutboxForUser } from './photoOutbox'
 import { clearSpaceCache, setCacheEnabled } from './spaceCache'
-import { BiboNative } from '../native'
+import { BibuNative } from '../native'
 import { clearStoredPushToken } from './pushRegistration'
 
 const KEY = 'bibu-account-deletion-pending-v1'
@@ -93,13 +93,13 @@ export async function recoverPendingAccountDeletion(): Promise<string[]> {
   await attempt('聊天草稿', () => clearChatDraftsForUser(pending.userId))
   await attempt('保存的邮箱', () => localStorage.removeItem('bibu-saved-email'))
   await attempt('本机 Push', async () => {
-    await BiboNative.push.unregister()
+    await BibuNative.push.unregister()
     clearStoredPushToken()
   })
   await attempt('本机提醒', async () => {
-    const reminders = await BiboNative.reminders.list()
+    const reminders = await BibuNative.reminders.list()
     if (!reminders.supported) return
-    for (const reminder of reminders.items) await BiboNative.reminders.cancel(reminder.id)
+    for (const reminder of reminders.items) await BibuNative.reminders.cancel(reminder.id)
   })
   if (!errors.length) clearPendingAccountDeletion()
   return errors

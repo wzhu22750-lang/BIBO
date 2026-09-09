@@ -1,4 +1,4 @@
-import { BiboNative } from '../native'
+import { BibuNative } from '../native'
 import { pingFeedback } from './ping'
 let audio: AudioContext | undefined
 let enabled = false
@@ -88,5 +88,5 @@ export function playFeedback(kind = '哔卟哔卟') {
   } catch {
     // Audio can become unavailable while the app is suspended; delivery still succeeded.
   }
-  void BiboNative.vibration.pulse(pingFeedback(kind).vibration).catch(() => {})
+  void BibuNative.vibration.pulse(pingFeedback(kind).vibration).catch(() => {})
 }

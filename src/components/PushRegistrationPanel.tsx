@@ -5,7 +5,7 @@ import {
   unregisterDevicePush,
   readStoredPushToken,
 } from '../lib/pushRegistration'
-import { BiboNative, type NotificationPermission } from '../native'
+import { BibuNative, type NotificationPermission } from '../native'
 import { Button } from './ui'
 import { SettingsNote } from './SettingsNote'
 export function PushRegistrationPanel({ controller }: { controller: SpaceController }) {
@@ -23,7 +23,7 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
 
   useEffect(() => {
     let active = true
-    void BiboNative.permissions
+    void BibuNative.permissions
       .notifications()
       .then((value) => {
         if (active) setPermission(value)
@@ -38,13 +38,13 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
     setBusy(true)
     setMessage('')
     try {
-      const res = await BiboNative.permissions.requestNotifications()
+      const res = await BibuNative.permissions.requestNotifications()
       setPermission(res)
       if (res.granted) {
         setMessage('系统通知权限已开启！')
       } else {
         setMessage(
-          '系统通知权限仍未开启。请前往 Android 系统「设置 → 应用管理 → 哔卟哔卟 → 通知」手动允许。',
+          '系统通知权限仍未开启。请前往 Android 系统「设置 → 应用管理 → BIBU！ → 通知」手动允许。',
         )
       }
     } finally {
@@ -56,9 +56,9 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
     setBusy(true)
     setTestResult('')
     try {
-      const res = await BiboNative.notifications.show({
+      const res = await BibuNative.notifications.show({
         id: 999,
-        title: 'BIBU 悄悄话渠道测试',
+        title: 'BIBU！悄悄话渠道测试',
         body: '如果你看到了这条系统横幅，说明系统通知权限与悄悄话通道（bibo_messages_v2）完全正常！',
         route: '#chat',
         channel: 'messages',
@@ -83,13 +83,13 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
       ? '当前环境没有 Android 系统通知（Web）。通知登记仅对 Android 应用有效。'
       : permission.granted
         ? '✅ 系统通知权限：已开启（GRANTED）'
-        : '❌ 系统通知权限：已被拒绝（DENIED）。BIBU 无法弹出任何系统横幅。'
+        : '❌ 系统通知权限：已被拒绝（DENIED）。BIBU！无法弹出任何系统横幅。'
 
   async function register() {
     setBusy(true)
     setMessage('')
     try {
-      const result = await registerDevicePush(controller.space!.me.id, 'bibo-0.1.0')
+      const result = await registerDevicePush(controller.space!.me.id, 'bibu-0.1.0')
       if (!result.supported) {
         setMessage(result.reason || '此环境不支持远程 Push')
         return

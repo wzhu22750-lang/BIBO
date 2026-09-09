@@ -1,4 +1,4 @@
-import { BiboNative } from '../native'
+import { BibuNative } from '../native'
 import type { Focus } from './types'
 import { errorText } from './supabase'
 // Reserved device-local slot: never include account identity or activity in notification text.
@@ -6,7 +6,7 @@ export const FOCUS_REMINDER_ID = 2147483647
 export async function setFocusReminder(
   focus: Focus,
   requested: boolean,
-  native = BiboNative,
+  native = BibuNative,
 ): Promise<string> {
   try {
     // Always remove an old session's alarm, including when the next session opts out.
@@ -18,7 +18,7 @@ export async function setFocusReminder(
     const result = await native.reminders.schedule({
       id: FOCUS_REMINDER_ID,
       at: Date.parse(focus.ends_at),
-      title: 'BIBU 专注小约定',
+      title: 'BIBU！专注小约定',
       body: '你为自己安排的专注时间到了，休息一下吧。',
       route: '#focus',
     })
@@ -29,7 +29,7 @@ export async function setFocusReminder(
     return `专注已开始，但本机提醒设置失败：${errorText(error)}。请到本机提醒列表检查旧提醒。`
   }
 }
-export async function cancelFocusReminder(native = BiboNative): Promise<string> {
+export async function cancelFocusReminder(native = BibuNative): Promise<string> {
   try {
     const result = await native.reminders.cancel(FOCUS_REMINDER_ID)
     return result.supported ? '专注已结束，本机到时提醒已取消' : '专注已结束'

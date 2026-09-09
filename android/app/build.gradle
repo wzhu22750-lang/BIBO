@@ -1,15 +1,15 @@
 apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.android'
 
-def releaseKeystorePath = System.getenv('BIBO_RELEASE_KEYSTORE')
-def releaseStorePassword = System.getenv('BIBO_RELEASE_STORE_PASSWORD')
-def releaseKeyAlias = System.getenv('BIBO_RELEASE_KEY_ALIAS')
-def releaseKeyPassword = System.getenv('BIBO_RELEASE_KEY_PASSWORD')
+def releaseKeystorePath = System.getenv('BIBU_RELEASE_KEYSTORE') ?: System.getenv('BIBO_RELEASE_KEYSTORE')
+def releaseStorePassword = System.getenv('BIBU_RELEASE_STORE_PASSWORD') ?: System.getenv('BIBO_RELEASE_STORE_PASSWORD')
+def releaseKeyAlias = System.getenv('BIBU_RELEASE_KEY_ALIAS') ?: System.getenv('BIBO_RELEASE_KEY_ALIAS')
+def releaseKeyPassword = System.getenv('BIBU_RELEASE_KEY_PASSWORD') ?: System.getenv('BIBO_RELEASE_KEY_PASSWORD')
 def releaseSigningReady = [releaseKeystorePath, releaseStorePassword, releaseKeyAlias, releaseKeyPassword].every { value ->
     value != null && !value.trim().isEmpty()
 }
-def requestedVersionCode = System.getenv('BIBO_VERSION_CODE')
-def requestedVersionName = System.getenv('BIBO_VERSION_NAME')
+def requestedVersionCode = System.getenv('BIBU_VERSION_CODE') ?: System.getenv('BIBO_VERSION_CODE')
+def requestedVersionName = System.getenv('BIBU_VERSION_NAME') ?: System.getenv('BIBO_VERSION_NAME')
 def versionCodeValue = requestedVersionCode?.isInteger() ? requestedVersionCode.toInteger() : 1
 def versionNameValue = requestedVersionName?.trim() ?: '0.1.0'
 
