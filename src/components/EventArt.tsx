@@ -82,7 +82,7 @@ export function EventArt({
         }}
         aria-hidden="true"
       >
-        <PixelPal type={value} />
+        <PixelPal type={value} size={size} />
       </span>
     )
   }
@@ -96,7 +96,7 @@ export function EventArt({
         style={{ width: size, height: size }}
         aria-hidden="true"
       >
-        <PixelPal type="cat" />
+        <PixelPal type="cat" size={size} />
       </span>
     )
   if (id === 'flower')
@@ -129,7 +129,7 @@ export function EventArt({
         style={{ width: size, height: size }}
         aria-hidden="true"
       >
-        <PixelPal type="bunny" />
+        <PixelPal type="bunny" size={size} />
         <svg viewBox="0 0 32 24" shapeRendering="crispEdges">
           <path fill="#20211d" d="M0 0h32v24H0z" />
           <path fill="#fffef7" d="M3 3h26v18H3z" />

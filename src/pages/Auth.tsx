@@ -299,7 +299,7 @@ export function Onboarding({ controller }: { controller: SpaceController }) {
       <p>创建一个私人空间，或输入 TA 给你的邀请码。</p>
       {controller.space?.couple ? (
         <div className="onboarding-box">
-          <h2>你的空间已创建 ✨</h2>
+          <h2>你的空间已创建</h2>
           <p>可以先去布置小窝，再把入场券发给 TA。</p>
           {code ? (
             <InviteCode code={code} />

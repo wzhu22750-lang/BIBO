@@ -6,6 +6,7 @@ import {
 } from '../lib/eventOutbox'
 import { errorText } from '../lib/supabase'
 import { Button, Panel, useTask, useToast } from './ui'
+import { SettingsNote } from './SettingsNote'
 export function InactiveEventOutbox({
   userId,
   currentCoupleId,
@@ -48,9 +49,9 @@ export function InactiveEventOutbox({
   return (
     <Panel title="旧空间事件意图" tag="LOCAL ONLY" className="inactive-outbox">
       <div className="settings-section">
-        <p>
+        <SettingsNote title="旧空间事件说明">
           旧关系留下的创建/删除事件意图不会自动迁移到新空间。复制摘要后，可在新空间重新手动创建；移除本机意图不会撤回服务器上已经完成的操作。
-        </p>
+        </SettingsNote>
         {state.scope !== scope ? (
           <p role="status">正在读取本机事件意图…</p>
         ) : state.error ? (

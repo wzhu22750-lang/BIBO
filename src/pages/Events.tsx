@@ -397,8 +397,16 @@ export function Events({
             </span>
             <span className="postcard-message">下一站，见到你。</span>
             <div className="postcard-pals">
-              <PixelPal type={space.partner?.avatar || 'bunny'} className="postcard-pal" />
-              <PixelPal type={space.me.avatar} className="postcard-pal" />
+              <PixelPal
+                type={space.partner?.avatar || 'bunny'}
+                outfit={space.partner?.outfits?.[space.partner?.avatar || 'bunny']}
+                className="postcard-pal"
+              />
+              <PixelPal
+                type={space.me.avatar}
+                outfit={space.me.outfits?.[space.me.avatar]}
+                className="postcard-pal"
+              />
             </div>
             <div className="postcard-ground" />
           </div>

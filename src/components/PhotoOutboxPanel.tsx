@@ -1,5 +1,6 @@
 import type { SpaceController } from '../hooks/useSpace'
 import { Button, Panel, useTask, useToast } from './ui'
+import { SettingsNote } from './SettingsNote'
 export function PhotoOutboxPanel({ controller }: { controller: SpaceController }) {
   const { busy, run } = useTask(),
     toast = useToast(),
@@ -8,9 +9,9 @@ export function PhotoOutboxPanel({ controller }: { controller: SpaceController }
   return (
     <Panel title="照片同步队列" tag="LOCAL RECOVERY" className="event-outbox-panel">
       <div className="settings-section">
-        <p>
+        <SettingsNote title="照片队列说明">
           照片文件和回忆文字已保存在本机，联网后会使用同一路径重试；等待同步不代表伴侣已经看到。
-        </p>
+        </SettingsNote>
         {controller.photoOutbox.error && (
           <p role="alert">照片队列读取失败：{controller.photoOutbox.error}</p>
         )}

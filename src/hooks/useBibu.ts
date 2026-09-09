@@ -13,27 +13,30 @@ export function useBibu(controller: SpaceController, demo: boolean) {
   const toast = useToast()
   const [kind, setKind] = useState<LovePingKind>('哔卟哔卟')
   useEffect(() => () => clearTimeout(timer.current), [])
-  const send = useCallback(async (customKind?: LovePingKind) => {
-    if (locked.current || !controller.space?.partner) return
-    const targetKind = customKind ?? kind
-    locked.current = true
-    setBusy(true)
-    if (customKind && customKind !== kind) {
-      setKind(customKind)
-    }
-    // 立即触发本机声音与震动反馈，给用户零延迟的触觉与听觉反馈
-    playFeedback(targetKind)
-    try {
-      await controller.sendPing(targetKind)
-      if (!demo) toast(`「${targetKind}」已送出！`)
-    } catch (error) {
-      toast(errorText(error), true)
-    } finally {
-      locked.current = false
-      setBusy(false)
-      setCooling(false)
-    }
-  }, [controller, demo, toast, kind])
+  const send = useCallback(
+    async (customKind?: LovePingKind) => {
+      if (locked.current || !controller.space?.partner) return
+      const targetKind = customKind ?? kind
+      locked.current = true
+      setBusy(true)
+      if (customKind && customKind !== kind) {
+        setKind(customKind)
+      }
+      // 立即触发本机声音与震动反馈，给用户零延迟的触觉与听觉反馈
+      playFeedback(targetKind)
+      try {
+        await controller.sendPing(targetKind)
+        if (!demo) toast(`「${targetKind}」已送出！`)
+      } catch (error) {
+        toast(errorText(error), true)
+      } finally {
+        locked.current = false
+        setBusy(false)
+        setCooling(false)
+      }
+    },
+    [controller, demo, toast, kind],
+  )
   return {
     send,
     busy,

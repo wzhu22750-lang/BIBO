@@ -7,6 +7,7 @@ import {
 } from '../lib/pushRegistration'
 import { BiboNative, type NotificationPermission } from '../native'
 import { Button } from './ui'
+import { SettingsNote } from './SettingsNote'
 export function PushRegistrationPanel({ controller }: { controller: SpaceController }) {
   const initialToken = readStoredPushToken()
   const [message, setMessage] = useState(
@@ -42,7 +43,9 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
       if (res.granted) {
         setMessage('系统通知权限已开启！')
       } else {
-        setMessage('系统通知权限仍未开启。请前往 Android 系统「设置 → 应用管理 → 哔卟哔卟 → 通知」手动允许。')
+        setMessage(
+          '系统通知权限仍未开启。请前往 Android 系统「设置 → 应用管理 → 哔卟哔卟 → 通知」手动允许。',
+        )
       }
     } finally {
       setBusy(false)
@@ -61,7 +64,9 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
         channel: 'messages',
       })
       if (res.supported) {
-        setTestResult('✅ 本地测试通知已发出！请查看手机通知栏。若能看到，说明系统权限与通道无误；若收不到伴侣的远程推送，请排查下方 GMS 与网络连接。')
+        setTestResult(
+          '✅ 本地测试通知已发出！请查看手机通知栏。若能看到，说明系统权限与通道无误；若收不到伴侣的远程推送，请排查下方 GMS 与网络连接。',
+        )
       } else {
         setTestResult(`❌ 本地通知未能显示：${res.reason || '不支持'}`)
       }
@@ -125,9 +130,9 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
   return (
     <div className="settings-section">
       <h3>Android 远程 Push 设备登记与诊断</h3>
-      <p>
+      <SettingsNote title="Push 工作原理">
         前台消息由 Supabase Realtime 呈现；后台/锁屏时由 Google FCM 统一推送。
-      </p>
+      </SettingsNote>
       {permissionNote && (
         <p role="status" style={{ fontWeight: 600 }}>
           {permissionNote}
@@ -140,11 +145,19 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
       )}
       {token && (
         <p style={{ fontSize: '0.85rem', color: '#666', wordBreak: 'break-all' }}>
-          本机 Push Token：<code>{token.slice(0, 14)}...{token.slice(-10)}</code>（{token.length} 位）
+          本机 Push Token：
+          <code>
+            {token.slice(0, 14)}...{token.slice(-10)}
+          </code>
+          （{token.length} 位）
         </p>
       )}
       {message && <p role="status">{message}</p>}
-      {testResult && <p role="status" style={{ fontWeight: 500 }}>{testResult}</p>}
+      {testResult && (
+        <p role="status" style={{ fontWeight: 500 }}>
+          {testResult}
+        </p>
+      )}
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
         <Button
           tone={registered ? 'white' : 'yellow'}
@@ -160,14 +173,21 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
           撤销这台设备的 Push
         </Button>
       </div>
-      <div style={{ marginTop: '12px', padding: '10px 12px', background: 'rgba(0,0,0,0.03)', borderRadius: '8px', fontSize: '0.82rem', lineHeight: '1.5' }}>
-        <strong>📱 国内 Android 设备 FCM 推送排查建议：</strong>
-        <ul style={{ margin: '4px 0 0', paddingLeft: '18px' }}>
-          <li><b>Google 服务 (GMS)</b>：国内设备需在「系统设置 → 谷歌服务/Google 基础服务」中开启。</li>
-          <li><b>后台与自启动</b>：在系统应用设置中将「哔卟哔卟」和「Google Play 服务」设为「允许自启动 / 后台耗电无限制」，避免息屏被杀。</li>
-          <li><b>网络连接</b>：FCM 需长连接 <code>mtalk.google.com:5228</code>。若在无外部网络环境下，Google Cloud 无法将消息推入手机。</li>
+      <SettingsNote title="国内 Android FCM 排查建议" className="push-troubleshoot-note">
+        <ul>
+          <li>
+            <b>Google 服务 (GMS)</b>：国内设备需在「系统设置 → 谷歌服务/Google 基础服务」中开启。
+          </li>
+          <li>
+            <b>后台与自启动</b>：在系统应用设置中将「哔卟哔卟」和「Google Play
+            服务」设为「允许自启动 / 后台耗电无限制」，避免息屏被杀。
+          </li>
+          <li>
+            <b>网络连接</b>：FCM 需长连接 <code>mtalk.google.com:5228</code>
+            。若在无外部网络环境下，Google Cloud 无法将消息推入手机。
+          </li>
         </ul>
-      </div>
+      </SettingsNote>
     </div>
   )
 }

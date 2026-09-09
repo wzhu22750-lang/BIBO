@@ -1,15 +1,18 @@
 import { InactiveEventOutbox } from '../components/InactiveEventOutbox'
 import { downloadSpace } from '../lib/spaceExport'
 import { PushRegistrationPanel } from '../components/PushRegistrationPanel'
+import { SettingsNote } from '../components/SettingsNote'
 import { AccountDeletion } from '../components/AccountDeletion'
 import { InactiveOutbox } from '../components/InactiveOutbox'
 import { InvitationManager } from '../components/InvitationManager'
 import { BiboNative } from '../native'
 import { useState } from 'react'
 import type { SpaceController } from '../hooks/useSpace'
-import type { AvatarType } from '../lib/types'
+import type { AvatarType, Page } from '../lib/types'
 import { Button, Modal, PageHeading, Panel, useTask, useToast } from '../components/ui'
-import { Icon, PixelPal, AVATAR_LIST } from '../components/PixelArt'
+import { Icon } from '../components/PixelArt'
+import { CharacterSelector, PixelCharacter, type PixelCharacterAnimation } from '../components/pet'
+import { CHARACTER_MAP } from '../lib/pet'
 import { db } from '../lib/supabase'
 import { disableFeedback, enableFeedback } from '../lib/notifications'
 import { localDateInput } from '../lib/dates'
@@ -38,12 +41,14 @@ export function InviteCode({ code }: { code: string }) {
 }
 export function Settings({
   controller,
+  navigate,
   demo,
   exitDemo,
   sound,
   setSound,
 }: {
   controller: SpaceController
+  navigate?: (page: Page) => void
   demo: boolean
   exitDemo: () => void
   sound: boolean
@@ -53,11 +58,21 @@ export function Settings({
     [name, setName] = useState(space.me.name),
     [since, setSince] = useState(space.couple?.together_since || localDateInput()),
     [avatar, setAvatar] = useState<AvatarType>(space.me.avatar || 'cat'),
+    outfits = space.me.outfits || {},
+    [petAnim, setPetAnim] = useState<PixelCharacterAnimation>('none'),
+    [showCharacterPicker, setShowCharacterPicker] = useState(false),
     [newPass, setNewPass] = useState(''),
     [closing, setClosing] = useState(false),
     [closeText, setCloseText] = useState(''),
     { busy, run } = useTask(),
     toast = useToast()
+
+  const handleSelectCharacter = (newId: AvatarType) => {
+    setAvatar(newId)
+    setPetAnim('bounce')
+    setTimeout(() => setPetAnim('none'), 400)
+  }
+
   return (
     <>
       {closing && (
@@ -117,41 +132,129 @@ export function Settings({
             onSubmit={(e) => {
               e.preventDefault()
               void run(async () => {
-                await controller.save(name.trim(), since, avatar)
-                toast('档案已保存')
+                await controller.save(name.trim(), since, avatar, outfits)
+                toast('档案与 BIBU 形象已保存')
               })
             }}
           >
-            <div className="settings-avatar">
-              <PixelPal type={avatar} />
-              <span className="micro">
-                PLAYER 01 · {AVATAR_LIST.find((a) => a.id === avatar)?.name || '专属形象'}
-              </span>
+            {/* 1. 萌宠衣橱快捷入口横幅 */}
+            <div
+              className="settings-wardrobe-entry-card"
+              onClick={() => navigate?.('wardrobe')}
+              role="button"
+              tabIndex={0}
+            >
+              <div className="wardrobe-entry-avatar">
+                <PixelCharacter
+                  character={avatar}
+                  outfit={outfits[avatar]}
+                  size={44}
+                  animation={petAnim}
+                />
+              </div>
+              <div className="wardrobe-entry-info">
+                <div className="wardrobe-entry-head">
+                  <strong>萌宠衣橱与换装中心</strong>
+                  <span className="micro tag">73款时装 · 16款萌宠</span>
+                </div>
+                <p>为你的小动物自由搭配衣服、帽子与配饰，每只角色独立保留专属穿搭</p>
+              </div>
+              <Button
+                tone="yellow"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  navigate?.('wardrobe')
+                }}
+                className="wardrobe-entry-btn"
+              >
+                进入衣橱 <Icon name="shirt" size={15} />
+              </Button>
             </div>
-            <div className="settings-avatar-select">
-              <label className="avatar-picker-label">选择你的像素专属形象</label>
-              <div className="avatar-grid" role="radiogroup" aria-label="选择像素形象">
-                {AVATAR_LIST.map((item) => {
-                  const active = avatar === item.id
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={active}
-                      className={`avatar-option ${active ? 'active' : ''}`}
-                      onClick={() => setAvatar(item.id)}
-                    >
-                      <div className="avatar-preview">
-                        <PixelPal type={item.id} />
-                      </div>
-                      <span className="avatar-name">{item.name}</span>
-                      <span className="avatar-tag">{item.tag}</span>
-                    </button>
-                  )
-                })}
+
+            {/* 2. 当前 BIBU 形象展台 */}
+            <div className="settings-pet-hero">
+              <div className="pet-hero-stage">
+                <PixelCharacter
+                  character={avatar}
+                  outfit={outfits[avatar]}
+                  size={68}
+                  animation={petAnim}
+                  onClick={() => {
+                    setPetAnim('happy')
+                    setTimeout(() => setPetAnim('none'), 600)
+                  }}
+                />
+              </div>
+              <div className="pet-hero-meta">
+                <span className="micro eyebrow">PLAYER 01 · 当前 BIBU 形象</span>
+                <h3 className="pet-hero-title">{CHARACTER_MAP[avatar]?.name || '小动物'}</h3>
+                <p className="pet-hero-desc">
+                  {CHARACTER_MAP[avatar]?.description || '你的专属像素好伙伴。'}
+                </p>
               </div>
             </div>
+
+            {/* 3. 选择 BIBU 形象 */}
+            <div className="settings-section-block">
+              <div className="section-block-header">
+                <div className="section-block-title-group">
+                  <label className="avatar-picker-label">选择你的BIBU形象！</label>
+                  <span className="micro muted">自动穿戴该角色已保存的穿搭</span>
+                </div>
+                <button
+                  type="button"
+                  className="character-picker-toggle-btn"
+                  onClick={() => setShowCharacterPicker((prev) => !prev)}
+                  aria-expanded={showCharacterPicker}
+                >
+                  <Icon name={showCharacterPicker ? 'close' : 'grid'} size={12} />
+                  <span>{showCharacterPicker ? '收起形象列表' : '更换形象 (16款)'}</span>
+                  <Icon
+                    name="arrow"
+                    size={10}
+                    className={`toggle-arrow ${showCharacterPicker ? 'up' : 'down'}`}
+                  />
+                </button>
+              </div>
+
+              {showCharacterPicker ? (
+                <div className="character-picker-expanded-body">
+                  <CharacterSelector
+                    selectedId={avatar}
+                    outfits={outfits}
+                    onSelect={handleSelectCharacter}
+                  />
+                  <div className="character-picker-collapse-bar">
+                    <span className="micro muted">
+                      当前选择：<strong>{CHARACTER_MAP[avatar]?.name || '小动物'}</strong>
+                    </span>
+                    <button
+                      type="button"
+                      className="character-picker-toggle-btn mini"
+                      onClick={() => setShowCharacterPicker(false)}
+                    >
+                      <span>收起形象列表</span>
+                      <Icon name="arrow" size={10} className="toggle-arrow up" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="character-selector-collapsed-preview"
+                  onClick={() => setShowCharacterPicker(true)}
+                  aria-label="展开选择BIBU形象"
+                >
+                  <div className="collapsed-preview-left">
+                    <Icon name="spark" size={12} />
+                    <span>想换个形象？点击展开 16 款萌宠列表</span>
+                  </div>
+                  <span className="collapsed-preview-action">展开选择 »</span>
+                </button>
+              )}
+            </div>
+
             <label>
               我的昵称
               <input
@@ -171,7 +274,9 @@ export function Settings({
                 onChange={(e) => setSince(e.target.value)}
               />
             </label>
-            <p className="form-note">以本地自然日计算经过天数，在一起当天为第 0 天。</p>
+            <SettingsNote title="日期怎么算？" className="form-note">
+              以本地自然日计算经过天数，在一起当天为第 0 天。
+            </SettingsNote>
             <Button type="submit" tone="blue" disabled={busy || !name.trim()}>
               保存小档案
               <Icon name="check" size={16} />
@@ -210,21 +315,23 @@ export function Settings({
                   解除并封存当前空间
                 </Button>
               )}
-              <p className="form-note">
+              <SettingsNote title="解除绑定说明">
                 解除会封存旧空间。重新绑定只能进入新空间，旧关系内容不会分享给新伴侣。
-              </p>
+              </SettingsNote>
             </div>
           </Panel>
           {!demo && (
             <Panel title="本机离线快照" tag="LOCAL CACHE">
               <div className="settings-section">
-                <p>
-                  开启后，在这台设备保存最近聊天、事件和回忆文字，最多保留 24
-                  小时；不保存照片签名链接、登录令牌或邀请码。只有曾成功联网读取的账号可离线恢复。
-                </p>
-                <p>
-                  本机数据不是端到端加密存储；共享设备请勿开启。服务器撤销访问后，离线期间无法即时获知。清除快照不删除云端资料或待发消息。
-                </p>
+                <SettingsNote title="离线快照说明">
+                  <p>
+                    开启后，在这台设备保存最近聊天、事件和回忆文字，最多保留 24
+                    小时；不保存照片签名链接、登录令牌或邀请码。只有曾成功联网读取的账号可离线恢复。
+                  </p>
+                  <p>
+                    本机数据不是端到端加密存储；共享设备请勿开启。服务器撤销访问后，离线期间无法即时获知。清除快照不删除云端资料或待发消息。
+                  </p>
+                </SettingsNote>
                 <Button
                   tone="white"
                   disabled={busy}
@@ -248,7 +355,9 @@ export function Settings({
             <PushRegistrationPanel controller={controller} />
             <div className="settings-section">
               <h3>Android 系统通知</h3>
-              <p>只在你点击时申请权限。测试通知不代表伴侣消息已实现后台推送。</p>
+              <SettingsNote title="系统通知说明">
+                只在你点击时申请权限。测试通知不代表伴侣消息已实现后台推送。
+              </SettingsNote>
               <Button
                 tone="white"
                 disabled={busy}
@@ -307,9 +416,9 @@ export function Settings({
                   <span />
                 </button>
               </div>
-              <p className="form-note">
+              <SettingsNote title="声音与震动说明">
                 开启后会保存在本机，退出或刷新后保持开启；声音会在你再次点击页面时自动恢复（浏览器只允许在点击手势里发声）。手机震动取决于设备支持；关闭网页或锁屏后，不保证收到提醒。
-              </p>
+              </SettingsNote>
             </div>
           </Panel>
           <Panel
@@ -317,11 +426,11 @@ export function Settings({
             tag={demo ? 'DEMO MODE' : 'ACCOUNT'}
           >
             <div className="settings-section">
-              <p>
+              <SettingsNote title={demo ? '演示模式说明' : '账号与安全说明'}>
                 {demo
                   ? '你正在探索本地演示。聊天、照片和日期只保存在当前浏览器，不会传给真实用户。配置 Supabase 后即可登录、邀请另一位玩家。'
                   : '私人数据由数据库成员权限隔离。本产品未实现端到端加密。'}
-              </p>
+              </SettingsNote>
               {!demo && (
                 <form
                   className="form-stack"

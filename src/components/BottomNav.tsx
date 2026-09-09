@@ -160,11 +160,7 @@ export function BottomNav({
       </button>
       <div className="dock-center">
         {selectorOpen && (
-          <div
-            className="dock-bibu-picker"
-            role="dialog"
-            aria-label="滑动选择想发送的情绪"
-          >
+          <div className="dock-bibu-picker" role="dialog" aria-label="滑动选择想发送的情绪">
             <span className="picker-tip micro">SLIDE TO SELECT ✦ RELEASE TO SEND</span>
             <div className="picker-track">
               {lovePings.map((item) => {
@@ -225,7 +221,7 @@ export function BottomNav({
           </svg>
         </button>
         <span className={`dock-bibo-label ${selectorOpen ? 'selecting' : ''}`}>
-          {selectorOpen ? (hoveredKind || bibu.kind) : 'BIBU!'}
+          {selectorOpen ? hoveredKind || bibu.kind : 'BIBU!'}
         </span>
       </div>
       <button
@@ -240,7 +236,7 @@ export function BottomNav({
       </button>
       <button
         ref={trigger}
-        className={`dock-item ${['photos', 'focus', 'settings'].includes(page) || more ? 'active' : ''}`}
+        className={`dock-item ${['photos', 'focus', 'wardrobe', 'settings'].includes(page) || more ? 'active' : ''}`}
         aria-expanded={more}
         aria-controls="dock-more"
         onClick={() => setMore(!more)}
@@ -255,6 +251,7 @@ export function BottomNav({
           <span className="micro">MORE LITTLE THINGS</span>
           {(
             [
+              { page: 'wardrobe', name: '萌宠衣橱', icon: 'shirt' },
               { page: 'photos', name: '照片墙', icon: 'photo' },
               { page: 'focus', name: '专注陪伴', icon: 'focus' },
               { page: 'settings', name: '空间设置', icon: 'settings' },

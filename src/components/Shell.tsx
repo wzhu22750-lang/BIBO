@@ -10,6 +10,7 @@ const nav: { page: Page; name: string; en: string; icon: IconName }[] = [
   { page: 'events', name: '值得期待', en: 'SPECIAL DAYS', icon: 'calendar' },
   { page: 'photos', name: '照片墙', en: 'MEMORY WALL', icon: 'photo' },
   { page: 'focus', name: '专注陪伴', en: 'FOCUS TOGETHER', icon: 'focus' },
+  { page: 'wardrobe', name: '萌宠衣橱', en: 'PET WARDROBE', icon: 'shirt' },
 ]
 export function Shell({
   page,
@@ -63,9 +64,12 @@ export function Shell({
           <div className="mini-world">
             <div className="mini-world-label micro">PLAYER 01 + PLAYER 02</div>
             <div className="mini-pals">
-              <PixelPal type={space.me.avatar} />
+              <PixelPal type={space.me.avatar} outfit={space.me.outfits?.[space.me.avatar]} />
               <Icon name="heart" size={22} />
-              <PixelPal type={space.partner?.avatar || 'bunny'} />
+              <PixelPal
+                type={space.partner?.avatar || 'bunny'}
+                outfit={space.partner?.outfits?.[space.partner?.avatar || 'bunny']}
+              />
             </div>
             <strong>两个人，一整个宇宙。</strong>
             <span className="status-line">
@@ -103,7 +107,7 @@ export function Shell({
               aria-label="个人资料与空间设置"
             >
               <span className="tiny-avatar">
-                <PixelPal type={space.me.avatar} />
+                <PixelPal type={space.me.avatar} outfit={space.me.outfits?.[space.me.avatar]} />
               </span>
               <b>{space.me.name}</b>
               <span>⌄</span>

@@ -141,6 +141,7 @@ export function PageHeading({
   title,
   subtitle,
   children,
+  leading,
   onEdit,
   editLabel = '编辑寄语',
 }: {
@@ -148,6 +149,7 @@ export function PageHeading({
   title: string
   subtitle: string
   children?: ReactNode
+  leading?: ReactNode
   onEdit?: () => void
   editLabel?: string
 }) {
@@ -156,6 +158,7 @@ export function PageHeading({
       <div className="heading-main">
         <span className="micro eyebrow">{eyebrow}</span>
         <div className="heading-title-row">
+          {leading}
           <h1>
             {title}
             <span className="heading-dot">.</span>

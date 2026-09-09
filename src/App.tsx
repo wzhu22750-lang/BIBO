@@ -27,6 +27,7 @@ import { Events } from './pages/Events'
 import { Photos } from './pages/Photos'
 import { Focus } from './pages/Focus'
 import { Settings } from './pages/Settings'
+import { Wardrobe } from './pages/Wardrobe'
 import { Auth, Onboarding } from './pages/Auth'
 function Workspace({
   session,
@@ -127,9 +128,13 @@ function Workspace({
         {page === 'events' && <Events controller={controller} referenceId={route.referenceId} />}{' '}
         {page === 'photos' && <Photos controller={controller} demo={demo} />}{' '}
         {page === 'focus' && <Focus controller={controller} />}{' '}
+        {page === 'wardrobe' && (
+          <Wardrobe controller={controller} navigate={navigate} initialMode={route.wardrobeMode} />
+        )}{' '}
         {page === 'settings' && (
           <Settings
             controller={controller}
+            navigate={navigate}
             demo={demo}
             exitDemo={exitDemo}
             sound={sound}

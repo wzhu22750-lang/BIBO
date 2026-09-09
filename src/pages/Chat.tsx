@@ -157,7 +157,14 @@ export function Chat({
                 )}
                 <div className={`message-row ${own ? 'own' : ''}`}>
                   <span className={`tiny-avatar ${own ? '' : 'pink'}`}>
-                    <PixelPal type={own ? space.me.avatar : space.partner?.avatar || 'bunny'} />
+                    <PixelPal
+                      type={own ? space.me.avatar : space.partner?.avatar || 'bunny'}
+                      outfit={
+                        own
+                          ? space.me.outfits?.[space.me.avatar]
+                          : space.partner?.outfits?.[space.partner?.avatar || 'bunny']
+                      }
+                    />
                   </span>
                   <div className="message-content">
                     <span className="message-author">

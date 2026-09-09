@@ -1,5 +1,6 @@
 import type { SpaceController } from '../hooks/useSpace'
 import { Button, Panel, useTask, useToast } from './ui'
+import { SettingsNote } from './SettingsNote'
 export function EventOutboxPanel({ controller }: { controller: SpaceController }) {
   const { busy, run } = useTask(),
     toast = useToast(),
@@ -8,10 +9,10 @@ export function EventOutboxPanel({ controller }: { controller: SpaceController }
   return (
     <Panel title="事件同步队列" tag="LOCAL RECOVERY" className="event-outbox-panel">
       <div className="settings-section">
-        <p>
+        <SettingsNote title="事件队列说明">
           事件意图已保存在本机；等待同步不等于伴侣已看到。网络恢复后会使用同一个事件 ID
           重试，不会重复创建。
-        </p>
+        </SettingsNote>
         {controller.eventOutbox.error && (
           <p role="alert">队列读取失败：{controller.eventOutbox.error}</p>
         )}

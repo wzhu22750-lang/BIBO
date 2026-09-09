@@ -1,4 +1,5 @@
 import { AVATAR_IDS, type Space } from './types'
+import { normalizeOutfits } from './pet/normalize'
 const PREFIX = 'bibo-space-cache-v1:'
 const TTL = 24 * 60 * 60 * 1000
 const MAX_BYTES = 2_000_000
@@ -30,7 +31,8 @@ function validSpace(value: unknown, userId: string): value is Space {
     !object(value.me) ||
     value.me.id !== userId ||
     !text(value.me.name) ||
-    !AVATAR_IDS.includes(value.me.avatar as never)
+    !AVATAR_IDS.includes(value.me.avatar as never) ||
+    (value.me.outfits !== undefined && !object(value.me.outfits))
   )
     return false
   if (
@@ -45,7 +47,8 @@ function validSpace(value: unknown, userId: string): value is Space {
     (!object(value.partner) ||
       !text(value.partner.id) ||
       !text(value.partner.name) ||
-      !AVATAR_IDS.includes(value.partner.avatar as never))
+      !AVATAR_IDS.includes(value.partner.avatar as never) ||
+      (value.partner.outfits !== undefined && !object(value.partner.outfits)))
   )
     return false
   const cid = value.couple.id
@@ -122,9 +125,19 @@ function validSpace(value: unknown, userId: string): value is Space {
 export function encodeSpaceCache(userId: string, space: Space, now = Date.now()): string {
   if (space.me.id !== userId || !space.couple) throw new Error('不能缓存其他账号或未绑定空间')
   const snapshot: Space = {
-    me: { id: space.me.id, name: space.me.name, avatar: space.me.avatar },
+    me: {
+      id: space.me.id,
+      name: space.me.name,
+      avatar: space.me.avatar,
+      ...(space.me.outfits ? { outfits: normalizeOutfits(space.me.outfits) } : {}),
+    },
     partner: space.partner
-      ? { id: space.partner.id, name: space.partner.name, avatar: space.partner.avatar }
+      ? {
+          id: space.partner.id,
+          name: space.partner.name,
+          avatar: space.partner.avatar,
+          ...(space.partner.outfits ? { outfits: normalizeOutfits(space.partner.outfits) } : {}),
+        }
       : null,
     couple: {
       id: space.couple.id,

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { BiboNative, type ScreenTimeResult } from '../native'
 import { errorText } from '../lib/supabase'
 import { Button, Panel } from './ui'
+import { SettingsNote } from './SettingsNote'
 export function ScreenTimePanel() {
   const [packageName, setPackageName] = useState('')
   const [query, setQuery] = useState('')
@@ -41,7 +42,9 @@ export function ScreenTimePanel() {
   return (
     <Panel title="今天的设备使用情况" tag="ONLY ON THIS DEVICE" className="screen-time-panel">
       <div className="settings-section">
-        <p>仅本人设备可见，不自动上传给伴侣。统计按手机时区从今天零点开始。</p>
+        <SettingsNote title="使用情况说明">
+          仅本人设备可见，不自动上传给伴侣。统计按手机时区从今天零点开始。
+        </SettingsNote>
         <form
           className="form-stack"
           onSubmit={(e) => {
@@ -96,9 +99,9 @@ export function ScreenTimePanel() {
             )}
           </>
         )}
-        <p className="form-note">
+        <SettingsNote title="数据准确性说明">
           系统可能延迟或截断事件，数值为估算；无记录不等于零。开启设置不代表已经授权，请返回后刷新确认。这里不做强制限制或拦截。
-        </p>
+        </SettingsNote>
       </div>
     </Panel>
   )

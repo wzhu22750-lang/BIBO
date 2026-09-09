@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BiboNative, type ReminderRecord } from '../native'
 import { Button, Panel, useTask, useToast } from './ui'
+import { SettingsNote } from './SettingsNote'
 import { errorText } from '../lib/supabase'
 const labels = {
   scheduled: '等待系统提醒',
@@ -37,13 +38,14 @@ export function ReminderPanel() {
   return (
     <Panel title="本机小约定提醒" tag="LOCAL REMINDER" className="screen-time-panel">
       <div className="settings-section">
-        <p>
-          提醒保存在这台设备，不属于云端账号。只显示通用文案，不含聊天或伴侣资料。系统可能延后；强行停止应用或关闭通知会影响提醒。
-        </p>
+        <SettingsNote title="本机提醒说明">
+          <p>
+            提醒保存在这台设备，不属于云端账号。只显示通用文案，不含聊天或伴侣资料。系统可能延后；强行停止应用或关闭通知会影响提醒。
+          </p>
+          {!supported ? <p>Android 本机能力；Web 不会用网页计时器假装后台提醒。</p> : null}
+        </SettingsNote>
         {error && <p role="alert">{error}</p>}
-        {!supported ? (
-          <p>Android 本机能力；Web 不会用网页计时器假装后台提醒。</p>
-        ) : (
+        {!supported ? null : (
           <>
             <form
               className="form-stack"

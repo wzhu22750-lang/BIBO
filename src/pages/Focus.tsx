@@ -54,7 +54,7 @@ export function Focus({ controller }: { controller: SpaceController }) {
               <span>:</span>
               {String(seconds % 60).padStart(2, '0')}
             </div>
-            <PixelPal type={space.me.avatar} />
+            <PixelPal type={space.me.avatar} outfit={space.me.outfits?.[space.me.avatar]} />
             <span className="micro">ONE SMALL STEP AT A TIME</span>
           </div>
           {own ? (
@@ -145,7 +145,10 @@ export function Focus({ controller }: { controller: SpaceController }) {
         </Panel>
         <div className="focus-aside">
           <Panel title="TA 的小状态" tag="PLAYER 02" className="partner-focus">
-            <PixelPal type={space.partner?.avatar || 'bunny'} />
+            <PixelPal
+              type={space.partner?.avatar || 'bunny'}
+              outfit={space.partner?.outfits?.[space.partner?.avatar || 'bunny']}
+            />
             <h3>{space.partner?.name || '另一位玩家'}</h3>
             <div className="partner-state">
               {partner

@@ -1,4 +1,6 @@
-export type Page = 'home' | 'chat' | 'events' | 'photos' | 'focus' | 'settings'
+import type { CharacterOutfits } from './pet/types'
+
+export type Page = 'home' | 'chat' | 'events' | 'photos' | 'focus' | 'wardrobe' | 'settings'
 export const AVATAR_IDS = [
   'dog',
   'cat',
@@ -12,9 +14,18 @@ export const AVATAR_IDS = [
   'hamster',
   'chick',
   'koala',
+  'chinchilla',
+  'otter',
+  'sheep',
+  'owl',
 ] as const
 export type AvatarType = (typeof AVATAR_IDS)[number]
-export type Profile = { id: string; name: string; avatar: AvatarType }
+export type Profile = {
+  id: string
+  name: string
+  avatar: AvatarType
+  outfits?: CharacterOutfits
+}
 export type Couple = {
   id: string
   name: string

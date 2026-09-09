@@ -16,6 +16,8 @@ import {
 import { withRequestDeadline } from '../lib/requestDeadline'
 import { useSpaceRealtime } from './useSpaceRealtime'
 import type { Focus } from '../lib/types'
+import { normalizeOutfits } from '../lib/pet/normalize'
+import type { CharacterOutfits } from '../lib/pet/types'
 import {
   cacheEnabled,
   clearSpaceCache,
@@ -569,12 +571,17 @@ export function useSpace(
         await reload()
       }
     },
-    async save(name: string, since: string, avatar?: AvatarType) {
+    async save(name: string, since: string, avatar?: AvatarType, outfits?: CharacterOutfits) {
       await mutate(
-        () => api.saveSettings(me, cid, name, since, avatar),
+        () => api.saveSettings(me, cid, name, since, avatar, outfits),
         (s) => ({
           ...s,
-          me: { ...s.me, name, ...(avatar ? { avatar } : {}) },
+          me: {
+            ...s.me,
+            name,
+            ...(avatar ? { avatar } : {}),
+            ...(outfits !== undefined ? { outfits: normalizeOutfits(outfits) } : {}),
+          },
           couple: s.couple ? { ...s.couple, together_since: since } : null,
         }),
       )

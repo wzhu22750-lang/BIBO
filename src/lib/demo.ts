@@ -10,8 +10,20 @@ export const DEMO_KEY = 'bibu-demo-v1'
 export function makeDemo(): Space {
   const now = Date.now()
   return {
-    me: { id: 'demo-me', name: '小橘', avatar: 'cat' },
-    partner: { id: 'demo-you', name: '小桃', avatar: 'bunny' },
+    me: {
+      id: 'demo-me',
+      name: '小橘',
+      avatar: 'cat',
+      outfits: { cat: { clothesId: 'c_blue_hoodie', hatId: 'h_red_beret' } },
+    },
+    partner: {
+      id: 'demo-you',
+      name: '小桃',
+      avatar: 'bunny',
+      outfits: {
+        bunny: { clothesId: 'c_pink_hoodie', hatId: 'h_pink_bow', accessoryId: 'a_love_letter' },
+      },
+    },
     couple: {
       id: 'demo',
       name: '小橘 & 小桃的小宇宙',

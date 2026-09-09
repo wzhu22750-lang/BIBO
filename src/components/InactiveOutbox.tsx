@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { changeOutbox, listInactiveOutbox, type OutboxMessage } from '../lib/outbox'
 import { errorText } from '../lib/supabase'
 import { Button, Panel, useTask, useToast } from './ui'
+import { SettingsNote } from './SettingsNote'
 export function InactiveOutbox({
   userId,
   currentCoupleId,
@@ -38,9 +39,9 @@ export function InactiveOutbox({
   return (
     <Panel title="旧空间待发送记录" tag="LOCAL ONLY" className="inactive-outbox">
       <div className="settings-section">
-        <p>
+        <SettingsNote title="旧空间消息说明">
           这里只显示当前账号留在其他空间的本机消息。它们不会自动发往新关系。移除本机记录不是撤回已经到达服务器的消息。
-        </p>
+        </SettingsNote>
         {state.scope !== scope ? (
           <p role="status">正在读取本机记录…</p>
         ) : state.error ? (

@@ -86,7 +86,7 @@ export function Home({
         </span>
       </PageHeading>
       {editingGreeting && (
-        <Modal title="✏️ 编辑我们的小宇宙寄语" onClose={() => setEditingGreeting(false)}>
+        <Modal title="编辑我们的小宇宙寄语" onClose={() => setEditingGreeting(false)}>
           <form
             className="form-stack"
             onSubmit={(e) => {
@@ -96,7 +96,7 @@ export function Home({
                 const finalSub = tempSubtitle.trim() || '生活不是每天都浪漫，但每天都有你。'
                 await controller.updateGreeting(finalTitle, finalSub)
                 setEditingGreeting(false)
-                toast('寄语已保存，双方小窝实时同步 ✨')
+                toast('寄语已保存，双方小窝实时同步')
               })
             }}
           >
@@ -193,8 +193,11 @@ export function Home({
               </span>
               <Icon name="spark" size={31} className="hero-spark" />
               <div className="pal-ground">
-                <PixelPal type={space.me.avatar} />
-                <PixelPal type={space.partner?.avatar || 'bunny'} />
+                <PixelPal type={space.me.avatar} outfit={space.me.outfits?.[space.me.avatar]} />
+                <PixelPal
+                  type={space.partner?.avatar || 'bunny'}
+                  outfit={space.partner?.outfits?.[space.partner?.avatar || 'bunny']}
+                />
               </div>
               <div className="pal-name">
                 <span>{space.me.name}</span>
@@ -370,13 +373,14 @@ export function Home({
           >
             <div className="chat-preview-content">
               <span className="tiny-avatar pink">
-                <PixelPal
-                  type={
-                    last?.sender_id === space.me.id
-                      ? space.me.avatar
-                      : space.partner?.avatar || 'bunny'
-                  }
-                />
+                {(() => {
+                  const isMe = last?.sender_id === space.me.id
+                  const char = isMe ? space.me.avatar : space.partner?.avatar || 'bunny'
+                  const outfit = isMe
+                    ? space.me.outfits?.[space.me.avatar]
+                    : space.partner?.outfits?.[space.partner?.avatar || 'bunny']
+                  return <PixelPal type={char} outfit={outfit} />
+                })()}
               </span>
               <div>
                 <div className="message-meta">

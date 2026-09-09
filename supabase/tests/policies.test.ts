@@ -67,6 +67,7 @@ beforeAll(async () => {
   )
   await pg.exec(readFileSync('supabase/migrations/202609080017_message_push_activity.sql', 'utf8'))
   await pg.exec(readFileSync('supabase/migrations/202609080018_greeting_fields.sql', 'utf8'))
+  await pg.exec(readFileSync('supabase/migrations/202609080019_character_outfits.sql', 'utf8'))
   legacyAfter = (await pg.query<Record<string, unknown>>('select * from public.photos')).rows[0]
   legacyEvent = (await pg.query<Record<string, unknown>>('select * from public.events')).rows[0]
   await pg.exec(
@@ -930,5 +931,43 @@ describe.sequential('private two-player database boundary', () => {
     await expect(
       pg.query('select public.prepare_account_deletion($1)', [current]),
     ).rejects.toThrow()
+  })
+
+  it('persists outfits JSON object and enforces schema constraints on profiles', () => {
+    return (async () => {
+      await asUser(B)
+      // Default outfits should be empty object
+      const initial = (
+        await pg.query<{ outfits: Record<string, unknown>; avatar: string }>(
+          'select outfits, avatar from public.profiles where id=$1',
+          [B],
+        )
+      ).rows[0]
+      expect(initial.outfits).toEqual({})
+
+      // Updating outfits to a valid object works
+      await pg.query(
+        'update public.profiles set outfits = \'{"cat":{"clothesId":"c_blue_hoodie"}}\'::jsonb, avatar = \'owl\' where id = $1',
+        [B],
+      )
+      const updated = (
+        await pg.query<{ outfits: Record<string, unknown>; avatar: string }>(
+          'select outfits, avatar from public.profiles where id=$1',
+          [B],
+        )
+      ).rows[0]
+      expect(updated.avatar).toBe('owl')
+      expect(updated.outfits).toEqual({ cat: { clothesId: 'c_blue_hoodie' } })
+
+      // Non-object JSON (e.g. array or string) fails constraint
+      await expect(
+        pg.query('update public.profiles set outfits = \'["invalid"]\'::jsonb where id = $1', [B]),
+      ).rejects.toThrow()
+
+      // Invalid avatar format fails constraint
+      await expect(
+        pg.query("update public.profiles set avatar = 'invalid space' where id = $1", [B]),
+      ).rejects.toThrow()
+    })()
   })
 })

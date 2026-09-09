@@ -18,6 +18,9 @@ import type {
   Profile,
   Space,
 } from './types'
+import { normalizeOutfits } from './pet/normalize'
+import type { CharacterOutfits } from './pet/types'
+
 export async function loadSpace(userId: string, signal?: AbortSignal): Promise<Space> {
   const abort = signal || new AbortController().signal
   const me = must(
@@ -90,6 +93,10 @@ export async function loadSpace(userId: string, signal?: AbortSignal): Promise<S
       )
     : []
   const photoRows = rows.map((photo, i) => ({ ...photo, url: signed[i]?.signedUrl || undefined }))
+  me.outfits = normalizeOutfits(me.outfits)
+  if (partner) {
+    partner.outfits = normalizeOutfits(partner.outfits)
+  }
   return {
     me,
     partner,
@@ -189,10 +196,12 @@ export async function saveSettings(
   name: string,
   since: string,
   avatar?: AvatarType,
+  outfits?: CharacterOutfits,
 ) {
   // Each write must return its row. If the second write fails, surface the partial save explicitly.
-  const profileUpdates: { name: string; avatar?: AvatarType } = { name }
+  const profileUpdates: { name: string; avatar?: AvatarType; outfits?: CharacterOutfits } = { name }
   if (avatar) profileUpdates.avatar = avatar
+  if (outfits !== undefined) profileUpdates.outfits = normalizeOutfits(outfits)
   must(await db().from('profiles').update(profileUpdates).eq('id', userId).select().single())
   if (coupleId) {
     const result = await db()
