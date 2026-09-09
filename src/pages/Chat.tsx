@@ -10,7 +10,27 @@ import { Button, Empty, useTask } from '../components/ui'
 import { Icon, PixelPal } from '../components/PixelArt'
 import { clock, dateLabel } from '../lib/dates'
 import { BiboNative } from '../native'
-import { MessageOutboxPanel } from '../components/MessageOutboxPanel'
+import { mergeMessages } from '../lib/messageHistory'
+
+// Red pixel-style "!"; marks a message that has not reached the server yet
+// (offline / send failed).
+function SendFailedIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg
+      className="send-failed-icon"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      shapeRendering="crispEdges"
+      role="img"
+      aria-label="消息未送达，网络恢复后将自动重试"
+    >
+      <path fillRule="evenodd" d="M10 3h4v13h-4zM9 17h6v4H9z" />
+    </svg>
+  )
+}
+
 export function Chat({
   controller,
   demo,
@@ -39,7 +59,28 @@ export function Chat({
     setDraft(next)
   }
   const history = useMessageHistory(space.couple!.id, space.messages, demo)
-  const messages = history.messages
+  // Locally queued messages the server has not confirmed yet (e.g. sent while
+  // offline). They render inline as bubbles; ones that failed to go out carry a
+  // red exclamation mark.
+  const pendingFailures = new Set(
+    controller.outbox.rows
+      .filter(
+        (row) =>
+          row.status === 'blocked' ||
+          Boolean(row.error) ||
+          !navigator.onLine ||
+          (row.nextAttemptAt !== undefined && row.nextAttemptAt > Date.now()),
+      )
+      .map((row) => row.id),
+  )
+  const pendingMessages = controller.outbox.rows.map((row) => ({
+    id: row.id,
+    couple_id: row.coupleId,
+    sender_id: row.userId,
+    content: row.content,
+    created_at: new Date(row.queuedAt).toISOString(),
+  }))
+  const messages = mergeMessages(space.couple!.id, pendingMessages, history.messages)
   const scroll = useRef<HTMLDivElement>(null)
   const nearBottom = useRef(true)
   const anchor = useRef<{ height: number; top: number } | null>(null)
@@ -169,7 +210,10 @@ export function Chat({
                           : space.partner?.name}{' '}
                       <time>{clock(message.created_at)}</time>
                     </span>
-                    <p className="message-bubble">{message.content}</p>
+                    <div className="message-bubble-wrap">
+                      {pendingFailures.has(message.id) && <SendFailedIcon />}
+                      <p className="message-bubble">{message.content}</p>
+                    </div>
                     {space.photos
                       .filter((p) => p.message_id === message.id)
                       .map((photo) => (
@@ -188,7 +232,6 @@ export function Chat({
           })}
           <div ref={end} />
         </div>
-        <MessageOutboxPanel controller={controller} />
         {unread && (
           <Button
             tone="yellow"
