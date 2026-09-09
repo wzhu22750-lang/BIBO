@@ -124,9 +124,15 @@ export function Home({
             <div>
               <span
                 className="micro"
-                style={{ color: '#687358', marginBottom: '6px', display: 'block' }}
+                style={{
+                  color: '#687358',
+                  marginBottom: '6px',
+                  display: 'flex',
+                  gap: '5px',
+                  alignItems: 'center',
+                }}
               >
-                💡 快速换上情侣灵感寄语
+                <Icon name="spark" size={12} /> 快速换上情侣灵感寄语
               </span>
               <div className="greeting-presets">
                 {GREETING_PRESETS.map((preset, idx) => (

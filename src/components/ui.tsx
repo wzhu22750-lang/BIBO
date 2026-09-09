@@ -135,7 +135,7 @@ export function Empty({
   title,
   description,
 }: {
-  icon?: string
+  icon?: ReactNode
   title: string
   description: string
 }) {

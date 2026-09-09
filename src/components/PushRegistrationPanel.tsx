@@ -65,13 +65,13 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
       })
       if (res.supported) {
         setTestResult(
-          '✅ 本地测试通知已发出！请查看手机通知栏。若能看到，说明系统权限与通道无误；若收不到伴侣的远程推送，请排查下方 GMS 与网络连接。',
+          '本地测试通知已发出！请查看手机通知栏。若能看到，说明系统权限与通道无误；若收不到伴侣的远程推送，请排查下方 GMS 与网络连接。',
         )
       } else {
-        setTestResult(`❌ 本地通知未能显示：${res.reason || '不支持'}`)
+        setTestResult(`本地通知未能显示：${res.reason || '不支持'}`)
       }
     } catch (err) {
-      setTestResult(`❌ 发送测试通知异常：${err instanceof Error ? err.message : String(err)}`)
+      setTestResult(`发送测试通知异常：${err instanceof Error ? err.message : String(err)}`)
     } finally {
       setBusy(false)
     }
@@ -82,8 +82,8 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
     : !permission.supported
       ? '当前环境没有 Android 系统通知（Web）。通知登记仅对 Android 应用有效。'
       : permission.granted
-        ? '✅ 系统通知权限：已开启（GRANTED）'
-        : '❌ 系统通知权限：已被拒绝（DENIED）。BIBU！无法弹出任何系统横幅。'
+        ? '系统通知权限：已开启（GRANTED）'
+        : '系统通知权限：已被拒绝（DENIED）。BIBU！无法弹出任何系统横幅。'
 
   async function register() {
     setBusy(true)
@@ -100,7 +100,7 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
       }
       setRegistered(true)
       setToken(result.token)
-      setMessage('✅ 设备 token 已成功登记到服务器！伴侣发消息时将通过 FCM 自动推送到这台设备。')
+      setMessage('设备 token 已成功登记到服务器！伴侣发消息时将通过 FCM 自动推送到这台设备。')
     } catch (error) {
       setMessage(`登记失败：${error instanceof Error ? error.message : String(error)}`)
     } finally {

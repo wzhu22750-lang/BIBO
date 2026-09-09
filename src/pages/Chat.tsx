@@ -8,6 +8,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { SpaceController } from '../hooks/useSpace'
 import { Button, Empty, useTask } from '../components/ui'
 import { Icon, PixelPal } from '../components/PixelArt'
+import { EventArt } from '../components/EventArt'
 import { clock, dateLabel } from '../lib/dates'
 import { BibuNative } from '../native'
 import { mergeMessages } from '../lib/messageHistory'
@@ -30,6 +31,41 @@ function SendFailedIcon({ size = 14 }: { size?: number }) {
     </svg>
   )
 }
+
+// 像素笑脸，替代 emoji 作为快捷短语入口图标
+function SmileyIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      shapeRendering="crispEdges"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <rect x="1" y="1" width="14" height="14" fill="currentColor" />
+      <rect x="2" y="2" width="12" height="12" fill="#fffef8" />
+      <rect x="5" y="5" width="2" height="2" fill="currentColor" />
+      <rect x="9" y="5" width="2" height="2" fill="currentColor" />
+      <rect x="5" y="9" width="6" height="2" fill="currentColor" />
+    </svg>
+  )
+}
+
+// 快捷短语：像素图形 + 纯文本，不依赖 emoji 字符
+const QUICK_REACTIONS = [
+  { art: 'heart', text: '喜欢你' },
+  { art: 'heart', text: '抱抱' },
+  { art: 'star', text: '超开心' },
+  { art: 'balloon', text: '好心情' },
+  { art: 'cat', text: '喵~' },
+  { art: 'bunny', text: '兔兔' },
+  { art: 'flower', text: '送你小花' },
+  { art: 'tea', text: '吃点好的' },
+  { art: 'dumbbell', text: '加油！' },
+  { art: 'moon', text: '晚安，好梦' },
+  { art: 'heart', text: '想你啦！' },
+]
 
 export function Chat({
   controller,
@@ -187,7 +223,7 @@ export function Chat({
             <p className="chat-start-label">已加载到最早的消息</p>
           )}
           {!messages.length && (
-            <Empty icon="💬" title="故事，从一句你好开始" description="在这里说点什么吧。" />
+            <Empty icon={<Icon name="chat" size={40} />} title="故事，从一句你好开始" description="在这里说点什么吧。" />
           )}
           {messages.map((message, i) => {
             const own = message.sender_id === space.me.id
@@ -260,29 +296,17 @@ export function Chat({
         >
           {emoji && (
             <div className="chat-emojis">
-              {[
-                '💛',
-                '💗',
-                '🥰',
-                '✨',
-                '🌈',
-                '🐱',
-                '🐰',
-                '🌼',
-                '🍜',
-                '💪',
-                '晚安 🌙',
-                '想你啦！',
-              ].map((item) => (
+              {QUICK_REACTIONS.map((item) => (
                 <button
                   type="button"
-                  key={item}
+                  key={item.text}
                   onClick={() => {
-                    editText((t) => (t + item).slice(0, 2000))
+                    editText((t) => (t + item.text).slice(0, 2000))
                     input.current?.focus()
                   }}
                 >
-                  {item}
+                  <EventArt value={item.art} size={20} />
+                  <span>{item.text}</span>
                 </button>
               ))}
             </div>
@@ -291,11 +315,11 @@ export function Chat({
             <button
               type="button"
               className="emoji-toggle"
-              aria-label="选择 Emoji"
+              aria-label="选择快捷短语"
               aria-expanded={emoji}
               onClick={() => setEmoji(!emoji)}
             >
-              ☺
+              <SmileyIcon />
             </button>
             <textarea
               ref={input}

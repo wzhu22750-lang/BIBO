@@ -280,7 +280,7 @@ export function Photos({ controller, demo }: { controller: SpaceController; demo
         </div>
       ) : pages.busy || pages.error ? null : (
         <Empty
-          icon="📷"
+          icon={<Icon name="photo" size={40} />}
           title="第一张照片，会是什么呢？"
           description="只对彼此开放的照片墙，等你放进第一个瞬间。"
         />

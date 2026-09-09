@@ -1776,11 +1776,13 @@ img {
   border-color: var(--ink);
 }
 .emoji-toggle {
-  font-size: 30px;
   padding: 0 5px;
-  line-height: 1;
   border: 0;
   background: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
 }
 .chat-emojis {
   display: flex;
@@ -1792,7 +1794,10 @@ img {
   border: 1px solid #bdc6a8;
   padding: 5px 8px;
   background: #f1f6e2;
-  font-size: 18px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 .focus-layout {
   display: grid;
