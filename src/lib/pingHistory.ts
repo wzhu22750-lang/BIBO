@@ -22,13 +22,10 @@ export function mergePings(coupleId: string, ...lists: readonly unknown[][]): Pi
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at) || b.id.localeCompare(a.id))
     .slice(0, PING_HISTORY_LIMIT)
 }
-export function shouldPresentPing(incoming: Ping, known: Ping[], userId: string, now = Date.now()) {
-  const age = now - Date.parse(incoming.created_at)
+export function shouldPresentPing(incoming: Ping, known: Ping[], userId: string) {
   return (
     incoming.sender_id !== null &&
     incoming.sender_id !== userId &&
-    !known.some((p) => p.id === incoming.id) &&
-    age >= -30_000 &&
-    age <= 120_000
+    !known.some((p) => p.id === incoming.id)
   )
 }

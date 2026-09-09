@@ -59,7 +59,7 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
       const res = await BiboNative.notifications.show({
         id: 999,
         title: 'BIBU 悄悄话渠道测试',
-        body: '如果你看到了这条系统横幅，说明系统通知权限与悄悄话通道（bibo_messages_v1）完全正常！',
+        body: '如果你看到了这条系统横幅，说明系统通知权限与悄悄话通道（bibo_messages_v2）完全正常！',
         route: '#chat',
         channel: 'messages',
       })
@@ -131,7 +131,8 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
     <div className="settings-section">
       <h3>Android 远程 Push 设备登记与诊断</h3>
       <SettingsNote title="Push 工作原理">
-        前台消息由 Supabase Realtime 呈现；后台/锁屏时由 Google FCM 统一推送。
+        前台页面由 Supabase Realtime 更新；FCM 不使用隐藏的前台时间窗口，Android 会把收到的 Push
+        交给系统通知频道处理。
       </SettingsNote>
       {permissionNote && (
         <p role="status" style={{ fontWeight: 600 }}>

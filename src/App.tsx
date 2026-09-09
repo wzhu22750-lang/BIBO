@@ -1,7 +1,8 @@
-import { registerDeviceInstallation, touchDeviceActivity } from './lib/api'
-import { BiboNative, isAndroidApp } from './native'
-import { createDeviceActivityHeartbeat } from './lib/deviceActivity'
+import { registerDeviceInstallation } from './lib/api'
+import { BiboNative } from './native'
 import { parseRoute } from './lib/routes'
+import { positiveHash } from './lib/pingNotification'
+import { recoverPendingAccountDeletion } from './lib/accountDeletionRecovery'
 import { useEffect, useState } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { App as CapApp } from '@capacitor/app'
@@ -9,7 +10,7 @@ import type { Session } from '@supabase/supabase-js'
 import { configured, errorText, supabase } from './lib/supabase'
 import { useBibu } from './hooks/useBibu'
 import { useSpace } from './hooks/useSpace'
-import { readStoredPushToken, storePushToken } from './lib/pushRegistration'
+import { registerDevicePush, storePushToken } from './lib/pushRegistration'
 import {
   disableFeedback,
   loadFeedbackEnabled,
@@ -96,18 +97,18 @@ function Workspace({
         connection={controller.connection}
         bibu={bibu}
       >
-        {page !== 'chat' && controller.cachedAt && (
+        {controller.cachedAt && (
           <div className="waiting-banner" role="status">
             当前显示本机离线快照，保存于 {new Date(controller.cachedAt).toLocaleString()}
             。成员与记录可能已变化；照片需联网重新获取，待发消息仍须服务器验证权限。
           </div>
         )}
-        {page !== 'chat' && controller.cacheError && (
+        {controller.cacheError && (
           <div className="error-banner" role="alert">
             本机快照保存失败：{controller.cacheError}。云端数据不受影响。
           </div>
         )}
-        {page !== 'chat' && controller.error && (
+        {controller.error && (
           <div className="error-banner" role="alert">
             同步失败，以下可能是旧数据：{controller.error}
             <button onClick={() => void controller.reload()}>重试</button>
@@ -189,36 +190,46 @@ export default function App() {
     if (!session || !configured) return
     let active = true
     let stop: (() => void) | undefined
-    void BiboNative.push
-      .listenRegistration((token) => {
-        if (active)
-          void registerDeviceInstallation(session.user.id, token, 'bibo-0.1.0')
-            .then(() => storePushToken(token))
-            .catch(() => {})
-      })
-      .then((cleanup) => {
-        if (active) stop = cleanup
-        else cleanup()
-      })
-      .catch(() => {})
+    void (async () => {
+      try {
+        // Install the refresh listener before the first registration call so a
+        // very fast FCM callback cannot be lost. The silent attempt only
+        // repairs an already-granted installation; the visible Settings action
+        // remains the place that asks for notification permission.
+        const cleanup = await BiboNative.push.listenRegistration((token) => {
+          if (active)
+            void registerDeviceInstallation(session.user.id, token, 'bibo-0.1.0')
+              .then(() => storePushToken(token))
+              .catch(() => {})
+        })
+        if (!active) {
+          cleanup()
+          return
+        }
+        stop = cleanup
+        const result = await registerDevicePush(
+          session.user.id,
+          'bibo-0.1.0',
+          BiboNative,
+          undefined,
+          false,
+        )
+        if (active && result.stored && result.token) storePushToken(result.token)
+      } catch {
+        // Push is optional; the Settings panel exposes the actionable reason.
+      }
+    })()
     return () => {
       active = false
       stop?.()
     }
   }, [session?.user.id])
   useEffect(() => {
-    // Foreground heartbeat for the Realtime/FCM split: while this Android app is
-    // visible, server push functions skip its devices so an arriving message or
-    // Ping is presented once (Realtime in-app) instead of twice (system banner).
-    // The RPC no-ops for accounts without registered devices.
-    if (!session || !configured || !isAndroidApp()) return
-    const heartbeat = createDeviceActivityHeartbeat(() => {
-      const token = readStoredPushToken()
-      return token ? touchDeviceActivity(token) : Promise.resolve(0)
+    void recoverPendingAccountDeletion().then((errors) => {
+      if (errors.length)
+        setToast({ message: `上次注销后的本机清理未完全确认：${errors.join('；')}`, error: true })
     })
-    heartbeat.start()
-    return () => heartbeat.stop()
-  }, [session?.user.id])
+  }, [])
   useEffect(() => {
     if (!supabase) return
     let active = true
@@ -252,21 +263,100 @@ export default function App() {
   }, [])
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return
-    // 原生 App：处理邮箱验证深链接 love.bibu.space://?code=... （PKCE 回调）
-    const listener = CapApp.addListener('appUrlOpen', (data) => {
-      void (async () => {
-        try {
-          const url = new URL(data.url)
-          const code = url.searchParams.get('code')
-          if (!code) return
-          const { error } = await supabase.auth.exchangeCodeForSession(code)
-          if (error) setToast({ message: errorText(error), error: true })
-        } catch (e) {
-          setToast({ message: errorText(e), error: true })
-        }
-      })()
+    const listener = CapApp.addListener('backButton', ({ canGoBack }) => {
+      const dialog = document.querySelector('dialog[open]') as HTMLDialogElement | null
+      if (dialog) {
+        dialog.dispatchEvent(new Event('cancel', { cancelable: true }))
+        return
+      }
+      if (document.querySelector('.dock-more')) {
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+        return
+      }
+      const route = parseRoute(window.location.hash)
+      if (route.page !== 'home' || window.location.hash !== '#home') {
+        if (canGoBack) window.history.back()
+        else window.location.hash = '#home'
+        return
+      }
+      void CapApp.exitApp()
     })
     return () => {
+      void listener.then((handle) => handle.remove())
+    }
+  }, [])
+  useEffect(() => {
+    let disposed = false
+    let stop: (() => void) | undefined
+    void BiboNative.push
+      .listenReceived((value) => {
+        if (disposed) return
+        const data = value.data || {}
+        const messageId = typeof data.message_id === 'string' ? data.message_id : ''
+        const pingId = typeof data.ping_id === 'string' ? data.ping_id : ''
+        if (!messageId && !pingId) return
+        const route = typeof data.route === 'string' ? data.route : '#home'
+        const kind = messageId ? 'message' : 'ping'
+        const stableId = messageId || pingId
+        void BiboNative.notifications
+          .show({
+            id: positiveHash(stableId),
+            title: value.title || (kind === 'message' ? '收到一条悄悄话' : '收到一个小小的哔卟'),
+            body:
+              value.body ||
+              (kind === 'message' ? '打开 BIBU 查看消息' : '打开 BIBU 查看这个小小的想念'),
+            route,
+            ...(kind === 'message' ? { channel: 'messages' as const } : {}),
+          })
+          .catch(() => {})
+      })
+      .then((cleanup) => {
+        if (disposed) cleanup()
+        else stop = cleanup
+      })
+      .catch(() => {})
+    return () => {
+      disposed = true
+      stop?.()
+    }
+  }, [])
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform() || !supabase) return
+    let active = true
+    const consumed = new Set<string>()
+    const exchange = async (raw: string | undefined) => {
+      if (!raw || !active) return
+      try {
+        const url = new URL(raw)
+        // Auth callbacks use the app's exact custom scheme and no host/path.
+        // Do not exchange arbitrary deep-link query parameters as PKCE codes.
+        if (
+          url.protocol !== 'love.bibu.space:' ||
+          url.hostname ||
+          !['', '/'].includes(url.pathname)
+        )
+          return
+        const code = url.searchParams.get('code')
+        if (!code || code.length < 10 || code.length > 4096 || /[\u0000-\u001f\u007f]/.test(code))
+          return
+        if (consumed.has(code)) return
+        consumed.add(code)
+        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        if (active && error) setToast({ message: errorText(error), error: true })
+      } catch (e) {
+        if (active) setToast({ message: errorText(e), error: true })
+      }
+    }
+    const listener = CapApp.addListener('appUrlOpen', (data) => {
+      void exchange(data.url)
+    })
+    void CapApp.getLaunchUrl()
+      .then((data) => exchange(data?.url))
+      .catch((error) => {
+        if (active) console.warn('无法读取冷启动登录链接', errorText(error))
+      })
+    return () => {
+      active = false
       void listener.then((l) => l.remove())
     }
   }, [])
@@ -278,7 +368,17 @@ export default function App() {
   }, [toast])
   return (
     <ToastContext.Provider value={(message, error = false) => setToast({ message, error })}>
-      <a href="#main" className="skip-link">
+      <a
+        href="#main"
+        className="skip-link"
+        onClick={(event) => {
+          // `#main` is a document fragment, not an application page. Prevent
+          // the hash router from interpreting the accessibility link as Home.
+          event.preventDefault()
+          const main = document.getElementById('main')
+          main?.focus({ preventScroll: false })
+        }}
+      >
         跳到主要内容
       </a>
       {initializing && !demo ? (

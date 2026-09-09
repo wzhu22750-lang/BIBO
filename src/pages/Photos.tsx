@@ -9,8 +9,11 @@ import { useRef, useState } from 'react'
 import type { Photo } from '../lib/types'
 import type { SpaceController } from '../hooks/useSpace'
 import { dateLabel } from '../lib/dates'
-import { Button, Empty, Modal, PageHeading, useTask, useToast } from '../components/ui'
+import { Button, Empty, Modal, PageHeading, PixelSelect, useTask, useToast } from '../components/ui'
 import { Icon } from '../components/PixelArt'
+import { CachedImage } from '../components/CachedImage'
+import { imageCacheKey } from '../lib/imageCache'
+import { refreshPhotoUrl } from '../lib/api'
 export function PhotoCard({
   photo,
   onClick,
@@ -23,11 +26,13 @@ export function PhotoCard({
   return (
     <button className={`photo-card photo-${index % 3}`} onClick={onClick}>
       <div className="photo-image">
-        {photo.url ? (
-          <img src={photo.url} alt={photo.caption || '我们的照片'} loading="lazy" />
-        ) : (
-          <span className="photo-unavailable">照片暂不可用，请刷新重试</span>
-        )}
+        <CachedImage
+          src={photo.url}
+          cacheKey={imageCacheKey(photo)}
+          refreshSource={() => refreshPhotoUrl(photo.path)}
+          alt={photo.caption || '我们的照片'}
+          loading="lazy"
+        />
         <span className="photo-sticker">{['♥', '✳', '★'][index % 3]}</span>
       </div>
       <div className="photo-caption">
@@ -76,7 +81,7 @@ export function PhotoViewer({
             e.preventDefault()
             if (confirmation !== '删除') return
             void run(async () => {
-              await controller.deletePhoto(photo.id)
+              await controller.deletePhoto(photo.id, photo)
               toast('这份回忆及照片文件已删除')
               onClose()
             })
@@ -137,11 +142,14 @@ export function PhotoViewer({
         </form>
       ) : (
         <>
-          {photo.url ? (
-            <img className="full-photo" src={photo.url} alt={photo.caption || '照片大图'} />
-          ) : (
-            <Empty title="照片暂不可用" description="请关闭后刷新页面重新获取访问链接。" />
-          )}
+          <CachedImage
+            className="full-photo"
+            src={photo.url}
+            cacheKey={imageCacheKey(photo)}
+            refreshSource={() => refreshPhotoUrl(photo.path)}
+            alt={photo.caption || '照片大图'}
+            loading="eager"
+          />
           <div className="lightbox-caption">
             <h3>{photo.caption}</h3>
             <span>
@@ -222,17 +230,18 @@ export function Photos({ controller, demo }: { controller: SpaceController; demo
           上传照片
         </Button>
       </PageHeading>
-      <label className="memory-filter">
-        按事件看回忆
-        <select value={eventFilter} onChange={(e) => setEventFilter(e.target.value)}>
-          <option value="">全部共同记忆</option>
-          {controller.space!.events.map((e) => (
-            <option key={e.id} value={e.id}>
-              {e.title}
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="memory-filter">
+        <span>按事件看回忆</span>
+        <PixelSelect
+          value={eventFilter}
+          onChange={setEventFilter}
+          aria-label="按事件筛选回忆"
+          options={[
+            { value: '', label: '全部共同记忆' },
+            ...controller.space!.events.map((e) => ({ value: e.id, label: e.title })),
+          ]}
+        />
+      </div>
       <div className="collection-label">
         <span>
           <b>{String(photos.length).padStart(2, '0')}</b>{' '}

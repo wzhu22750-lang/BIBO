@@ -18,7 +18,9 @@ export function LoveMilestones({ controller }: { controller: SpaceController }) 
 
   const [collapsed, setCollapsed] = useState(() => {
     try {
-      return localStorage.getItem('bibo-milestones-collapsed') === 'true'
+      const saved = localStorage.getItem('bibo-milestones-collapsed')
+      if (saved !== null) return saved === 'true'
+      return typeof window !== 'undefined' && window.matchMedia('(max-width: 760px)').matches
     } catch {
       return false
     }

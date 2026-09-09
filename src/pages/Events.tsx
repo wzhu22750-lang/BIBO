@@ -14,10 +14,11 @@ import {
   nextOccurrence,
   sortedEvents,
 } from '../lib/dates'
-import { Button, Modal, PageHeading, useTask, useToast } from '../components/ui'
+import { Button, Modal, PageHeading, PixelSelect, useTask, useToast } from '../components/ui'
 import { Icon, PixelPal } from '../components/PixelArt'
 import { EventArt, MapIcon } from '../components/EventArt'
 import { EventArtPicker } from '../components/EventArtPicker'
+import { PixelDateTimePicker } from '../components/PixelPickers'
 import { eventArtConfig } from '../lib/eventArt'
 export function EventCard({
   event,
@@ -101,6 +102,7 @@ export function EventForm({
         onSubmit={(e) => {
           e.preventDefault()
           void run(async () => {
+            if (!target) throw new Error('请选择目标日期与时间')
             const input = {
               title: title.trim(),
               target_at: new Date(target).toISOString(),
@@ -154,23 +156,17 @@ export function EventForm({
         </label>
         <label>
           目标日期与时间
-          <input
-            type="datetime-local"
-            required
-            value={target}
-            onChange={(e) => setTarget(e.target.value)}
+          <PixelDateTimePicker value={target} onChange={setTarget} />
+        </label>
+        <div>
+          <span style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 650 }}>事件类型</span>
+          <PixelSelect
+            value={category}
+            onChange={(val) => setCategory(val as EventCategory)}
+            options={eventCategories.map((item) => ({ value: item.value, label: item.label }))}
+            aria-label="事件类型"
           />
-        </label>
-        <label>
-          事件类型
-          <select value={category} onChange={(e) => setCategory(e.target.value as EventCategory)}>
-            {eventCategories.map((item) => (
-              <option key={item.value} value={item.value}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        </div>
         <EventArtPicker value={emoji} onChange={setEmoji} />
         {kind === 'anniversary' && (
           <label className="check-label">
@@ -333,21 +329,18 @@ export function Events({
             </button>
           ))}
         </div>
-        <label className="event-category-filter">
-          按类型
-          <select
+        <div className="event-category-filter">
+          <span>按类型</span>
+          <PixelSelect
             aria-label="按事件类型筛选"
             value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value as EventCategory | 'all')}
-          >
-            <option value="all">全部类型</option>
-            {eventCategories.map((item) => (
-              <option key={item.value} value={item.value}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-        </label>
+            onChange={(val) => setCategoryFilter(val as EventCategory | 'all')}
+            options={[
+              { value: 'all', label: '全部类型' },
+              ...eventCategories.map((item) => ({ value: item.value, label: item.label })),
+            ]}
+          />
+        </div>
         <span className="list-sort">
           <MapIcon size={16} />
           从近到远，慢慢靠近

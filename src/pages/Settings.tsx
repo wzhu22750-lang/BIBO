@@ -16,6 +16,7 @@ import { CHARACTER_MAP } from '../lib/pet'
 import { db } from '../lib/supabase'
 import { disableFeedback, enableFeedback } from '../lib/notifications'
 import { localDateInput } from '../lib/dates'
+import { PixelDatePicker } from '../components/PixelPickers'
 export function InviteCode({ code }: { code: string }) {
   const { busy, run } = useTask(),
     toast = useToast()
@@ -266,12 +267,12 @@ export function Settings({
             </label>
             <label>
               我们在一起的日期
-              <input
-                type="date"
-                required
-                max={localDateInput()}
+              <PixelDatePicker
                 value={since}
-                onChange={(e) => setSince(e.target.value)}
+                min="1900-01-01"
+                max={localDateInput()}
+                yearMax={new Date().getFullYear()}
+                onChange={setSince}
               />
             </label>
             <SettingsNote title="日期怎么算？" className="form-note">

@@ -107,8 +107,10 @@
   gap: 12px;
   margin: 20px 0;
 }
-.memory-filter select {
+.memory-filter select,
+.memory-filter .pixel-select-container {
   min-height: 44px;
+  min-width: 200px;
   max-width: 100%;
 }
 .memory-story,
@@ -286,8 +288,10 @@
   margin-left: auto;
   white-space: nowrap;
 }
-.event-category-filter select {
+.event-category-filter select,
+.event-category-filter .pixel-select-container {
   min-height: 40px;
+  min-width: 130px;
   max-width: 180px;
 }
 @media (max-width: 760px) {
@@ -295,8 +299,10 @@
     margin-left: 0;
     width: 100%;
   }
-  .event-category-filter select {
+  .event-category-filter select,
+  .event-category-filter .pixel-select-container {
     flex: 1;
+    max-width: 100%;
   }
 }
 @media (max-width: 760px) {

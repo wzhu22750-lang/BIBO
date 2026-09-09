@@ -18,53 +18,34 @@ export type MessageFcmPayload = {
       notification: {
         channel_id: string
         notification_priority: 'PRIORITY_HIGH'
+        visibility: 'PRIVATE'
         default_sound: boolean
         default_vibrate_timings: boolean
       }
     }
   }
 }
-export const MESSAGE_PUSH_CHANNEL = 'bibo_messages_v1'
-// A device that reported foreground activity within this window is presumed to
-// receive the message through Supabase Realtime; pushing anyway would double-
-// notify a user who is already inside the app.
-export const ACTIVE_DEVICE_WINDOW_MS = 120_000
+export const MESSAGE_PUSH_CHANNEL = 'bibo_messages_v2'
 export function messagePreview(content: string, limit = 80): string {
   const clean = content.replace(/\s+/g, ' ').trim()
   const chars = Array.from(clean)
   if (!chars.length) return '发来一条悄悄话'
   return chars.length > limit ? `${chars.slice(0, limit).join('')}…` : chars.join('')
 }
-export function isDeviceRecentlyActive(
-  lastSeenAt: string | null | undefined,
-  now = Date.now(),
-  windowMs = ACTIVE_DEVICE_WINDOW_MS,
-): boolean {
-  if (!lastSeenAt) return false
-  const parsed = Date.parse(lastSeenAt)
-  if (!Number.isFinite(parsed)) return false
-  const age = now - parsed
-  // Tolerate small clock skew into the future; never suppress on stale rows.
-  return age <= windowMs && age >= -30_000
-}
-export function buildMessagePush(
-  record: MessagePushRecord,
-  token: string,
-  senderName = 'TA',
-): MessageFcmPayload {
+export function buildMessagePush(record: MessagePushRecord, token: string): MessageFcmPayload {
   if (!isUsablePushToken(token)) throw new Error('FCM token 无效')
   if (!/^[0-9a-f-]{20,80}$/i.test(record.id)) throw new Error('Message ID 无效')
-  const name = (senderName || 'TA').replace(/\s+/g, ' ').trim().slice(0, 24) || 'TA'
   return {
     message: {
       token,
-      notification: { title: name, body: messagePreview(record.content) },
+      notification: { title: 'BIBU 悄悄话', body: '收到一条悄悄话，打开 BIBU 查看' },
       data: { route: `#chat?message=${record.id}`, message_id: record.id, kind: 'message' },
       android: {
         priority: 'HIGH',
         notification: {
           channel_id: MESSAGE_PUSH_CHANNEL,
           notification_priority: 'PRIORITY_HIGH',
+          visibility: 'PRIVATE',
           default_sound: true,
           default_vibrate_timings: true,
         },

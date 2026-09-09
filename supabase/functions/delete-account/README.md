@@ -2,7 +2,7 @@
 
 This function is the only place that may use `SUPABASE_SERVICE_ROLE_KEY`. Never put that key in Vite variables or the Android/Web client.
 
-Apply migrations through `202609080009_account_deletion.sql` before deploying this function; for the complete app, apply all migrations through `202609080018_greeting_fields.sql` in filename order. The function verifies the caller JWT, invokes `prepare_account_deletion` through the caller-scoped client, and only then calls `auth.admin.deleteUser` on the server.
+Apply migrations through `202609080009_account_deletion.sql` before deploying this function; for the complete app, apply all migrations through `202609080020_remove_push_heartbeat.sql` in filename order. The function verifies the caller JWT, invokes `prepare_account_deletion` through the caller-scoped client, and only then calls `auth.admin.deleteUser` on the server.
 
 Deletion semantics:
 

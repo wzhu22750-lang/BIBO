@@ -1,6 +1,6 @@
 # 数据结构与私人空间边界
 
-权威定义：`supabase/migrations/202609070001_initial.sql` 及其后按文件名顺序的 `202609080001`–`202609080018` 增量迁移。
+权威定义：`supabase/migrations/202609070001_initial.sql` 及其后按文件名顺序的 `202609080001`–`202609080020` 增量迁移。
 
 ## 表结构
 
@@ -13,7 +13,7 @@
 | messages       | id、couple_id、sender_id、content、created_at                    | 只读自己的空间；只能以本人身份新增；服务端生成时间                                             |
 | events         | id、couple_id、created_by、title、target_at、kind、yearly、emoji | 成员新增、双方可删除；注销后 created_by 可为空，保留共同事件                                   |
 | photos         | id、couple_id、uploaded_by、path、caption、created_at            | 成员可读；只能登记本人上传；注销后 uploaded_by 可为空，Storage 文件由服务端清理                |
-| focus_sessions | user_id、couple_id、activity、ends_at、allow_reminders           | 双方可读；只有本人能开始 / 变更 / 结束本人的专注                                               |
+| focus_sessions | user_id、couple_id、activity、ends_at、allow_reminders           | 双方可读；只能通过带空间锁的 RPC 变更本人专注，避免授权与 Ping 竞态                            |
 | pings          | id、couple_id、sender_id、kind、created_at                       | 成员可读；客户端不能直接 INSERT；注销后 sender_id 可为空，保留共同互动记录                     |
 
 所有业务表开启 RLS；没有任何业务表给匿名用户读写权限。对象权限使用显式 GRANT / REVOKE，避免仅依赖前端隐藏按钮。
@@ -60,6 +60,12 @@ pings 订阅限制为当前空间，只对非本人发送的 INSERT 显示接收
 - 聊天、日期、照片的写入需返回实际记录；返回零行不能视为成功。
 - 初始迁移不包含完整生命周期；后续迁移已提供解除封存和注销准备，注销 Edge Function 的部署、Storage 清理与 Auth 删除仍必须在独立 Supabase 项目验收。
 - 未接入外部 API 的全面限流与机器人防护，需按实际项目开启 Auth 限流 / CAPTCHA；邀请码不是适用于公开平台的大规模身份验证方案。
+
+## 202609080019 可靠性加固
+
+- 撤销客户端直接登记 `photos` 元数据的 INSERT 权限，真实上传统一走 `create_photo_once` 固定 ID RPC；Storage 上传仍受私有 Bucket 和路径 RLS 保护。
+- 撤销 `focus_sessions` 的直接 INSERT / UPDATE / DELETE，新增 `set_focus_session` 与 `end_focus_session`。两个 RPC 和 `send_ping` 使用同一 couple 行锁，专注授权在 Ping 提交前后不会出现未串行化的竞态。
+- 将已有 `couples.greeting_title` / `greeting_subtitle` 列补齐 NOT NULL、默认值和长度约束；迁移遇到既有非法文本时显式失败，不静默截断。
 
 ## 后续迁移：封存、注销与匿名化
 

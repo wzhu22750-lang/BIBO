@@ -9,10 +9,9 @@ import { clearChatDraftsForUser } from '../lib/chatDraftStorage'
 import { BiboNative } from '../native'
 import { clearStoredPushToken, readStoredPushToken } from '../lib/pushRegistration'
 import {
-  incomingMessageNotification,
-  newPartnerMessages,
-  shouldNotifyIncomingMessage,
-} from '../lib/messageNotification'
+  clearPendingAccountDeletion,
+  markPendingAccountDeletion,
+} from '../lib/accountDeletionRecovery'
 import { withRequestDeadline } from '../lib/requestDeadline'
 import { useSpaceRealtime } from './useSpaceRealtime'
 import type { Focus } from '../lib/types'
@@ -39,7 +38,8 @@ import { readDemo, saveDemo } from '../lib/demo'
 import { isPing, mergePings, shouldPresentPing } from '../lib/pingHistory'
 import type { PingKind } from '../lib/ping'
 import { playFeedback } from '../lib/notifications'
-import type { AvatarType, EventInput, MemoryInput, Ping, Space } from '../lib/types'
+import { clearImageCache, imageCacheKey, removeCachedImage } from '../lib/imageCache'
+import type { AvatarType, EventInput, MemoryInput, Photo, Ping, Space } from '../lib/types'
 
 export function useSpace(
   session: Session | null,
@@ -61,40 +61,11 @@ export function useSpace(
   const [ping, setPing] = useState<{ id: string; name: string; kind: string } | null>(null)
   const dismissPing = useCallback(() => setPing(null), [])
   const version = useRef(0)
-  const notifiedMessages = useRef(new Set<string>())
   const stateRef = useRef(space)
   stateRef.current = space
   const userId = session?.user.id
-  // Dedupe by message_id across reloads/Realtime races, and suppress the system
-  // banner when the user is already looking at the one BIBU conversation (the
-  // chat page in the foreground). Background/killed delivery belongs to FCM.
-  const notifyIncoming = useCallback(
-    (previous: Space | null, next: Space) => {
-      if (!userId) return
-      // Initial load or couple switch: mark everything seen without notifying.
-      if (!previous || previous.couple?.id !== next.couple?.id) return
-      const incoming = newPartnerMessages(
-        previous ? previous.messages : null,
-        next.messages,
-        userId,
-      )
-      if (!incoming.length) return
-      if (notifiedMessages.current.size > 500) notifiedMessages.current.clear()
-      const notify = shouldNotifyIncomingMessage(document.hidden, window.location.hash)
-      const partnerName = next.partner?.name || '另一位玩家'
-      for (const message of incoming) {
-        if (notifiedMessages.current.has(message.id)) continue
-        notifiedMessages.current.add(message.id)
-        if (!notify) continue
-        void BiboNative.notifications
-          .show(incomingMessageNotification(message, partnerName))
-          .catch(() => {})
-      }
-    },
-    [userId],
-  )
-  const reload = useCallback(async () => {
-    if (demo || !userId) return
+  const reload = useCallback(async (): Promise<boolean> => {
+    if (demo || !userId) return false
     const current = ++version.current
     try {
       const data = await withRequestDeadline(
@@ -111,7 +82,6 @@ export function useSpace(
             : data
         stateRef.current = next
         setSpace(next)
-        notifyIncoming(previous, next)
         setError('')
         setCachedAt(null)
         try {
@@ -120,7 +90,9 @@ export function useSpace(
         } catch (cacheFailure) {
           setCacheError(errorText(cacheFailure))
         }
+        return current === version.current
       }
+      return false
     } catch (e) {
       if (current === version.current) {
         setError(errorText(e))
@@ -149,6 +121,7 @@ export function useSpace(
           }
         }
       }
+      return false
     } finally {
       if (current === version.current) setLoading(false)
     }
@@ -213,11 +186,14 @@ export function useSpace(
     setSpace(next)
     void reload()
   })
+  const realtimeReload = useCallback(async () => {
+    await reload()
+  }, [reload])
   useSpaceRealtime({
     demo,
     userId,
     coupleId: cid,
-    reload,
+    reload: realtimeReload,
     onLocal(next) {
       stateRef.current = next
       setSpace(next)
@@ -282,7 +258,9 @@ export function useSpace(
     if (demo) local(update)
     else {
       await remote()
-      await reload()
+      const refreshed = await reload()
+      if (!refreshed)
+        throw new Error('服务器操作可能已经保存，但页面刷新失败；请点击重试确认，不要重复提交')
     }
   }
   function validateLocalLinks(memory: MemoryInput) {
@@ -440,19 +418,18 @@ export function useSpace(
           ],
         }))
       } else {
-        if (!navigator.onLine) {
-          await photoOutbox.enqueue(file, caption, metadata)
-          return { queued: true }
-        }
-        await api.uploadPhoto(cid!, me, file, caption, metadata)
-        await reload()
-        return { queued: false }
+        // Use the same fixed-ID/idempotent path online and offline. The queue
+        // records the user's intent before any Storage request starts, so a
+        // lost response cannot orphan a committed object or create a duplicate
+        // photo on retry.
+        await photoOutbox.enqueue(file, caption, metadata)
+        return { queued: true }
       }
       return { queued: false }
     },
-    async deletePhoto(id: string) {
+    async deletePhoto(id: string, knownPhoto?: Photo) {
       const current = stateRef.current
-      const photo = current?.photos.find((p) => p.id === id)
+      const photo = current?.photos.find((p) => p.id === id) || knownPhoto
       if (!cid) throw new Error('请先进入空间')
       if (demo && (!photo || photo.uploaded_by !== me)) throw new Error('只能删除自己上传的回忆')
       if (demo) {
@@ -460,6 +437,7 @@ export function useSpace(
         return
       }
       await api.deletePhoto(id, cid, me)
+      if (photo) await removeCachedImage(imageCacheKey(photo))
       version.current++
       const latest = stateRef.current
       if (latest?.couple?.id === cid && latest.me.id === me) {
@@ -544,7 +522,7 @@ export function useSpace(
         local((s) => ({ ...s, focus: s.focus.filter((f) => f.user_id !== me) }))
         return
       }
-      await api.endFocus(me)
+      await api.endFocus(cid!)
       version.current++
       const current = stateRef.current
       if (current?.me.id === me && current.couple?.id === cid) {
@@ -625,6 +603,7 @@ export function useSpace(
         setOfflineCacheEnabled(false)
         setCacheError('')
         clearSpaceCache(userId)
+        await clearImageCache()
         clearChatDraftsForUser(userId)
         const signedOut = await supabase.auth.signOut()
         if (signedOut.error) throw signedOut.error
@@ -636,6 +615,7 @@ export function useSpace(
     },
     async deleteAccount(expectedSpace: string | null): Promise<{ cleanupWarning?: string }> {
       if (demo || !userId) throw new Error('演示模式不能注销真实账号')
+      markPendingAccountDeletion(userId, expectedSpace)
       await api.deleteAccount(expectedSpace)
       const cleanupErrors = await cleanupAccountLocal({
         clearSpaceCache: () => {
@@ -653,10 +633,13 @@ export function useSpace(
           const result = await BiboNative.push.unregister()
           if (!result.supported && result.reason && !result.reason.includes('Web'))
             throw new Error(result.reason)
+          clearStoredPushToken()
         },
         listReminders: () => BiboNative.reminders.list(),
         cancelReminder: (id) => BiboNative.reminders.cancel(id),
       })
+      await clearImageCache()
+      clearPendingAccountDeletion()
       stateRef.current = null
       setSpace(null)
       setPing(null)
@@ -699,6 +682,7 @@ export function useSpace(
       try {
         if (userId) setCacheEnabled(userId, false)
         setOfflineCacheEnabled(false)
+        await clearImageCache()
       } catch (e) {
         setCacheError(errorText(e))
       }

@@ -12,12 +12,12 @@ const record = {
 }
 describe('FCM push payload contract', () => {
   it('builds private minimal payload with internal route only', () => {
-    const result = buildPingPush(record, 't'.repeat(20), '小桃')
+    const result = buildPingPush(record, 't'.repeat(20))
     expect(result.message.token).toHaveLength(20)
     expect(result.message.data.route).toBe('#home')
-    expect(result.message.notification.body).toContain('想你')
+    expect(result.message.notification.body).toBe('收到一个小小的哔卟，打开 BIBU 查看')
     expect(result.message.android.priority).toBe('HIGH')
-    expect(result.message.android.notification.channel_id).toBe('bibo_love_v2')
+    expect(result.message.android.notification.channel_id).toBe('bibo_love_v3')
     expect(result.message.android.notification.notification_priority).toBe('PRIORITY_HIGH')
     expect(JSON.stringify(result)).not.toContain(record.couple_id)
   })
@@ -30,6 +30,8 @@ describe('FCM push payload contract', () => {
   it('classifies invalid registration tokens but not ordinary transient errors', () => {
     expect(isUnregisteredFcmError(404, 'UNREGISTERED')).toBe(true)
     expect(isUnregisteredFcmError(400, 'registration-token-not-registered')).toBe(true)
+    expect(isUnregisteredFcmError(404, 'NOT_FOUND: endpoint unavailable')).toBe(false)
+    expect(isUnregisteredFcmError(400, 'INVALID_ARGUMENT: malformed payload')).toBe(false)
     expect(isUnregisteredFcmError(503, 'temporarily unavailable')).toBe(false)
   })
 })

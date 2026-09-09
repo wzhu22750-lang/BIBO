@@ -3,7 +3,7 @@ import { ReminderPanel } from '../components/ReminderPanel'
 import { ScreenTimePanel } from '../components/ScreenTimePanel'
 import { useEffect, useState } from 'react'
 import type { SpaceController } from '../hooks/useSpace'
-import { Button, PageHeading, Panel, useTask, useToast } from '../components/ui'
+import { Button, PageHeading, Panel, PixelSelect, useTask, useToast } from '../components/ui'
 import { Icon, PixelPal } from '../components/PixelArt'
 export function Focus({ controller }: { controller: SpaceController }) {
   const space = controller.space!,
@@ -92,15 +92,22 @@ export function Focus({ controller }: { controller: SpaceController }) {
                 })
               }}
             >
-              <label>
-                现在想做什么？
-                <select value={activity} onChange={(e) => setActivity(e.target.value)}>
-                  <option>学习</option>
-                  <option>工作</option>
-                  <option>阅读</option>
-                  <option>运动</option>
-                </select>
-              </label>
+              <div>
+                <span style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 650 }}>
+                  现在想做什么？
+                </span>
+                <PixelSelect
+                  value={activity}
+                  onChange={setActivity}
+                  aria-label="选择专注活动"
+                  options={[
+                    { value: '学习', label: '学习' },
+                    { value: '工作', label: '工作' },
+                    { value: '阅读', label: '阅读' },
+                    { value: '运动', label: '运动' },
+                  ]}
+                />
+              </div>
               <fieldset className="duration-picker">
                 <legend>给自己多少时间？</legend>
                 {[15, 25, 45, 60].map((n) => (

@@ -1,10 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { isUnregisteredFcmError } from '../_shared/pingPush.ts'
-import {
-  buildMessagePush,
-  isDeviceRecentlyActive,
-  type MessagePushRecord,
-} from '../_shared/messagePush.ts'
+import { buildMessagePush, type MessagePushRecord } from '../_shared/messagePush.ts'
 import { googleAccessToken, parseServiceAccount, sendFcmMessage } from '../_shared/fcm.ts'
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -64,22 +60,20 @@ Deno.serve(async (request) => {
   if (memberError) return json({ error: '读取空间成员失败', details: memberError.message }, 502)
   const partner = members?.find((row) => row.user_id !== verifiedRecord.sender_id)?.user_id
   if (!partner) return json({ sent: 0, skipped: '没有另一位成员' }, 200)
-  const [{ data: profile }, { data: devices, error: deviceError }] = await Promise.all([
-    admin.from('profiles').select('name').eq('id', verifiedRecord.sender_id).maybeSingle(),
-    admin
-      .from('device_installations')
-      .select('token,last_seen_at')
-      .eq('user_id', partner)
-      .eq('platform', 'android'),
-  ])
+  const { data: devices, error: deviceError } = await admin
+    .from('device_installations')
+    .select('token')
+    .eq('user_id', partner)
+    .eq('platform', 'android')
   if (deviceError) return json({ error: '读取 Push 设备失败', details: deviceError.message }, 502)
   if (!devices?.length) return json({ sent: 0, skipped: '对方没有登记 Android Push 设备' }, 200)
   const targets = devices.filter(
     (device) => typeof device.token === 'string' && device.token.length >= 20,
   )
-  if (!targets.length)
-    return json({ sent: 0, skipped: '对方没有有效 Android Push Token' }, 200)
-  console.log(`[send-message-push] Message ${verifiedRecord.id} -> Partner ${partner} (${targets.length} targets)`)
+  if (!targets.length) return json({ sent: 0, skipped: '对方没有有效 Android Push Token' }, 200)
+  console.log(
+    `[send-message-push] Message ${verifiedRecord.id} -> Partner ${partner} (${targets.length} targets)`,
+  )
   let access: string
   try {
     access = await googleAccessToken(account)
@@ -93,13 +87,15 @@ Deno.serve(async (request) => {
     const token = device.token as string
     let body
     try {
-      body = buildMessagePush(verifiedRecord, token, profile?.name || 'TA')
+      body = buildMessagePush(verifiedRecord, token)
     } catch {
       invalid++
       continue
     }
     const result = await sendFcmMessage(account, access, body)
-    console.log(`[send-message-push] Token ${token.slice(0, 10)}... status: ${result.status}, ok: ${result.ok}`)
+    console.log(
+      `[send-message-push] Token ${token.slice(0, 10)}... status: ${result.status}, ok: ${result.ok}`,
+    )
     if (result.ok) {
       sent++
       continue

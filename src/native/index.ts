@@ -23,6 +23,12 @@ export type ReminderRecord = ReminderInput & {
   status: 'scheduled' | 'posted' | 'blocked' | 'expired' | 'failed'
 }
 export type PushRegistration = CapabilityResult & { token?: string }
+export type PushReceived = {
+  id?: string
+  title?: string
+  body?: string
+  data?: Record<string, unknown>
+}
 interface DevicePlugin {
   scheduleReminder(input: ReminderInput): Promise<CapabilityResult>
   firebaseConfiguration(): Promise<CapabilityResult & { configured: boolean }>
@@ -140,7 +146,7 @@ export const BiboNative = {
     },
   },
   push: {
-    async register(): Promise<PushRegistration> {
+    async register(options: { requestPermission?: boolean } = {}): Promise<PushRegistration> {
       if (!native()) return unavailable('远程 Push 设备注册仅在 Android 应用中可用')
       try {
         const firebase = await plugin.firebaseConfiguration()
@@ -150,16 +156,19 @@ export const BiboNative = {
             reason: 'Android 未配置 Firebase google-services.json，未调用 Push 注册',
           }
         let permission = await PushNotifications.checkPermissions()
-        if (permission.receive !== 'granted')
+        if (permission.receive !== 'granted') {
+          if (options.requestPermission === false)
+            return { supported: true, reason: '系统通知权限尚未开启，未主动弹出权限请求' }
           permission = await PushNotifications.requestPermissions()
+        }
         if (permission.receive !== 'granted')
           return { supported: true, reason: 'Android 系统通知权限未开启' }
         await PushNotifications.createChannel({
-          id: 'bibo_love_v2',
+          id: 'bibo_love_v3',
           name: '两个人的哔卟',
           description: '情侣 Ping 通知',
           importance: 4,
-          visibility: 1,
+          visibility: 0,
           sound: 'default',
           vibration: true,
         })
@@ -167,11 +176,11 @@ export const BiboNative = {
         // system default sound and vibration, governed by Android system rules
         // (DND/silence still apply — we never bypass them).
         await PushNotifications.createChannel({
-          id: 'bibo_messages_v1',
+          id: 'bibo_messages_v2',
           name: 'BIBU 悄悄话',
           description: '伴侣消息通知',
           importance: 4,
-          visibility: 1,
+          visibility: 0,
           sound: 'default',
           vibration: true,
         })
@@ -223,6 +232,15 @@ export const BiboNative = {
           supported: false,
           reason: error instanceof Error ? error.message : 'FCM token 注册失败',
         }
+      }
+    },
+    async listenReceived(listener: (value: PushReceived) => void): Promise<() => void> {
+      if (!native()) return () => {}
+      const handle = await PushNotifications.addListener('pushNotificationReceived', (value) =>
+        listener({ id: value.id, title: value.title, body: value.body, data: value.data }),
+      )
+      return () => {
+        void handle.remove()
       }
     },
     async listenRegistration(listener: (token: string) => void): Promise<() => void> {

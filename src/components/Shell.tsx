@@ -114,7 +114,7 @@ export function Shell({
             </button>
           </div>
         </header>
-        <main id="main" key={page} className={`page-${page}`}>
+        <main id="main" key={page} tabIndex={-1} className={`page-${page}`}>
           {children}
         </main>
         <footer className="main-footer">

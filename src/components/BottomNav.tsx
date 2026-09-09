@@ -23,6 +23,7 @@ export function BottomNav({
     trigger = useRef<HTMLButtonElement>(null)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const isLongPress = useRef(false)
+  const suppressNextClick = useRef(false)
   const itemRefs = useRef<Map<LovePingKind, HTMLButtonElement>>(new Map())
   const hoveredKindRef = useRef<LovePingKind | null>(null)
   hoveredKindRef.current = hoveredKind
@@ -63,8 +64,15 @@ export function BottomNav({
   }
 
   // Pointer / Touch interaction handlers for long-press & slide-to-select
-  const handlePointerDown = () => {
+  const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     if (bibu.disabled) return
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId)
+    } catch {
+      // Pointer capture is unavailable in a few embedded WebViews; normal
+      // pointer events still provide a usable tap fallback.
+    }
+    suppressNextClick.current = false
     setIsPressing(true)
     isLongPress.current = false
     setHoveredKind(bibu.kind)
@@ -103,8 +111,14 @@ export function BottomNav({
     }
   }
 
-  const handlePointerUp = () => {
+  const handlePointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
     setIsPressing(false)
+    try {
+      if (e.currentTarget.hasPointerCapture(e.pointerId))
+        e.currentTarget.releasePointerCapture(e.pointerId)
+    } catch {
+      // Ignore browsers without pointer-capture support.
+    }
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current)
       longPressTimer.current = undefined
@@ -113,24 +127,38 @@ export function BottomNav({
     if (isLongPress.current) {
       const selected = hoveredKindRef.current
       setSelectorOpen(false)
-      if (selected) {
-        void bibu.send(selected)
-      }
-      isLongPress.current = false
+      suppressNextClick.current = true
+      if (selected) void bibu.send(selected)
+      // Keep this flag until the synthetic click generated after pointerup is
+      // consumed; clearing it here would send the default BIBU a second time.
     }
   }
 
-  const handlePointerCancel = () => {
+  const handlePointerCancel = (e?: React.PointerEvent<HTMLButtonElement>) => {
     setIsPressing(false)
+    try {
+      if (e && e.currentTarget.hasPointerCapture(e.pointerId))
+        e.currentTarget.releasePointerCapture(e.pointerId)
+    } catch {
+      // Ignore browsers without pointer-capture support.
+    }
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current)
       longPressTimer.current = undefined
     }
     setSelectorOpen(false)
     isLongPress.current = false
+    suppressNextClick.current = false
   }
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (suppressNextClick.current) {
+      e.preventDefault()
+      e.stopPropagation()
+      suppressNextClick.current = false
+      isLongPress.current = false
+      return
+    }
     if (isLongPress.current) return
     setMore(false)
     void bibu.send()
