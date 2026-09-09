@@ -116,7 +116,9 @@ export function Modal({
           className="icon-button"
           aria-label="关闭弹窗"
           onClick={(event) => {
-            // 防止冒泡到外层 label/表单触发意外激活
+            // preventDefault 同时阻止外层 label 的激活行为，
+            // stopPropagation 避免冒泡触发其他监听
+            event.preventDefault()
             event.stopPropagation()
             onClose()
           }}

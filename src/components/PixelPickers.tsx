@@ -89,7 +89,8 @@ export function PixelDatePicker({
     onChange(formatDate(next))
     setOpen(false)
   }
-  function close(event?: { stopPropagation(): void }) {
+  function close(event?: { preventDefault(): void; stopPropagation(): void }) {
+    event?.preventDefault()
     event?.stopPropagation()
     setOpen(false)
   }
@@ -180,6 +181,7 @@ export function PixelDatePicker({
                 type="button"
                 tone="pink"
                 onClick={(event) => {
+                  event.preventDefault()
                   event.stopPropagation()
                   onChange('')
                   setOpen(false)
@@ -210,7 +212,8 @@ export function PixelTimePicker({ value, onChange, placeholder = '选择时间' 
     onChange(formatTime(draft))
     setOpen(false)
   }
-  function close(event?: { stopPropagation(): void }) {
+  function close(event?: { preventDefault(): void; stopPropagation(): void }) {
+    event?.preventDefault()
     event?.stopPropagation()
     setOpen(false)
   }
