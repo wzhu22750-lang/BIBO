@@ -488,6 +488,25 @@ export function Settings({
                   导出当前已加载的数据
                 </Button>
               )}
+              <Button
+                tone="white"
+                onClick={() =>
+                  void run(async () => {
+                    const info = [
+                      `build: ${__BIBU_BUILD__.commit}`,
+                      `builtAt: ${__BIBU_BUILD__.builtAt}`,
+                      `mode: ${__BIBU_BUILD__.mode}`,
+                      `url: ${window.location.href}`,
+                      `ua: ${navigator.userAgent}`,
+                    ].join('\n')
+                    await navigator.clipboard.writeText(info)
+                    toast('诊断信息已复制，可发给开发者对比版本')
+                  })
+                }
+              >
+                <Icon name="spark" size={17} />
+                复制诊断信息（版本 / 环境）
+              </Button>
               <AccountDeletion controller={controller} demo={demo} />
               <Button
                 tone="white"

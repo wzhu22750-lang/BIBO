@@ -122,6 +122,7 @@ export function Shell({
           <span>
             私密空间 · 只对彼此开放 <Icon name="lock" size={12} />
           </span>
+          <span className="micro">BUILD {__BIBU_BUILD__.commit}</span>
         </footer>
       </div>
       <BottomNav page={page} navigate={navigate} bibu={bibu} />
