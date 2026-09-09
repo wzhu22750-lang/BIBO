@@ -111,7 +111,16 @@ export function Modal({
     >
       <div className="modal-header">
         <h2>{title}</h2>
-        <button className="icon-button" aria-label="关闭弹窗" onClick={onClose}>
+        <button
+          type="button"
+          className="icon-button"
+          aria-label="关闭弹窗"
+          onClick={(event) => {
+            // 防止冒泡到外层 label/表单触发意外激活
+            event.stopPropagation()
+            onClose()
+          }}
+        >
           <Icon name="close" size={18} />
         </button>
       </div>

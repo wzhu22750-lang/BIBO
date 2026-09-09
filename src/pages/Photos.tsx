@@ -24,7 +24,7 @@ export function PhotoCard({
   index?: number
 }) {
   return (
-    <button className={`photo-card photo-${index % 3}`} onClick={onClick}>
+    <button type="button" className={`photo-card photo-${index % 3}`} onClick={onClick}>
       <div className="photo-image">
         <CachedImage
           src={photo.url}
@@ -312,7 +312,11 @@ export function Photos({ controller, demo }: { controller: SpaceController; demo
         <Modal
           title="收藏一个小瞬间"
           onClose={() => {
-            if (!busy) setAdding(false)
+            if (busy) return
+            setAdding(false)
+            setFile(null)
+            setCaption('')
+            setMemory(memoryInput())
             setPhotoDate(null)
             pickedFileRef.current = null
           }}

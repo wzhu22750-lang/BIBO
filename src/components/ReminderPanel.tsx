@@ -91,10 +91,14 @@ export function ReminderPanel() {
                 })
               }}
             >
-              <label>
-                提醒时间（本机时区）
+              <div>
+                <span
+                  style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 650 }}
+                >
+                  提醒时间（本机时区）
+                </span>
                 <PixelDateTimePicker value={at} onChange={setAt} />
-              </label>
+              </div>
               <Button type="submit" disabled={busy}>
                 保存本机提醒
               </Button>

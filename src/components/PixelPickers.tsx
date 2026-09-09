@@ -82,9 +82,15 @@ export function PixelDatePicker({
     if (open) setDraft(clampDate(dateParts(value || today()), min, max))
   }, [open, value, min, max])
   const days = daysInMonth(draft.year, draft.month)
-  function save() {
+  function save(event?: { preventDefault(): void; stopPropagation(): void }) {
+    event?.preventDefault()
+    event?.stopPropagation()
     const next = clampDate({ ...draft, day: Math.min(draft.day, days) }, min, max)
     onChange(formatDate(next))
+    setOpen(false)
+  }
+  function close(event?: { stopPropagation(): void }) {
+    event?.stopPropagation()
     setOpen(false)
   }
   return (
@@ -110,6 +116,10 @@ export function PixelDatePicker({
                 max={yearMax}
                 inputMode="numeric"
                 value={draft.year}
+                onKeyDown={(event) => {
+                  // 日期选择器可能嵌在表单里，回车会触发表单隐式提交，需拦截
+                  if (event.key === 'Enter') event.preventDefault()
+                }}
                 onChange={(event) => {
                   const year = Number(event.target.value)
                   if (!Number.isInteger(year)) return
@@ -162,13 +172,15 @@ export function PixelDatePicker({
             </div>
           </div>
           <div className="pixel-picker-actions">
-            <Button tone="green" onClick={save}>
+            <Button type="button" tone="green" onClick={save}>
               确认日期
             </Button>
             {clearable && (
               <Button
+                type="button"
                 tone="pink"
-                onClick={() => {
+                onClick={(event) => {
+                  event.stopPropagation()
                   onChange('')
                   setOpen(false)
                 }}
@@ -176,7 +188,7 @@ export function PixelDatePicker({
                 清空日期
               </Button>
             )}
-            <Button tone="white" onClick={() => setOpen(false)}>
+            <Button type="button" tone="white" onClick={close}>
               取消
             </Button>
           </div>
@@ -192,8 +204,14 @@ export function PixelTimePicker({ value, onChange, placeholder = '选择时间' 
   useEffect(() => {
     if (open) setDraft(timeParts(value || currentTime()))
   }, [open, value])
-  function save() {
+  function save(event?: { preventDefault(): void; stopPropagation(): void }) {
+    event?.preventDefault()
+    event?.stopPropagation()
     onChange(formatTime(draft))
+    setOpen(false)
+  }
+  function close(event?: { stopPropagation(): void }) {
+    event?.stopPropagation()
     setOpen(false)
   }
   return (
@@ -245,10 +263,10 @@ export function PixelTimePicker({ value, onChange, placeholder = '选择时间' 
             </div>
           </div>
           <div className="pixel-picker-actions">
-            <Button tone="green" onClick={save}>
+            <Button type="button" tone="green" onClick={save}>
               确认时间
             </Button>
-            <Button tone="white" onClick={() => setOpen(false)}>
+            <Button type="button" tone="white" onClick={close}>
               取消
             </Button>
           </div>

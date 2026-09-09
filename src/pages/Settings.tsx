@@ -265,8 +265,12 @@ export function Settings({
                 onChange={(e) => setName(e.target.value)}
               />
             </label>
-            <label>
-              我们在一起的日期
+            <div>
+              <span
+                style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 650 }}
+              >
+                我们在一起的日期
+              </span>
               <PixelDatePicker
                 value={since}
                 min="1900-01-01"
@@ -274,7 +278,7 @@ export function Settings({
                 yearMax={new Date().getFullYear()}
                 onChange={setSince}
               />
-            </label>
+            </div>
             <SettingsNote title="日期怎么算？" className="form-note">
               以本地自然日计算经过天数，在一起当天为第 0 天。
             </SettingsNote>

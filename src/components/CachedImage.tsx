@@ -1,4 +1,4 @@
-import { useEffect, useState, type ImgHTMLAttributes } from 'react'
+import { useEffect, useRef, useState, type ImgHTMLAttributes } from 'react'
 import { getCachedImage, subscribeCachedImage } from '../lib/imageCache'
 
 type CachedImageProps = ImgHTMLAttributes<HTMLImageElement> & {
@@ -21,6 +21,11 @@ export function CachedImage({
 }: CachedImageProps) {
   const [resolved, setResolved] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
+  // refreshSource 每次渲染都是新函数（闭包捕获 photo.path），如果放进依赖数组，
+  // 父组件任何重渲染都会重置 resolved、重新读 IndexedDB，导致照片闪烁重载。
+  // 用 ref 保存最新引用，仅当 cacheKey/src 真正变化时才重新加载。
+  const refreshSourceRef = useRef(refreshSource)
+  refreshSourceRef.current = refreshSource
 
   useEffect(() => {
     let active = true
@@ -40,7 +45,7 @@ export function CachedImage({
           }
         })
       : () => {}
-    void getCachedImage(src, key, refreshSource)
+    void getCachedImage(src, key, refreshSourceRef.current)
       .then((value) => {
         if (active && value) setResolved(value)
         else if (active) setFailed(true)
@@ -54,7 +59,7 @@ export function CachedImage({
       active = false
       unsubscribe()
     }
-  }, [cacheKey, refreshSource, src])
+  }, [cacheKey, src])
 
   if (failed || (!resolved && !src && !cacheKey))
     return (

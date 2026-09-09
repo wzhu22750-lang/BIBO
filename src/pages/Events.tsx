@@ -154,10 +154,14 @@ export function EventForm({
             placeholder="比如：一起去上海"
           />
         </label>
-        <label>
-          目标日期与时间
+        <div>
+          <span
+            style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 650 }}
+          >
+            目标日期与时间
+          </span>
           <PixelDateTimePicker value={target} onChange={setTarget} />
-        </label>
+        </div>
         <div>
           <span
             style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 650 }}

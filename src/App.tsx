@@ -264,7 +264,10 @@ export default function App() {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return
     const listener = CapApp.addListener('backButton', ({ canGoBack }) => {
-      const dialog = document.querySelector('dialog[open]') as HTMLDialogElement | null
+      const dialogs = document.querySelectorAll('dialog[open]')
+      // 取最后一个（DOM 树中最深/最新）的弹窗，避免嵌套的日期/时间选择器打开时
+      // 返回键误关外层表单弹窗。
+      const dialog = dialogs[dialogs.length - 1] as HTMLDialogElement | undefined
       if (dialog) {
         dialog.dispatchEvent(new Event('cancel', { cancelable: true }))
         return

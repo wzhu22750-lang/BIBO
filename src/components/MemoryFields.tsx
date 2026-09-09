@@ -37,8 +37,10 @@ export function MemoryFields({
 
   return (
     <>
-      <label>
-        回忆发生日期（可留空）
+      <div>
+        <span style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 650 }}>
+          回忆发生日期（可留空）
+        </span>
         <PixelDatePicker
           value={value.occurred_on || ''}
           min="1900-01-01"
@@ -47,7 +49,7 @@ export function MemoryFields({
           clearable
           onChange={(next) => onChange({ ...value, occurred_on: next || null })}
         />
-      </label>
+      </div>
       <label>
         把这一天的故事留下来
         <textarea
