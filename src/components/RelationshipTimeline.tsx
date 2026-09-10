@@ -4,6 +4,7 @@ import type { Photo } from '../lib/types'
 import { useNow } from '../hooks/useNow'
 import { dayNumber, dateLabel } from '../lib/dates'
 import { EventArt } from './EventArt'
+import { DEFAULT_PHOTO_ART } from '../lib/memories'
 import { PhotoViewer } from '../pages/Photos'
 import { timelineEntries, type TimelinePeriod } from '../lib/timeline'
 export function RelationshipTimeline({ controller }: { controller: SpaceController }) {
@@ -44,7 +45,7 @@ export function RelationshipTimeline({ controller }: { controller: SpaceControll
               </time>
               {entry.photo ? (
                 <button className="timeline-memory" onClick={() => setPhoto(entry.photo!)}>
-                  <EventArt value="heart" size={24} />
+                  <EventArt value={entry.photo!.emoji || DEFAULT_PHOTO_ART} size={24} />
                   <span>{entry.title || '一个共同瞬间'} · 打开回忆</span>
                 </button>
               ) : (
