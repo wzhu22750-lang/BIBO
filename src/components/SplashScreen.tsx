@@ -18,11 +18,10 @@ import { Icon } from './PixelArt'
  *   2.45s  整体淡出，进入主界面
  */
 
-const NAVY = '#0a1020'
+const MINT = '#85facf'
+const INK = '#20211d'
 const BLUE = '#04bcf0'
-const BLUE_LIGHT = '#7fd8ff'
-const PINK = '#ffa6e8'
-const WHITE = '#eaf4ff'
+const PINK = '#ff87d6'
 
 const CELL = 17
 const EXIT_AT_MS = 2450
@@ -51,7 +50,7 @@ function buildWorld(): WorldPixel[] {
         x: dx * CELL,
         y: dy * CELL,
         size: inner ? 6 : 9,
-        color: inner ? BLUE_LIGHT : (gx + gy) % 2 === 0 ? BLUE : PINK,
+        color: inner ? INK : (gx + gy) % 2 === 0 ? BLUE : PINK,
         delay: (manhattan - 2) * 0.09,
       })
     }
@@ -107,7 +106,7 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
       <motion.div
         className="splash-screen"
         aria-hidden="true"
-        style={{ background: NAVY }}
+        style={{ background: MINT }}
         initial={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.3 }}
@@ -144,7 +143,7 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
           <motion.span
             className="splash-pixel splash-pixel-center"
             aria-hidden="true"
-            style={{ width: 14, height: 14, marginLeft: -7, marginTop: -7, background: WHITE }}
+            style={{ width: 14, height: 14, marginLeft: -7, marginTop: -7, background: INK }}
             initial={{ opacity: 0, scale: 0 }}
             animate={merging ? { opacity: 0, scale: 0.3 } : { opacity: 1, scale: 1 }}
             transition={{ type: 'spring', stiffness: 260, damping: 20 }}
@@ -162,7 +161,7 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
                 marginLeft: -pixel.size / 2,
                 marginTop: -pixel.size / 2,
                 background: pixel.color,
-                boxShadow: `0 0 6px ${pixel.color}`,
+                boxShadow: '1.5px 1.5px 0 rgba(32, 33, 29, 0.16)',
               }}
               initial={{ opacity: 0, scale: 0, x: 0, y: 0 }}
               animate={

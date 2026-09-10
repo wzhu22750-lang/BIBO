@@ -5748,7 +5748,7 @@ img {
   display: grid;
   place-items: center;
   overflow: hidden;
-  background: radial-gradient(circle at 50% 46%, #16233f 0%, #0a1020 58%, #05070f 100%);
+  background: radial-gradient(circle at 50% 44%, #cdffec 0%, #8ef7cf 52%, #63e6b6 100%);
   contain: layout paint style;
   touch-action: none;
   user-select: none;
@@ -5761,9 +5761,9 @@ img {
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(4, 188, 240, 0.32) 0%,
-    rgba(255, 166, 232, 0.14) 44%,
-    rgba(4, 188, 240, 0) 72%
+    rgba(255, 255, 255, 0.92) 0%,
+    rgba(255, 255, 255, 0.42) 45%,
+    rgba(255, 255, 255, 0) 72%
   );
   pointer-events: none;
 }
@@ -5787,7 +5787,7 @@ img {
   border-radius: 1px;
 }
 .splash-pixel-center {
-  box-shadow: 0 0 14px rgba(234, 244, 255, 0.9);
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.92);
 }
 .splash-user {
   width: 16px;
@@ -5798,11 +5798,15 @@ img {
 }
 .splash-user-me {
   background: var(--blue);
-  box-shadow: 0 0 16px rgba(4, 188, 240, 0.85);
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.85),
+    2px 2px 0 rgba(32, 33, 29, 0.15);
 }
 .splash-user-you {
-  background: var(--pink);
-  box-shadow: 0 0 16px rgba(255, 166, 232, 0.85);
+  background: #ff87d6;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.85),
+    2px 2px 0 rgba(32, 33, 29, 0.15);
 }
 .splash-link {
   position: absolute;
@@ -5823,8 +5827,8 @@ img {
   margin-left: -15px;
   margin-top: -15px;
   line-height: 0;
-  color: var(--pink);
-  filter: drop-shadow(0 0 10px rgba(255, 166, 232, 0.7));
+  color: #ff4fb0;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.95));
 }
 .splash-logo {
   display: grid;
@@ -5849,16 +5853,16 @@ img {
   font-family: var(--pixel);
   font-size: 26px;
   letter-spacing: 3px;
-  color: var(--paper);
-  text-shadow: 3px 3px 0 rgba(4, 188, 240, 0.5);
+  color: var(--ink);
+  text-shadow: 2px 2px 0 rgba(255, 255, 255, 0.85);
 }
 .splash-logo-word > span {
-  color: var(--yellow);
+  color: var(--blue);
 }
 .splash-logo-cn {
   font-size: 11px;
   letter-spacing: 5px;
-  color: rgba(234, 244, 255, 0.72);
+  color: rgba(32, 33, 29, 0.66);
 }
 
 @media (prefers-reduced-motion: reduce) {
