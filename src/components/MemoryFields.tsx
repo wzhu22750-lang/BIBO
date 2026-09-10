@@ -1,6 +1,9 @@
 import type { MemoryInput, Space } from '../lib/types'
+import { DEFAULT_PHOTO_ART } from '../lib/memories'
 import { PixelDatePicker } from './PixelPickers'
 import { PixelSelect } from './ui'
+import { EventArtPicker } from './EventArtPicker'
+
 export function MemoryFields({
   value,
   onChange,
@@ -16,23 +19,6 @@ export function MemoryFields({
       ? [{ value: value.event_id, label: '当前列表未加载的已关联事件' }]
       : []),
     ...space.events.map((event) => ({ value: event.id, label: event.title })),
-  ]
-
-  const messageOptions = [
-    { value: '', label: '不关联聊天' },
-    ...(value.message_id && !space.messages.some((m) => m.id === value.message_id)
-      ? [{ value: value.message_id, label: '当前列表未加载的已关联消息' }]
-      : []),
-    ...[...space.messages].reverse().map((message) => ({
-      value: message.id,
-      label: `${
-        message.sender_id === null
-          ? '已注销玩家'
-          : message.sender_id === space.me.id
-            ? '我'
-            : space.partner?.name || 'TA'
-      }：${message.content.slice(0, 45)}`,
-    })),
   ]
 
   return (
@@ -70,20 +56,13 @@ export function MemoryFields({
           aria-label="关联事件"
         />
       </div>
-      <div>
-        <span style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 650 }}>
-          关联一句悄悄话
-        </span>
-        <PixelSelect
-          value={value.message_id || ''}
-          onChange={(val) => onChange({ ...value, message_id: val || null })}
-          options={messageOptions}
-          aria-label="关联悄悄话"
-        />
-      </div>
+      <EventArtPicker
+        value={value.emoji || DEFAULT_PHOTO_ART}
+        onChange={(next) => onChange({ ...value, emoji: next })}
+      />
       <p className="form-note">
         回忆日期不等于上传日期；上传照片时会自动识别拍摄日期，识别失败或想改时间时可手动填写。
-        关联聊天当前可选择最近已加载的消息。
+        选中的像素小伙伴会显示在照片卡片上。
       </p>
     </>
   )

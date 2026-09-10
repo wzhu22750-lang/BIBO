@@ -4,13 +4,14 @@ import { referenceLink } from '../lib/routes'
 import { readPhotoDate } from '../lib/photoDate'
 import type { PhotoDateResult } from '../lib/photoDate'
 import { MemoryFields } from '../components/MemoryFields'
-import { memoryInput, memoryDateLabel, sortedMemories } from '../lib/memories'
+import { memoryInput, memoryDateLabel, sortedMemories, DEFAULT_PHOTO_ART } from '../lib/memories'
 import { useRef, useState } from 'react'
 import type { Photo } from '../lib/types'
 import type { SpaceController } from '../hooks/useSpace'
 import { dateLabel } from '../lib/dates'
 import { Button, Empty, Modal, PageHeading, PixelSelect, useTask, useToast } from '../components/ui'
 import { Icon } from '../components/PixelArt'
+import { EventArt } from '../components/EventArt'
 import { CachedImage } from '../components/CachedImage'
 import { imageCacheKey } from '../lib/imageCache'
 import { refreshPhotoUrl } from '../lib/api'
@@ -33,7 +34,9 @@ export function PhotoCard({
           alt={photo.caption || '我们的照片'}
           loading="lazy"
         />
-        <span className="photo-sticker">{['♥', '✳', '★'][index % 3]}</span>
+        <span className="photo-sticker">
+          <EventArt value={photo.emoji || DEFAULT_PHOTO_ART} size={22} />
+        </span>
       </div>
       <div className="photo-caption">
         <strong>{photo.caption || '又一个关于我们的瞬间'}</strong>
@@ -346,7 +349,7 @@ export function Photos({ controller, demo }: { controller: SpaceController; demo
             <label className="upload-zone">
               <Icon name="upload" size={36} />
               <strong>{file?.name || '点击选择一张照片'}</strong>
-              <span>JPG / PNG / WebP · {demo ? '演示限 1.5 MB' : '最大 5 MB'}</span>
+              <span>JPG / PNG / WebP · {demo ? '演示限 1.5 MB' : '最大 10 MB'}</span>
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"

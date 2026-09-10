@@ -9,6 +9,7 @@ describe('memory metadata and date provenance', () => {
       story: '',
       event_id: null,
       message_id: null,
+      emoji: 'icon:heart',
     })
     expect(memoryDateLabel(makeDemo().photos[0])).toBeNull()
   })

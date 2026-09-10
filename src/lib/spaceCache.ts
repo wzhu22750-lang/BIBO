@@ -97,7 +97,8 @@ function validSpace(value: unknown, userId: string): value is Space {
         (r.story === undefined || text(r.story)) &&
         (r.occurred_on == null || date(r.occurred_on)) &&
         (r.event_id == null || text(r.event_id)) &&
-        (r.message_id == null || text(r.message_id)),
+        (r.message_id == null || text(r.message_id)) &&
+        (r.emoji === undefined || text(r.emoji)),
     )
   )
     return false
@@ -180,6 +181,7 @@ export function encodeSpaceCache(userId: string, space: Space, now = Date.now())
           story,
           event_id,
           message_id,
+          emoji,
         }) => ({
           id,
           couple_id,
@@ -191,6 +193,7 @@ export function encodeSpaceCache(userId: string, space: Space, now = Date.now())
           story,
           event_id,
           message_id,
+          emoji,
         }),
       ),
     pings: space.pings.slice(0, 50).map(({ id, couple_id, sender_id, kind, created_at }) => ({

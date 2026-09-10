@@ -8,7 +8,13 @@ import {
   retryablePhotoError,
   samePhotoScope,
 } from './photoOutbox'
-const memory = { occurred_on: null, story: 'story', event_id: null, message_id: null }
+const memory = {
+  occurred_on: null,
+  story: 'story',
+  event_id: null,
+  message_id: null,
+  emoji: 'icon:heart',
+}
 const file = new Blob(['photo'], { type: 'image/jpeg' })
 const row = photoOperation('u', 'c', file, 'x.jpg', 'image/jpeg', 'caption', memory, 1000)
 describe('photo upload outbox', () => {

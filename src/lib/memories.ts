@@ -6,6 +6,7 @@ export const eventCategories: { value: EventCategory; label: string }[] = [
   { value: 'travel', label: '旅行' },
   { value: 'birthday', label: '生日' },
 ]
+export const DEFAULT_PHOTO_ART = 'icon:heart'
 export function memoryInput(value: Partial<MemoryInput> = {}): MemoryInput {
   const occurred_on = value.occurred_on || null
   if (occurred_on) {
@@ -20,11 +21,14 @@ export function memoryInput(value: Partial<MemoryInput> = {}): MemoryInput {
   }
   const story = (value.story || '').trim()
   if (Array.from(story).length > 2000) throw new Error('回忆文字最多 2000 字')
+  const emoji = (value.emoji || DEFAULT_PHOTO_ART).trim()
+  if (Array.from(emoji).length < 1 || Array.from(emoji).length > 64) throw new Error('照片图标无效')
   return {
     occurred_on,
     story,
     event_id: value.event_id || null,
     message_id: value.message_id || null,
+    emoji,
   }
 }
 export function memoryDateLabel(photo: Photo) {

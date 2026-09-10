@@ -57,6 +57,8 @@ export type MemoryInput = {
   story: string
   event_id: string | null
   message_id: string | null
+  /** 照片图标（像素小伙伴），形如 icon:cat。 */
+  emoji: string
 }
 export type Photo = Partial<MemoryInput> & {
   id: string

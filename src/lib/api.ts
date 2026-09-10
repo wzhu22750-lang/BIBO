@@ -148,7 +148,7 @@ export async function uploadPhoto(
 export function validatePhoto(file: Pick<File, 'type' | 'size'>) {
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type))
     throw new Error('请选择 JPG、PNG 或 WebP 图片（不支持 SVG / HEIC）')
-  if (file.size > 5 * 1024 * 1024) throw new Error('图片不能超过 5 MB')
+  if (file.size > 10 * 1024 * 1024) throw new Error('图片不能超过 10 MB')
 }
 export async function setFocus(
   coupleId: string,
@@ -467,6 +467,7 @@ export async function uploadPhotoOnce(
     photo_story: memory.story,
     photo_event_id: memory.event_id,
     photo_message_id: memory.message_id,
+    photo_emoji: memory.emoji,
   })
   try {
     return must(await (signal ? request.abortSignal(signal) : request)) as Photo

@@ -33,6 +33,7 @@ describe('memory API confirmed-row contract', () => {
       occurred_on: null,
       event_id: null,
       message_id: null,
+      emoji: 'icon:heart',
     })
   })
   it('rejects zero-row writes instead of showing success', async () => {

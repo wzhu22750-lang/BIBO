@@ -71,6 +71,9 @@ beforeAll(async () => {
   await pg.exec(readFileSync('supabase/migrations/202609080020_remove_push_heartbeat.sql', 'utf8'))
   await pg.exec(readFileSync('supabase/migrations/202609080021_character_outfits.sql', 'utf8'))
   await pg.exec(readFileSync('supabase/migrations/202609090001_daily_tasks.sql', 'utf8'))
+  await pg.exec(
+    readFileSync('supabase/migrations/202609100001_photo_icon_and_upload_limit.sql', 'utf8'),
+  )
   legacyAfter = (await pg.query<Record<string, unknown>>('select * from public.photos')).rows[0]
   legacyEvent = (await pg.query<Record<string, unknown>>('select * from public.events')).rows[0]
   await pg.exec(
@@ -89,6 +92,7 @@ describe.sequential('private two-player database boundary', () => {
       story: '',
       event_id: null,
       message_id: null,
+      emoji: 'icon:heart',
     })
     expect(legacyEvent.category).toBe('other')
     expect(legacyEvent.kind).toBe('anniversary')
@@ -300,6 +304,18 @@ describe.sequential('private two-player database boundary', () => {
         message,
       ],
     )
+    // 照片图标：未指定时用默认值，指定时按 icon: 标识保存
+    expect(await scalar('select emoji from public.photos where id=$1', [photo])).toBe('icon:heart')
+    const artPhoto = await scalar(
+      "select (public.create_photo_once($1,$2,$3,'带图标','2020-01-01','',null,null,$4)).id",
+      [
+        '61000000-0000-0000-0000-0000000000a2',
+        couple,
+        `${couple}/${A}/61000000-0000-0000-0000-0000000000a2.jpg`,
+        'icon:cat',
+      ],
+    )
+    expect(await scalar('select emoji from public.photos where id=$1', [artPhoto])).toBe('icon:cat')
     await asUser(C)
     const foreignEvent = await scalar(
       "insert into public.events(couple_id,created_by,title,target_at,kind) values($1,$2,'别人的旅行',now(),'countdown') returning id",

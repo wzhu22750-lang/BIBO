@@ -42,8 +42,8 @@ describe('calendar arithmetic', () => {
 describe('photo input boundary', () => {
   it('accepts supported photos', () =>
     expect(() => validatePhoto({ type: 'image/jpeg', size: 1024 })).not.toThrow())
-  it('rejects SVG and files over 5 MB', () => {
+  it('rejects SVG and files over 10 MB', () => {
     expect(() => validatePhoto({ type: 'image/svg+xml', size: 100 })).toThrow('请选择')
-    expect(() => validatePhoto({ type: 'image/png', size: 5242881 })).toThrow('5 MB')
+    expect(() => validatePhoto({ type: 'image/png', size: 10485761 })).toThrow('10 MB')
   })
 })
