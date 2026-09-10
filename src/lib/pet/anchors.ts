@@ -186,4 +186,14 @@ export const CHARACTER_ANCHORS: Record<CharacterId, CharacterAnchors> = {
     mouth: { x: 40, y: 31 }, // 喙中心
     waist: { x: 40, y: 60 },
   },
+  pig: {
+    head: { x: 40, y: 18 }, // skullTop 12（双耳之间颅顶）
+    body: { x: 40, y: 56 },
+    hand: { x: 62, y: 58 },
+    back: { x: 20, y: 52 },
+    front: { x: 40, y: 52 },
+    accessory: { x: 40, y: 44 },
+    mouth: { x: 40, y: 40 }, // 拱鼻与嘴部中心
+    waist: { x: 40, y: 62 },
+  },
 }

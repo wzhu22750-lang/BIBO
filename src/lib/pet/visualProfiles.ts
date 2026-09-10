@@ -298,6 +298,19 @@ export const CHARACTER_VISUAL_PROFILES: Record<CharacterId, CharacterVisualProfi
     skullTopY: 8,
     neckY: 48,
   }),
+  pig: defineProfile({
+    id: 'pig',
+    bodyBounds: { x: 8, y: 8, w: 69, h: 77 },
+    headBounds: { x: 8, y: 8, w: 69, h: 45 },
+    torsoBounds: { x: 16, y: 52, w: 49, h: 33 },
+    faceCenter: { x: 40, y: 32 },
+    leftEar: { x: 18, y: 14 },
+    rightEar: { x: 62, y: 14 },
+    earStyle: 'pointy',
+    skullTopY: 12,
+    neckY: 52,
+    clothesScale: 1.08,
+  }),
 }
 
 export function getVisualProfile(characterId: CharacterId | string): CharacterVisualProfile {

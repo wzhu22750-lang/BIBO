@@ -677,6 +677,79 @@ export const CHARACTER_LIST: CharacterMeta[] = [
         }),
       ),
   },
+  {
+    id: 'pig',
+    name: '小猪',
+    tag: '圆滚福气',
+    description:
+      '粉扑扑圆滚滚的元气小猪，标志性的大拱鼻配元气腮红，呼噜呼噜给你带来满格福气与陪伴。',
+    anchors: CHARACTER_ANCHORS.pig,
+    renderBase: () =>
+      createElement(
+        'g',
+        { className: 'char-base char-pig' },
+        // 1. 外部黑色像素轮廓
+        createElement('path', {
+          fill: '#171917',
+          d: 'M8 8h20v4h24V8h20v20h-4v24h-4v8h4v8h8v16H8V72h8v-8h4v-8h-4V28H8z',
+        }),
+        // 2. 柔嫩草莓奶粉主色（头部与身体基底）
+        createElement('path', {
+          fill: '#ffb3cc',
+          d: 'M12 12h16v4h24v-4h16v18h-4v26H16V30h-4z',
+        }),
+        // 3. 额头头顶高光光泽
+        createElement('path', {
+          fill: '#ffe5ee',
+          d: 'M32 16h16v4H32z',
+        }),
+        // 4. 耳蜗与粉嫩圆腮红
+        createElement('path', {
+          fill: '#ff7597',
+          d: 'M16 12h8v8h-8zm40 0h8v8h-8zM16 38h8v6h-8zm40 0h8v6h-8z',
+        }),
+        // 5. 眼睛与猪鼻子黑轮廓
+        createElement('path', {
+          fill: '#171917',
+          d: 'M24 24h8v8h-8zm24 0h8v8h-8zM26 32h28v16H26zM36 48h8v2h-8z',
+        }),
+        // 6. 猪鼻子（拱鼻）主肉粉色底
+        createElement('path', {
+          fill: '#ff85a6',
+          d: 'M28 34h24v12H28z',
+        }),
+        // 7. 拱鼻上沿立体高光
+        createElement('path', {
+          fill: '#ffe5ee',
+          d: 'M32 34h16v2H32z',
+        }),
+        // 8. 两个圆鼓鼓的猪鼻孔
+        createElement('path', {
+          fill: '#171917',
+          d: 'M34 38h3v5h-3zm9 0h3v5h-3z',
+        }),
+        // 9. 大眼睛高光反光点
+        createElement('path', {
+          fill: '#ffffff',
+          d: 'M24 24h4v4h-4zm24 0h4v4h-4zm-16 12h4v2h-4z',
+        }),
+        // 10. 阳光金黄元气背带裤
+        createElement('path', {
+          fill: '#fbbf24',
+          d: 'M24 56h32v8h8v12H16V64h8zm4-4h4v8h-4zm20 0h4v8h-4z',
+        }),
+        // 11. 背带裤胸前小爱心纽扣
+        createElement('path', {
+          fill: '#ef4444',
+          d: 'M38 60h4v3h-4z',
+        }),
+        // 12. 猪小蹄分趾黑线
+        createElement('path', {
+          fill: '#171917',
+          d: 'M28 68h4v8h-4zm20 0h4v8h-4z',
+        }),
+      ),
+  },
 ]
 
 export const CHARACTER_MAP: Record<CharacterId, CharacterMeta> = CHARACTER_LIST.reduce(

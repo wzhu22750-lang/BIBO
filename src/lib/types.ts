@@ -18,6 +18,7 @@ export const AVATAR_IDS = [
   'otter',
   'sheep',
   'owl',
+  'pig',
 ] as const
 export type AvatarType = (typeof AVATAR_IDS)[number]
 export type Profile = {
