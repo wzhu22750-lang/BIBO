@@ -1,6 +1,6 @@
 import { EventArt } from '../components/EventArt'
 import { lovePings, pingFeedback } from '../lib/ping'
-import { dailyPrompt, dailyMemories, upcomingEvents } from '../lib/home'
+import { dailyMemories, upcomingEvents } from '../lib/home'
 import { useNow } from '../hooks/useNow'
 import { useState } from 'react'
 import { Icon, PixelFlower, PixelPal } from '../components/PixelArt'
@@ -11,6 +11,7 @@ import type { SpaceController } from '../hooks/useSpace'
 import type { BibuAction } from '../hooks/useBibu'
 import { EventCard, EventForm } from './Events'
 import { PhotoCard, PhotoViewer } from './Photos'
+import { DailyTaskCard } from '../components/DailyTaskCard'
 
 const GREETING_PRESETS = [
   {
@@ -56,11 +57,7 @@ export function Home({
 
   const now = useNow()
   const events = upcomingEvents(space, now).slice(0, 3)
-  const prompt = dailyPrompt(space.couple!.id, now)
   const memories = dailyMemories(space.photos, space.couple!.id, now)
-  const partnerFocus = space.focus.find(
-    (f) => f.user_id === space.partner?.id && new Date(f.ends_at) > now,
-  )
   const days = togetherDays(space.couple!.together_since, now)
   const last = space.messages.at(-1)
   const focus = space.focus.find(
@@ -265,24 +262,15 @@ export function Home({
           </div>
         </section>
       </div>
-      <section className="daily-reason" aria-label="今天的小约定">
-        <div>
-          <span className="micro">JUST FOR TODAY</span>
-          <h2>{prompt.text}</h2>
-          <p>
-            {space.partner
-              ? `${space.partner.name} · ${partnerFocus ? `正在${partnerFocus.activity}，${partnerFocus.allow_reminders ? '接受温柔提醒' : '暂不打扰'}` : '还没有正在进行的专注记录'}`
-              : '邀请另一位玩家，开始共同的日常'}
-          </p>
-          <small>专注状态来自共享记录，不代表在线状态。</small>
-        </div>
-        <button
-          className="text-button"
-          onClick={() => navigate(space.partner ? prompt.page : 'settings')}
-        >
-          {space.partner ? prompt.action : '邀请 TA'} <Icon name="arrow" size={16} />
-        </button>
-      </section>
+      <DailyTaskCard
+        coupleId={space.couple?.id}
+        myUserId={space.me.id}
+        partnerUserId={space.partner?.id}
+        partnerName={space.partner?.name}
+        demo={demo}
+        reloadKey={space}
+        navigate={navigate}
+      />
       <div className="home-section-title">
         <h2>
           <Icon name="calendar" />

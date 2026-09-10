@@ -70,6 +70,7 @@ beforeAll(async () => {
   await pg.exec(readFileSync('supabase/migrations/202609080019_reliability_hardening.sql', 'utf8'))
   await pg.exec(readFileSync('supabase/migrations/202609080020_remove_push_heartbeat.sql', 'utf8'))
   await pg.exec(readFileSync('supabase/migrations/202609080021_character_outfits.sql', 'utf8'))
+  await pg.exec(readFileSync('supabase/migrations/202609090001_daily_tasks.sql', 'utf8'))
   legacyAfter = (await pg.query<Record<string, unknown>>('select * from public.photos')).rows[0]
   legacyEvent = (await pg.query<Record<string, unknown>>('select * from public.events')).rows[0]
   await pg.exec(
@@ -941,5 +942,142 @@ describe.sequential('private two-player database boundary', () => {
         pg.query("update public.profiles set avatar = 'invalid space' where id = $1", [B]),
       ).rejects.toThrow()
     })()
+  })
+
+  it('manages daily tasks, enforces couples isolation and handles idempotent completions', async () => {
+    const U1 = '20000000-0000-0000-0000-000000000001'
+    const U2 = '20000000-0000-0000-0000-000000000002'
+    const U3 = '20000000-0000-0000-0000-000000000003'
+
+    await pg.exec('reset role')
+    await pg.query('insert into auth.users(id) values($1),($2),($3)', [U1, U2, U3])
+
+    // U1 creates space
+    await asUser(U1)
+    const u1Code = (await scalar('select public.create_space()')) as string
+    const taskCouple = (await scalar('select public.my_couple_id()')) as string
+
+    // U2 joins space
+    await asUser(U2)
+    await scalar('select public.join_space($1)', [u1Code])
+
+    // U3 creates independent space
+    await asUser(U3)
+    await scalar('select public.create_space()')
+    const otherTaskCouple = (await scalar('select public.my_couple_id()')) as string
+
+    // 1. 同一天只能生成一个任务，且 U1 与 U2 读取到同一个任务
+    await asUser(U1)
+    const task1 = (
+      await pg.query<Record<string, unknown>>(
+        "select * from public.ensure_daily_task('2026-09-09', '给对方发一句不能超过10个字的话', '表达爱意', 'interaction')",
+      )
+    ).rows[0]
+    expect(task1.title).toBe('给对方发一句不能超过10个字的话')
+    expect(new Date(task1.task_date as any).toISOString().slice(0, 10)).toBe('2026-09-09')
+    expect(task1.couple_id).toBe(taskCouple)
+
+    // U2 calls ensure_daily_task for the same day -> gets identical task row (no duplicate)
+    await asUser(U2)
+    const task2 = (
+      await pg.query<Record<string, unknown>>(
+        "select * from public.ensure_daily_task('2026-09-09', '给对方发一句不能超过10个字的话', '表达爱意', 'interaction')",
+      )
+    ).rows[0]
+    expect(task2.id).toBe(task1.id)
+
+    // Verify exactly 1 task exists in database for this couple
+    expect(
+      await scalar('select count(*)::int from public.daily_tasks where couple_id=$1', [taskCouple]),
+    ).toBe(1)
+
+    // 2. 跨空间隔离：U3 不能查看 U1 和 U2 的任务
+    await asUser(U3)
+    expect(await scalar('select count(*)::int from public.daily_tasks')).toBe(0)
+
+    // U3 cannot complete U1's task
+    await expect(
+      pg.query("select public.complete_daily_task($1, 'hack')", [task1.id]),
+    ).rejects.toThrow('无权限')
+
+    // 3. 完成任务：U1 完成不会把 U2 标记为完成
+    await asUser(U1)
+    const comp1 = (
+      await pg.query<Record<string, unknown>>(
+        "select * from public.complete_daily_task($1, '今天也很想你')",
+        [task1.id],
+      )
+    ).rows[0]
+    expect(comp1.task_id).toBe(task1.id)
+    expect(comp1.user_id).toBe(U1)
+    expect(comp1.optional_content).toBe('今天也很想你')
+
+    // U2 checks completions: U1 is done, U2 is not done
+    await asUser(U2)
+    const compsAfterU1 = (
+      await pg.query<Record<string, unknown>>(
+        'select * from public.daily_task_completions where task_id=$1',
+        [task1.id],
+      )
+    ).rows
+    expect(compsAfterU1.length).toBe(1)
+    expect(compsAfterU1[0].user_id).toBe(U1)
+
+    // U1 tries to spoof U2 completion directly through RLS -> rejected
+    await asUser(U1)
+    await expect(
+      pg.query(
+        'insert into public.daily_task_completions(couple_id, task_id, user_id, optional_content) values($1,$2,$3,$4)',
+        [taskCouple, task1.id, U2, 'spoofed'],
+      ),
+    ).rejects.toThrow()
+
+    // 4. 重复点击或更新回答：不产生重复 completion 记录，而是幂等更新
+    const comp1Updated = (
+      await pg.query<Record<string, unknown>>(
+        "select * from public.complete_daily_task($1, '晚上一起散步吧')",
+        [task1.id],
+      )
+    ).rows[0]
+    expect(comp1Updated.optional_content).toBe('晚上一起散步吧')
+    expect(
+      await scalar('select count(*)::int from public.daily_task_completions where task_id=$1', [
+        task1.id,
+      ]),
+    ).toBe(1)
+
+    // 5. U2 完成任务后，双方完成状态均就绪
+    await asUser(U2)
+    const comp2 = (
+      await pg.query<Record<string, unknown>>(
+        "select * from public.complete_daily_task($1, '好呀，准时等你')",
+        [task1.id],
+      )
+    ).rows[0]
+    expect(comp2.user_id).toBe(U2)
+
+    const allComps = (
+      await pg.query<Record<string, unknown>>(
+        'select * from public.daily_task_completions where task_id=$1',
+        [task1.id],
+      )
+    ).rows
+    expect(allComps.length).toBe(2)
+    const uids = allComps.map((c) => c.user_id)
+    expect(uids).toContain(U1)
+    expect(uids).toContain(U2)
+
+    // 6. 跨天能够生成新日期的任务
+    await asUser(U1)
+    const nextDayTask = (
+      await pg.query<Record<string, unknown>>(
+        "select * from public.ensure_daily_task('2026-09-10', '告诉对方今天最开心的一件小事', '描述', 'question')",
+      )
+    ).rows[0]
+    expect(new Date(nextDayTask.task_date as any).toISOString().slice(0, 10)).toBe('2026-09-10')
+    expect(nextDayTask.id).not.toBe(task1.id)
+    expect(
+      await scalar('select count(*)::int from public.daily_tasks where couple_id=$1', [taskCouple]),
+    ).toBe(2)
   })
 })
