@@ -2,6 +2,7 @@ import { PhotoOutboxPanel } from '../components/PhotoOutboxPanel'
 import { usePhotoPages } from '../hooks/usePhotoPages'
 import { referenceLink } from '../lib/routes'
 import { readPhotoDate } from '../lib/photoDate'
+import { compressPhoto } from '../lib/imageCompress'
 import type { PhotoDateResult } from '../lib/photoDate'
 import { MemoryFields } from '../components/MemoryFields'
 import { memoryInput, memoryDateLabel, sortedMemories, DEFAULT_PHOTO_ART } from '../lib/memories'
@@ -330,7 +331,9 @@ export function Photos({ controller, demo }: { controller: SpaceController; demo
               e.preventDefault()
               if (file)
                 void run(async () => {
-                  const result = await controller.upload(file, caption.trim(), memory)
+                  // 上传前静默压缩，用户无感知
+                  const optimized = await compressPhoto(file)
+                  const result = await controller.upload(optimized.file, caption.trim(), memory)
                   setAdding(false)
                   setFile(null)
                   setCaption('')
