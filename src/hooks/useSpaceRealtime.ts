@@ -47,6 +47,8 @@ export function useSpaceRealtime({
       'couple_members',
       'couples',
       'profiles',
+      'daily_tasks',
+      'daily_task_completions',
     ]) {
       // Keep DELETE and membership discovery unfiltered; RLS still gates delivery server-side.
       channel.on('postgres_changes', { event: '*', schema: 'public', table }, schedule)
