@@ -24,6 +24,7 @@ export function BottomNav({
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const isLongPress = useRef(false)
   const suppressNextClick = useRef(false)
+  const draggedToPill = useRef(false)
   const itemRefs = useRef<Map<LovePingKind, HTMLButtonElement>>(new Map())
   const hoveredKindRef = useRef<LovePingKind | null>(null)
   hoveredKindRef.current = hoveredKind
@@ -75,6 +76,7 @@ export function BottomNav({
     suppressNextClick.current = false
     setIsPressing(true)
     isLongPress.current = false
+    draggedToPill.current = false
     setHoveredKind(bibu.kind)
 
     longPressTimer.current = setTimeout(() => {
@@ -106,6 +108,7 @@ export function BottomNav({
     })
 
     if (matched && matched !== hoveredKindRef.current) {
+      draggedToPill.current = true
       setHoveredKind(matched)
       void BibuNative.vibration.pulse([25]).catch(() => {})
     }
@@ -125,12 +128,13 @@ export function BottomNav({
     }
 
     if (isLongPress.current) {
-      const selected = hoveredKindRef.current
-      setSelectorOpen(false)
       suppressNextClick.current = true
-      if (selected) void bibu.send(selected)
-      // Keep this flag until the synthetic click generated after pointerup is
-      // consumed; clearing it here would send the default BIBU a second time.
+      if (draggedToPill.current) {
+        const selected = hoveredKindRef.current
+        setSelectorOpen(false)
+        if (selected) void bibu.send(selected)
+      }
+      // If user long pressed without dragging, keep picker open so user can tap pills
     }
   }
 

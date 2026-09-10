@@ -94,7 +94,9 @@ export function DailyTaskCard({
             <span className="particle p1">✦</span>
             <span className="particle p2">♥</span>
             <span className="particle p3">★</span>
-            <span className="particle p4">✨</span>
+            <span className="particle p4">
+              <Icon name="spark" size={14} />
+            </span>
             <span className="particle p5">✦</span>
             <span className="particle p6">♥</span>
           </div>
@@ -169,7 +171,9 @@ export function DailyTaskCard({
           {/* 双方皆完成的温情横幅 */}
           {isAllCompleted ? (
             <div className="both-completed-banner">
-              <div className="banner-icon">🎉</div>
+              <div className="banner-icon">
+                <Icon name="spark" size={20} />
+              </div>
               <div className="banner-text">
                 <strong>今日任务完成！</strong>
                 <p>你们今天又完成了一件小事。</p>

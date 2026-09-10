@@ -1,0 +1,281 @@
+/* ============================================================================
+   BIBU！· 系统字体大小自适应（font-scale adaptation）
+   ----------------------------------------------------------------------------
+   Android WebView 会把系统「字体大小」缩放系数作用到全部文本上（含 px 字号），
+   但布局的宽高/间距仍是固定 px，于是系统字号放大后，固定尺寸的像素风控件
+   会互相挤压、溢出、重叠（典型如底部 Dock、恋爱天数、专注时钟、像素角标）。
+
+   方案（配套 src/lib/fontScale.ts）：
+   ① JS 用 1em 探针测出真实系数 → --fs-scale（系数）、--fs-inv（倒数），
+      并打上档位属性 data-fs-grow / -big / -xl / -xxl；
+   ② 装饰性像素字体（Press Start 2P / mono 数字标签）用 zoom: var(--fs-inv)
+      反缩放，无论系统字体多大，像素画风都保持设计尺寸，不撑破布局；
+   ③ 中文内容文本跟随系统字号自然放大，同时按档位放宽固定高度、允许换行、
+      增大间距，确保 1.15× / 1.3× / 1.5× / 2× 下布局都不挤不破。
+   ========================================================================== */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  --fs-scale: 1; /* 实际缩放系数（JS 覆写；无 JS 时为 1 = 不做任何处理） */
+  --fs-inv: 1; /* 1 / 系数，供 zoom 反缩放 */
+}
+
+/* ------------------------- ② 纯像素Logo与数字时钟保护 ------------------------ */
+/* 仅针对无子元素/无中文文本的纯像素Logo与固定时钟做比例保护，严禁缩放正文、标签、小字号辅助信息或包含SVG的组件 */
+html[data-fs] .brand-word,
+html[data-fs] .focus-clock,
+html[data-fs] .auth-brand,
+html[data-fs] .onboarding-logo,
+html[data-fs] .splash-logo-word {
+  zoom: var(--fs-inv, 1);
+}
+
+/* ------------------------- ③ 档位一：1.15×+ 布局放松 ------------------------- */
+/* 固定高度 → 随内容长高 */
+html[data-fs-grow] .card-window-bar {
+  height: auto;
+  min-height: 33px;
+}
+html[data-fs-grow] .together-content {
+  min-height: 195px;
+}
+html[data-fs-grow] .events-grid .event-card {
+  min-height: 200px;
+}
+
+/* 主按钮与倒计时标签给的更从容的间距 */
+html[data-fs-grow] .button {
+  padding: 12px 18px;
+  min-height: 48px;
+}
+html[data-fs-grow] .day-counter {
+  gap: 8px;
+  margin: 16px 0 10px;
+}
+
+/* 让「不可断行」的成排文字允许换行/换行抽稀 */
+html[data-fs-grow] .event-days {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+html[data-fs-grow] .event-date {
+  white-space: normal;
+}
+html[data-fs-grow] .page-tabs,
+html[data-fs-grow] .expectations-list-heading .page-tabs,
+html[data-fs-grow] .relationship-timeline .page-tabs {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+html[data-fs-grow] .expectations-list-heading .page-tabs button {
+  padding: 10px 12px;
+}
+html[data-fs-grow] .list-sort,
+html[data-fs-grow] .art-match-count {
+  white-space: normal;
+}
+html[data-fs-grow] .art-match-count {
+  margin-left: 8px;
+  text-align: right;
+}
+html[data-fs-grow] .duration-picker {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+html[data-fs-grow] .duration-picker button {
+  flex: 1 1 92px;
+}
+
+/* 聊天：输入栏、作者行、顶部标题都允许换行/加高 */
+html[data-fs-grow] .chat-window-top {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+html[data-fs-grow] .chat-window-top h2 {
+  font-size: 17px;
+}
+html[data-fs-grow] .message-content {
+  max-width: 84%;
+}
+html[data-fs-grow] .message-author {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+html[data-fs-grow] .composer-main {
+  gap: 8px;
+}
+html[data-fs-grow] .composer-main textarea {
+  flex-basis: 0;
+  min-height: 50px;
+}
+html[data-fs-grow] .composer-main .button {
+  flex-shrink: 0;
+}
+
+/* 每日小任务：标题行与玩家状态行换行 */
+html[data-fs-grow] .daily-task-header-row,
+html[data-fs-grow] .daily-task-players-status {
+  flex-wrap: wrap;
+  row-gap: 10px;
+}
+html[data-fs-grow] .status-divider {
+  align-self: stretch;
+}
+html[data-fs-grow] .status-indicator-row {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+/* 页头、顶栏、页脚、弹窗按钮行：允许换行并加大间距 */
+html[data-fs-grow] .page-heading {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+@media (min-width: 761px) {
+  html[data-fs-grow] .topbar {
+    padding: 0 26px;
+  }
+}
+html[data-fs-grow] .topbar-right {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+html[data-fs-grow] .home-signoff,
+html[data-fs-grow] .main-footer,
+html[data-fs-grow] .together-footer {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+html[data-fs-grow] .bibu-copy > .micro {
+  white-space: normal;
+}
+html[data-fs-grow] .modal-actions-row {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+html[data-fs-grow] .modal-actions-row .button {
+  flex: 1 1 140px;
+}
+html[data-fs-grow] .history-item-header {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+html[data-fs-grow] .photos-grid .photo-caption {
+  overflow-wrap: anywhere;
+}
+html[data-fs-grow] .ping-choices button {
+  padding: 10px 6px;
+}
+
+/* ------------------------- ④ 档位二：1.3×+ 布局再放宽 ------------------------- */
+/* 主页双列卡片改单列堆叠，给放大后的文字留足空间 */
+html[data-fs-big] .hero-grid {
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+html[data-fs-big] .together-content {
+  min-height: 215px;
+  padding: 28px 16px 22px;
+}
+html[data-fs-big] .nav-item {
+  padding: 12px 10px;
+}
+html[data-fs-big] .chat-messages {
+  padding: 18px;
+}
+html[data-fs-big] .composer-main textarea {
+  max-height: 160px;
+}
+html[data-fs-big] .events-grid .event-card {
+  min-height: 215px;
+  padding: 22px;
+}
+html[data-fs-big] .daily-task-action-btn {
+  width: 100%;
+  min-height: 52px;
+}
+html[data-fs-big] .celebration-card,
+html[data-fs-big] .milestone-badge,
+html[data-fs-big] .banner-caption {
+  overflow-wrap: anywhere;
+}
+html[data-fs-big] .focus-layout {
+  grid-template-columns: 1fr;
+}
+html[data-fs-big] .milestones-heading-main,
+html[data-fs-big] .milestones-heading {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+html[data-fs-big] .dock-bibu-picker .picker-tip {
+  max-width: min(92vw, 280px);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* 桌面端大字号时给页面主标题/区块标题一个温和上限（保留可读增长、不失控） */
+@media (min-width: 761px) {
+  html[data-fs-big] .page-heading h1 {
+    font-size: 34px;
+  }
+  html[data-fs-big] h2 {
+    font-size: 22px;
+  }
+  html[data-fs-xl] .page-heading h1 {
+    font-size: 36px;
+  }
+  html[data-fs-xl] h2 {
+    font-size: 23px;
+  }
+}
+
+/* ------------------------- ⑤ 档位三：1.5×+ 收敛超大标题 ------------------------- */
+html[data-fs-xl] .app-shell,
+html[data-fs-xl] .main-wrap {
+  min-width: 0;
+}
+html[data-fs-xl] .message-bubble {
+  font-size: 15px;
+}
+/* 大字号下照片标题由省略号改为换行展示，避免信息被截断 */
+html[data-fs-xl] .photo-caption > strong {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+html[data-fs-xl] .photo-caption > span {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+@media (max-width: 760px) {
+  html[data-fs-xl] .page-heading h1 {
+    font-size: 26px;
+  }
+  html[data-fs-xl] h2 {
+    font-size: 20px;
+  }
+  html[data-fs-xl] .daily-task-title {
+    font-size: 18px;
+  }
+  html[data-fs-xl] .daily-task-description {
+    font-size: 14px;
+  }
+  html[data-fs-xl] .chat-window-top h2 {
+    font-size: 16px;
+  }
+}
+
+/* ------------------------- ⑥ 档位四：2×+ 最终兜底 ------------------------- */
+html[data-fs-xxl] .bottom-nav.bibo-dock {
+  min-height: 64px;
+}
+html[data-fs-xxl] .chat-window-top {
+  padding: 14px 16px;
+}
+html[data-fs-xxl] .message-bubble {
+  padding: 12px 14px;
+}
+html[data-fs-xxl] textarea {
+  max-height: 220px !important;
+}

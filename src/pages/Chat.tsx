@@ -151,6 +151,24 @@ export function Chat({
     }
   }, [referenceId])
 
+  useLayoutEffect(() => {
+    const el = input.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+  }, [text])
+
+  useEffect(() => {
+    const handleResize = () => {
+      const el = input.current
+      if (!el) return
+      el.style.height = 'auto'
+      el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
   function submit() {
     if (!text.trim() || busy) return
     // Send haptic: a single light tick. Native Android on device, navigator
@@ -332,12 +350,7 @@ export function Chat({
               rows={1}
               maxLength={2000}
               value={text}
-              onChange={(e) => {
-                editText(e.target.value)
-                const el = e.target
-                el.style.height = 'auto'
-                el.style.height = Math.min(el.scrollHeight, 120) + 'px'
-              }}
+              onChange={(e) => editText(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
                   e.preventDefault()

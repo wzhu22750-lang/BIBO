@@ -69,7 +69,9 @@ export function EventCard({
           ) : (
             <>
               <small>{remaining < 0 ? '已过' : '还有'}</small>
-              <strong>{Math.abs(remaining)}</strong>
+              <strong className={Math.abs(remaining) > 999 ? 'long-count' : ''}>
+                {Math.abs(remaining)}
+              </strong>
               <small>天</small>
             </>
           )}

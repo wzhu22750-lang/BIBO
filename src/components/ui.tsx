@@ -78,6 +78,9 @@ export function Modal({
   className?: string
 }) {
   const ref = useRef<HTMLDialogElement>(null)
+  const parentToast = useContext(ToastContext)
+  const [modalToast, setModalToast] = useState<{ message: string; error?: boolean } | null>(null)
+
   useEffect(() => {
     const dialog = ref.current!
     dialog.showModal()
@@ -88,46 +91,76 @@ export function Modal({
       document.body.style.overflow = old
     }
   }, [])
+
+  useEffect(() => {
+    if (!modalToast) return
+    const timer = setTimeout(() => {
+      setModalToast(null)
+    }, 3800)
+    return () => clearTimeout(timer)
+  }, [modalToast])
+
+  const showToast = (message: string, error = false) => {
+    setModalToast({ message, error })
+    if (!error) {
+      parentToast(message, false)
+    }
+  }
+
   return (
-    <dialog
-      ref={ref}
-      className={`modal ${className}`}
-      onCancel={(e) => {
-        e.preventDefault()
-        onClose()
-      }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          const r = e.currentTarget.getBoundingClientRect()
-          if (
-            e.clientX < r.left ||
-            e.clientX > r.right ||
-            e.clientY < r.top ||
-            e.clientY > r.bottom
-          )
-            onClose()
-        }
-      }}
-    >
-      <div className="modal-header">
-        <h2>{title}</h2>
-        <button
-          type="button"
-          className="icon-button"
-          aria-label="关闭弹窗"
-          onClick={(event) => {
-            // preventDefault 同时阻止外层 label 的激活行为，
-            // stopPropagation 避免冒泡触发其他监听
-            event.preventDefault()
-            event.stopPropagation()
-            onClose()
-          }}
-        >
-          <Icon name="close" size={18} />
-        </button>
-      </div>
-      {children}
-    </dialog>
+    <ToastContext.Provider value={showToast}>
+      <dialog
+        ref={ref}
+        className={`modal ${className}`}
+        onCancel={(e) => {
+          e.preventDefault()
+          onClose()
+        }}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            const r = e.currentTarget.getBoundingClientRect()
+            if (
+              e.clientX < r.left ||
+              e.clientX > r.right ||
+              e.clientY < r.top ||
+              e.clientY > r.bottom
+            )
+              onClose()
+          }
+        }}
+      >
+        <div className="modal-header">
+          <h2>{title}</h2>
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="关闭弹窗"
+            onClick={(event) => {
+              // preventDefault 同时阻止外层 label 的激活行为，
+              // stopPropagation 避免冒泡触发其他监听
+              event.preventDefault()
+              event.stopPropagation()
+              onClose()
+            }}
+          >
+            <Icon name="close" size={18} />
+          </button>
+        </div>
+        {children}
+        {modalToast && (
+          <div
+            className={`modal-toast toast ${modalToast.error ? 'error' : ''}`}
+            role={modalToast.error ? 'alert' : 'status'}
+          >
+            <Icon name={modalToast.error ? 'close' : 'check'} size={18} />
+            <span>{modalToast.message}</span>
+            <button aria-label="关闭提示" onClick={() => setModalToast(null)}>
+              ×
+            </button>
+          </div>
+        )}
+      </dialog>
+    </ToastContext.Provider>
   )
 }
 export function Empty({
@@ -220,6 +253,7 @@ export function PixelSelect({
   id?: string
 }) {
   const [open, setOpen] = useState(false)
+  const [isDropup, setIsDropup] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -242,13 +276,23 @@ export function PixelSelect({
     }
   }, [open])
 
+  const handleToggle = () => {
+    if (disabled) return
+    if (!open && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect()
+      const spaceBelow = window.innerHeight - rect.bottom
+      setIsDropup(spaceBelow < 230 && rect.top > 230)
+    }
+    setOpen((prev) => !prev)
+  }
+
   const selectedOption = options.find((opt) => opt.value === value)
   const displayLabel = selectedOption?.label || placeholder || value || '请选择'
 
   return (
     <div
       ref={containerRef}
-      className={`pixel-select-container ${open ? 'is-open' : ''} ${disabled ? 'is-disabled' : ''} ${className}`}
+      className={`pixel-select-container ${open ? 'is-open' : ''} ${isDropup ? 'is-dropup' : ''} ${disabled ? 'is-disabled' : ''} ${className}`}
       id={id}
     >
       <button
@@ -258,7 +302,7 @@ export function PixelSelect({
         aria-expanded={open}
         aria-label={ariaLabel}
         disabled={disabled}
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={handleToggle}
       >
         <span className="pixel-select-label">{displayLabel}</span>
         <span className={`pixel-select-arrow ${open ? 'is-up' : ''}`} aria-hidden="true">
