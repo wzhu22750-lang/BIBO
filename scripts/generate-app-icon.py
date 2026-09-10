@@ -46,6 +46,26 @@ NOTIFICATION_ICON_SIZES = {
     "xxxhdpi": 96,
 }
 
+# 启动屏：深海军蓝底 + 中心像素点，对齐 Web 层 SplashScreen 动画的首帧
+SPLASH_NAVY = (10, 16, 32, 255)  # #0a1020
+SPLASH_DOT = (234, 244, 255, 255)
+SPLASH_SIZES = {
+    "port": {
+        "mdpi": (320, 480),
+        "hdpi": (480, 800),
+        "xhdpi": (720, 1280),
+        "xxhdpi": (960, 1600),
+        "xxxhdpi": (1280, 1920),
+    },
+    "land": {
+        "mdpi": (480, 320),
+        "hdpi": (800, 480),
+        "xhdpi": (1280, 720),
+        "xxhdpi": (1600, 960),
+        "xxxhdpi": (1920, 1280),
+    },
+}
+
 
 def square_crop(src: Image.Image) -> Image.Image:
     """Crop to the largest centred square."""
@@ -120,6 +140,31 @@ def notification_icon(src: Image.Image, size: int) -> Image.Image:
     out = Image.new("RGBA", (size, size), (255, 255, 255, 0))
     out.paste(glyph, ((size - target) // 2, (size - target) // 2), glyph)
     return out
+
+
+def splash_image(w: int, h: int) -> Image.Image:
+    """Navy launch background with a centred pixel dot.
+
+    Matches the first frame of the in-app SplashScreen animation so the native
+    launch screen transitions into the web animation without a colour flash.
+    """
+    from PIL import ImageDraw
+
+    canvas = Image.new("RGBA", (w, h), SPLASH_NAVY)
+    dot = max(8, int(min(w, h) * 0.033))
+    glow = dot * 7
+    cx, cy = w // 2, h // 2
+    # 柔和径向光晕（与 Web 端 SplashScreen 的 radial-gradient 一致）
+    gradient = Image.radial_gradient("L").resize((glow, glow))
+    glow_img = Image.new("RGBA", (glow, glow), (4, 188, 240, 0))
+    glow_img.putalpha(gradient.point(lambda v: int((255 - v) * 0.38)))
+    canvas.alpha_composite(glow_img, (cx - glow // 2, cy - glow // 2))
+    draw = ImageDraw.Draw(canvas)
+    draw.rectangle(
+        (cx - dot // 2, cy - dot // 2, cx + dot // 2 - 1, cy + dot // 2 - 1),
+        fill=SPLASH_DOT,
+    )
+    return canvas
 
 
 def _raster_brand_heart(grid: int = 24) -> Image.Image:
@@ -227,6 +272,12 @@ def main() -> None:
         print(f"  removed {stale.relative_to(ROOT)}")
     for name, size in NOTIFICATION_ICON_SIZES.items():
         save(notification_icon(full, size), RES / f"drawable-{name}" / "ic_stat_bibo.png")
+
+    print("Android launch splash (navy, matches web splash first frame)")
+    for orientation, sizes in SPLASH_SIZES.items():
+        for name, (w, h) in sizes.items():
+            save(splash_image(w, h), RES / f"drawable-{orientation}-{name}" / "splash.png")
+    save(splash_image(480, 320), RES / "drawable" / "splash.png")
 
     print("Android legacy + adaptive PNG")
     for name, factor in DENSITIES.items():

@@ -5736,3 +5736,133 @@ img {
   font-size: 12px;
   color: var(--ink);
 }
+
+/* ==========================================================================
+   Splash screen — code-generated pixel animation (no image / video / gif)
+   Only transform & opacity animate, so it stays GPU-friendly on mobile.
+   ========================================================================== */
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 46%, #16233f 0%, #0a1020 58%, #05070f 100%);
+  contain: layout paint style;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.splash-glow {
+  position: absolute;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(4, 188, 240, 0.32) 0%,
+    rgba(255, 166, 232, 0.14) 44%,
+    rgba(4, 188, 240, 0) 72%
+  );
+  pointer-events: none;
+}
+.splash-stage-wrap {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.splash-stage {
+  position: relative;
+  width: 0;
+  height: 0;
+}
+.splash-pixel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  border-radius: 1px;
+}
+.splash-pixel-center {
+  box-shadow: 0 0 14px rgba(234, 244, 255, 0.9);
+}
+.splash-user {
+  width: 16px;
+  height: 16px;
+  margin-left: -8px;
+  margin-top: -8px;
+  border-radius: 2px;
+}
+.splash-user-me {
+  background: var(--blue);
+  box-shadow: 0 0 16px rgba(4, 188, 240, 0.85);
+}
+.splash-user-you {
+  background: var(--pink);
+  box-shadow: 0 0 16px rgba(255, 166, 232, 0.85);
+}
+.splash-link {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 56px;
+  height: 3px;
+  margin-left: -28px;
+  margin-top: -1.5px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--blue), var(--pink));
+  transform-origin: 50% 50%;
+}
+.splash-heart {
+  position: absolute;
+  left: 0;
+  top: 0;
+  margin-left: -15px;
+  margin-top: -15px;
+  line-height: 0;
+  color: var(--pink);
+  filter: drop-shadow(0 0 10px rgba(255, 166, 232, 0.7));
+}
+.splash-logo {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+.splash-logo-slot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  margin-top: 36px;
+  transform: translateX(-50%);
+}
+.splash-logo-wrap {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.splash-logo-word {
+  font-family: var(--pixel);
+  font-size: 26px;
+  letter-spacing: 3px;
+  color: var(--paper);
+  text-shadow: 3px 3px 0 rgba(4, 188, 240, 0.5);
+}
+.splash-logo-word > span {
+  color: var(--yellow);
+}
+.splash-logo-cn {
+  font-size: 11px;
+  letter-spacing: 5px;
+  color: rgba(234, 244, 255, 0.72);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-glow {
+    animation: none;
+  }
+}

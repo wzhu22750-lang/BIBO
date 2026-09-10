@@ -3,7 +3,7 @@ import { BibuNative } from './native'
 import { parseRoute } from './lib/routes'
 import { positiveHash } from './lib/pingNotification'
 import { recoverPendingAccountDeletion } from './lib/accountDeletionRecovery'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { App as CapApp } from '@capacitor/app'
 import type { Session } from '@supabase/supabase-js'
@@ -19,6 +19,8 @@ import {
 } from './lib/notifications'
 import type { Page } from './lib/types'
 import { Shell } from './components/Shell'
+import { SplashScreen } from './components/SplashScreen'
+import { AnimatePresence } from 'framer-motion'
 import { ToastContext, Button } from './components/ui'
 import { Icon } from './components/PixelArt'
 import { PingEffect } from './components/PingEffect'
@@ -185,7 +187,10 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null),
     [initializing, setInitializing] = useState(configured),
     [demo, setDemo] = useState(!configured),
+    [splashVisible, setSplashVisible] = useState(true),
     [toast, setToast] = useState<{ message: string; error: boolean } | null>(null)
+  // 启动屏只做展示：主界面在它下方照常初始化，不阻塞启动。
+  const hideSplash = useCallback(() => setSplashVisible(false), [])
   useEffect(() => {
     if (!session || !configured) return
     let active = true
@@ -407,7 +412,10 @@ export default function App() {
             ×
           </button>
         </div>
-      )}
+      )}{' '}
+      <AnimatePresence>
+        {splashVisible && <SplashScreen key="splash" onDone={hideSplash} />}
+      </AnimatePresence>
     </ToastContext.Provider>
   )
 }
