@@ -223,7 +223,11 @@ export function Chat({
             <p className="chat-start-label">已加载到最早的消息</p>
           )}
           {!messages.length && (
-            <Empty icon={<Icon name="chat" size={40} />} title="故事，从一句你好开始" description="在这里说点什么吧。" />
+            <Empty
+              icon={<Icon name="chat" size={40} />}
+              title="故事，从一句你好开始"
+              description="在这里说点什么吧。"
+            />
           )}
           {messages.map((message, i) => {
             const own = message.sender_id === space.me.id

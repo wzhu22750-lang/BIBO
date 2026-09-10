@@ -228,9 +228,7 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
             aria-hidden="true"
             initial={{ opacity: 0, scale: 0 }}
             animate={
-              phase >= 3
-                ? { opacity: 1, scale: merging ? 1.16 : 1 }
-                : { opacity: 0, scale: 0 }
+              phase >= 3 ? { opacity: 1, scale: merging ? 1.16 : 1 } : { opacity: 0, scale: 0 }
             }
             transition={{ type: 'spring', stiffness: 260, damping: 16 }}
           >

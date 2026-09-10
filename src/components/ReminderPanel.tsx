@@ -93,7 +93,12 @@ export function ReminderPanel() {
             >
               <div>
                 <span
-                  style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 650 }}
+                  style={{
+                    display: 'block',
+                    marginBottom: '6px',
+                    fontSize: '13px',
+                    fontWeight: 650,
+                  }}
                 >
                   提醒时间（本机时区）
                 </span>

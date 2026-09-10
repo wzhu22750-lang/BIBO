@@ -1,25 +1,33 @@
 # BIBU！数据结构与安全边界
 
-权威数据定义位于 `supabase/migrations/202609070001_initial.sql` 及其后按文件名顺序的 `202609080001`–`202609080020` 增量迁移脚本。
+权威数据定义位于 `supabase/migrations/202609070001_initial.sql` 及其后按文件名顺序的 `202609080001`–`202609080021`、`202609090001` 增量迁移脚本。
 
 ---
 
 ## 一、核心表结构与权限规则
 
-| 表名                   | 关键字段                                                                                        | 访问与写入规则                                                                                                 |
-| ---------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `profiles`             | id, name, avatar                                                                                | 只读本人及同空间伴侣；只能更新本人的昵称和形象                                                                 |
-| `couples`              | id, name, together_since, greeting_title, greeting_subtitle, closed_at                          | 只读 / 更新自己的空间；创建与解除关系走 RPC                                                                    |
-| `couple_members`       | user_id, couple_id, slot                                                                        | `user_id` 主键保证一个账号只属于一个空间；`slot` 只能为 1 或 2；空间内 slot 唯一；禁止客户端直接写入           |
-| `invitations`          | couple_id, code_hash, expires_at                                                                | 不向客户端开放表查询；原始邀请码只在创建 / 刷新 RPC 中返回一次                                                 |
-| `messages`             | id, couple_id, sender_id, content, created_at                                                   | 只读自己的空间；只能以本人身份新增；服务端生成时间；支持游标分页                                               |
-| `events`               | id, couple_id, created_by, title, target_at, kind, yearly, emoji, category                      | 空间成员可读写、双方可删除；注销后 created_by 可为空，保留共同事件                                             |
-| `photos`               | id, couple_id, uploaded_by, path, caption, created_at, occurred_on, story, event_id, message_id | 成员可读；只能登记本人上传；客户端撤销直接 INSERT，必须走 `create_photo_once` RPC；注销后 uploaded_by 可置空   |
-| `focus_sessions`       | user_id, couple_id, activity, ends_at, allow_reminders                                          | 双方可读；客户端撤销直接写权限，只能通过带空间锁的 RPC `set_focus_session` 与 `end_focus_session` 变更本人专注 |
-| `pings`                | id, couple_id, sender_id, kind, created_at                                                      | 成员可读；客户端禁止直接 INSERT，必须走 `send_ping` RPC（包含服务端 3 秒行锁冷却与专注授权检查）               |
-| `device_installations` | user_id, device_token, platform, app_version, updated_at                                        | 伴侣推送设备登记表；通过 RPC 原子转移与清理                                                                    |
+| 表名                     | 关键字段                                                                                        | 访问与写入规则                                                                                                  |
+| ------------------------ | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `profiles`               | id, name, avatar                                                                                | 只读本人及同空间伴侣；只能更新本人的昵称和形象                                                                  |
+| `couples`                | id, name, together_since, greeting_title, greeting_subtitle, closed_at                          | 只读 / 更新自己的空间；创建与解除关系走 RPC                                                                     |
+| `couple_members`         | user_id, couple_id, slot                                                                        | `user_id` 主键保证一个账号只属于一个空间；`slot` 只能为 1 或 2；空间内 slot 唯一；禁止客户端直接写入            |
+| `invitations`            | couple_id, code_hash, expires_at                                                                | 不向客户端开放表查询；原始邀请码只在创建 / 刷新 RPC 中返回一次                                                  |
+| `messages`               | id, couple_id, sender_id, content, created_at                                                   | 只读自己的空间；只能以本人身份新增；服务端生成时间；支持游标分页                                                |
+| `events`                 | id, couple_id, created_by, title, target_at, kind, yearly, emoji, category                      | 空间成员可读写、双方可删除；注销后 created_by 可为空，保留共同事件                                              |
+| `photos`                 | id, couple_id, uploaded_by, path, caption, created_at, occurred_on, story, event_id, message_id | 成员可读；只能登记本人上传；客户端撤销直接 INSERT，必须走 `create_photo_once` RPC；注销后 uploaded_by 可置空    |
+| `focus_sessions`         | user_id, couple_id, activity, ends_at, allow_reminders                                          | 双方可读；客户端撤销直接写权限，只能通过带空间锁的 RPC `set_focus_session` 与 `end_focus_session` 变更本人专注  |
+| `pings`                  | id, couple_id, sender_id, kind, created_at                                                      | 成员可读；客户端禁止直接 INSERT，必须走 `send_ping` RPC（包含服务端 3 秒行锁冷却与专注授权检查）                |
+| `device_installations`   | user_id, device_token, platform, app_version, updated_at                                        | 伴侣推送设备登记表；通过 RPC 原子转移与清理                                                                     |
+| `daily_tasks`            | id, couple_id, task_date, title, description, task_type, created_at                             | 空间成员可读；只能以本空间身份写入；`(couple_id, task_date)` 唯一，一天一条；并发创建走 `ensure_daily_task` RPC |
+| `daily_task_completions` | id, couple_id, task_id, user_id, completed_at, optional_content                                 | 成员可读；只能登记本人的完成记录；`(task_id, user_id)` 唯一；写入走 `complete_daily_task` RPC 幂等更新          |
 
 > **安全准则**：所有业务表均开启 RLS（Row Level Security）；任何业务表都不对匿名角色（`anon`）开放读写权限。对象权限采用显式 GRANT / REVOKE。
+
+### 每日任务写入
+
+- `daily_tasks` 一天一条（`(couple_id, task_date)` 唯一）。前端优先调用 `ensure_daily_task(p_date, p_title, p_description, p_task_type)`：并发或重复调用返回同一条记录，不会产生重复任务。
+- `daily_task_completions` 按 `(task_id, user_id)` 唯一，`complete_daily_task(p_task_id, p_content)` 幂等写入并刷新 `completed_at`，即双人各自完成、各自可见。
+- 两个函数均为 `SECURITY DEFINER` 且固定 `set search_path = ''`，内部以 `my_couple_id()` / `auth.uid()` 校验空间归属与本人身份。
 
 ---
 
@@ -48,6 +56,7 @@
 ## 四、Realtime 与双向提醒机制
 
 - **实时数据订阅**：客户端监听 `messages`、`events`、`photos`、`focus_sessions`、`couple_members`、`couples`、`profiles` 变更。
+- **每日任务实时性**：`daily_tasks` 与 `daily_task_completions` 已加入 `supabase_realtime` publication，供后续实时同步使用（当前前端以进入页面 / 手动刷新拉取）。
 - **Ping 接收与防打扰**：`pings` 订阅过滤为当前空间，仅对伴侣发送的实时 INSERT 播放特效；服务端对专注模式做严格权限校验：
   - 对方无有效专注：仅允许普通哔卟/恋爱情绪。
   - 对方正在专注且未授权提醒：全部提醒请求拒绝。
@@ -67,7 +76,7 @@
 ## 六、线上托管环境状态 (Production Status)
 
 - **默认项目 Ref**：`zqwzdoejxsfscisudacu`
-- **增量迁移状态**：已按序应用至 `202609080020_reliability_hardening`。已撤销客户端直写 photos 和 focus_sessions 的权限；`greeting_title` / `greeting_subtitle` 已生效 NOT NULL 与长度约束。
+- **增量迁移状态**：已按序应用至 `202609090001_daily_tasks`（新增 `daily_tasks` / `daily_task_completions`、RLS 策略、`ensure_daily_task` / `complete_daily_task` RPC，并加入 Realtime publication）。已撤销客户端直写 photos 和 focus_sessions 的权限；`greeting_title` / `greeting_subtitle` 已生效 NOT NULL 与长度约束。
 - **已部署 Edge Functions**：
   - `send-message-push` (ACTIVE)
   - `send-ping-push` (ACTIVE)
