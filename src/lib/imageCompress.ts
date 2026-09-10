@@ -20,10 +20,10 @@ export type CompressResult = {
   compressed: boolean
 }
 
-const DEFAULT_MAX_EDGE = 2048
-const DEFAULT_QUALITY = 0.8
+const DEFAULT_MAX_EDGE = 1280
+const DEFAULT_QUALITY = 0.72
 /** 已经很小且尺寸达标时不做无意义重编码 */
-const SKIP_UNDER_BYTES = 400 * 1024
+const SKIP_UNDER_BYTES = 200 * 1024
 
 /** 等比缩放到长边不超过 maxEdge；放大一律不做。 */
 export function fitWithin(width: number, height: number, maxEdge: number) {
