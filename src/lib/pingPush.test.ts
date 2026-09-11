@@ -1,37 +1,37 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildPingPush,
-  isUnregisteredFcmError,
   isUsablePushToken,
 } from '../../supabase/functions/_shared/pingPush'
+import { isInvalidCidError } from '../../supabase/functions/_shared/getui'
 const record = {
   id: '12345678-1234-4234-8234-123456789012',
   couple_id: '12345678-1234-4234-8234-123456789013',
   sender_id: '12345678-1234-4234-8234-123456789014',
   kind: '想你',
 }
-describe('FCM push payload contract', () => {
-  it('builds private minimal payload with internal route only', () => {
+describe('个推 ping 透传载荷', () => {
+  it('builds minimal payload with internal route and ping_id only', () => {
     const result = buildPingPush(record, 't'.repeat(20))
-    expect(result.message.token).toHaveLength(20)
-    expect(result.message.data.route).toBe('#home')
-    expect(result.message.notification.body).toBe('收到一个小小的哔卟，打开 BIBU！查看')
-    expect(result.message.android.priority).toBe('HIGH')
-    expect(result.message.android.notification.channel_id).toBe('bibo_love_v3')
-    expect(result.message.android.notification.notification_priority).toBe('PRIORITY_HIGH')
+    expect(result.kind).toBe('ping')
+    expect(result.route).toBe('#home')
+    expect(result.ping_id).toBe(record.id)
+    expect(result.title).toBe('收到一个小小的哔卟')
     expect(JSON.stringify(result)).not.toContain(record.couple_id)
+    expect(JSON.stringify(result)).not.toContain(record.sender_id)
+    expect(JSON.stringify(result)).not.toContain(record.kind)
   })
-  it('rejects invalid tokens and IDs', () => {
+  it('rejects invalid CID and IDs', () => {
     expect(isUsablePushToken('short')).toBe(false)
     expect(isUsablePushToken('t'.repeat(20))).toBe(true)
     expect(() => buildPingPush(record, 'short')).toThrow()
     expect(() => buildPingPush({ ...record, id: 'bad' }, 't'.repeat(20))).toThrow()
   })
-  it('classifies invalid registration tokens but not ordinary transient errors', () => {
-    expect(isUnregisteredFcmError(404, 'UNREGISTERED')).toBe(true)
-    expect(isUnregisteredFcmError(400, 'registration-token-not-registered')).toBe(true)
-    expect(isUnregisteredFcmError(404, 'NOT_FOUND: endpoint unavailable')).toBe(false)
-    expect(isUnregisteredFcmError(400, 'INVALID_ARGUMENT: malformed payload')).toBe(false)
-    expect(isUnregisteredFcmError(503, 'temporarily unavailable')).toBe(false)
+  it('classifies invalid CID errors but not ordinary transient errors', () => {
+    expect(isInvalidCidError(404, JSON.stringify({ code: 20009, msg: 'cid 不存在' }))).toBe(true)
+    expect(isInvalidCidError(400, JSON.stringify({ code: 20001, msg: 'cid invalid' }))).toBe(true)
+    expect(isInvalidCidError(404, JSON.stringify({ code: 10001, msg: '鉴权失败' }))).toBe(false)
+    expect(isInvalidCidError(503, 'upstream timeout')).toBe(false)
+    expect(isInvalidCidError(0, '')).toBe(false)
   })
 })

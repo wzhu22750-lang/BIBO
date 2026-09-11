@@ -33,7 +33,7 @@ export function EventArtPicker({
           onKeyDown={(e) => {
             if (e.key === 'Enter') e.preventDefault()
           }}
-          placeholder="试试：小熊、旅行、考试、音乐…"
+          placeholder="试试：火锅、旅行、纪念日、看电影、小熊…"
           aria-label="搜索像素图标"
         />
       </label>

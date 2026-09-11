@@ -196,4 +196,104 @@ export const CHARACTER_ANCHORS: Record<CharacterId, CharacterAnchors> = {
     mouth: { x: 40, y: 40 }, // 拱鼻与嘴部中心
     waist: { x: 40, y: 62 },
   },
+  tiger: {
+    head: { x: 40, y: 14 }, // skullTop 8
+    body: { x: 40, y: 56 },
+    hand: { x: 62, y: 58 },
+    back: { x: 20, y: 52 },
+    front: { x: 40, y: 52 },
+    accessory: { x: 40, y: 44 },
+    mouth: { x: 40, y: 40 },
+    waist: { x: 40, y: 62 },
+  },
+  lion: {
+    head: { x: 40, y: 14 }, // skullTop 8
+    body: { x: 40, y: 56 },
+    hand: { x: 62, y: 58 },
+    back: { x: 20, y: 52 },
+    front: { x: 40, y: 52 },
+    accessory: { x: 40, y: 44 },
+    mouth: { x: 40, y: 40 },
+    waist: { x: 40, y: 62 },
+  },
+  deer: {
+    head: { x: 40, y: 18 }, // skullTop 12
+    body: { x: 40, y: 56 },
+    hand: { x: 60, y: 56 },
+    back: { x: 22, y: 52 },
+    front: { x: 40, y: 52 },
+    accessory: { x: 40, y: 44 },
+    mouth: { x: 40, y: 42 },
+    waist: { x: 40, y: 60 },
+  },
+  seal: {
+    head: { x: 40, y: 18 }, // skullTop 12
+    body: { x: 40, y: 56 },
+    hand: { x: 62, y: 58 },
+    back: { x: 20, y: 52 },
+    front: { x: 40, y: 52 },
+    accessory: { x: 40, y: 44 },
+    mouth: { x: 40, y: 38 },
+    waist: { x: 40, y: 62 },
+  },
+  elephant: {
+    head: { x: 40, y: 16 }, // skullTop 10
+    body: { x: 40, y: 56 },
+    hand: { x: 64, y: 58 },
+    back: { x: 18, y: 52 },
+    front: { x: 40, y: 52 },
+    accessory: { x: 40, y: 44 },
+    mouth: { x: 40, y: 38 },
+    waist: { x: 40, y: 62 },
+  },
+  hedgehog: {
+    head: { x: 40, y: 14 }, // skullTop 8
+    body: { x: 40, y: 56 },
+    hand: { x: 60, y: 56 },
+    back: { x: 20, y: 52 },
+    front: { x: 40, y: 52 },
+    accessory: { x: 40, y: 44 },
+    mouth: { x: 40, y: 38 },
+    waist: { x: 40, y: 60 },
+  },
+  redpanda: {
+    head: { x: 40, y: 14 }, // skullTop 8
+    body: { x: 40, y: 56 },
+    hand: { x: 62, y: 58 },
+    back: { x: 20, y: 52 },
+    front: { x: 40, y: 52 },
+    accessory: { x: 40, y: 44 },
+    mouth: { x: 40, y: 38 },
+    waist: { x: 40, y: 60 },
+  },
+  whale: {
+    head: { x: 40, y: 18 }, // skullTop 12
+    body: { x: 40, y: 56 },
+    hand: { x: 62, y: 58 },
+    back: { x: 20, y: 52 },
+    front: { x: 40, y: 52 },
+    accessory: { x: 40, y: 44 },
+    mouth: { x: 40, y: 40 },
+    waist: { x: 40, y: 62 },
+  },
+  monkey: {
+    head: { x: 40, y: 16 }, // skullTop 10
+    body: { x: 40, y: 56 },
+    hand: { x: 62, y: 58 },
+    back: { x: 20, y: 52 },
+    front: { x: 40, y: 52 },
+    accessory: { x: 40, y: 44 },
+    mouth: { x: 40, y: 38 },
+    waist: { x: 40, y: 60 },
+  },
+  cow: {
+    head: { x: 40, y: 18 }, // skullTop 12
+    body: { x: 40, y: 56 },
+    hand: { x: 62, y: 58 },
+    back: { x: 20, y: 52 },
+    front: { x: 40, y: 52 },
+    accessory: { x: 40, y: 44 },
+    mouth: { x: 40, y: 40 },
+    waist: { x: 40, y: 62 },
+  },
 }

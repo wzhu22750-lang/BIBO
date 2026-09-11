@@ -19,6 +19,16 @@ export const AVATAR_IDS = [
   'sheep',
   'owl',
   'pig',
+  'tiger',
+  'lion',
+  'deer',
+  'seal',
+  'elephant',
+  'hedgehog',
+  'redpanda',
+  'whale',
+  'monkey',
+  'cow',
 ] as const
 export type AvatarType = (typeof AVATAR_IDS)[number]
 export type Profile = {

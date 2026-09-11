@@ -16,7 +16,7 @@ import {
 } from '../lib/dates'
 import { Button, Modal, PageHeading, PixelSelect, useTask, useToast } from '../components/ui'
 import { Icon, PixelPal } from '../components/PixelArt'
-import { EventArt, MapIcon } from '../components/EventArt'
+import { EventArt } from '../components/EventArt'
 import { EventArtPicker } from '../components/EventArtPicker'
 import { PixelDateTimePicker } from '../components/PixelPickers'
 import { eventArtConfig } from '../lib/eventArt'
@@ -204,62 +204,51 @@ function CelebrationCard({
 }) {
   const art = eventArtConfig(event.emoji)
   const days = daysUntil(event.target_at, event.yearly)
+  const kindLabel = event.yearly
+    ? '每年纪念'
+    : event.kind === 'anniversary'
+      ? '纪念日'
+      : '共同倒计时'
+  const categoryLabel =
+    eventCategories.find((c) => c.value === event.category)?.label || art.category
   return (
     <article className={`celebration-card art-${art.tone} ${days < 0 ? 'past-event' : ''}`}>
       <div className="celebration-art">
-        <EventArt value={event.emoji} size={64} />
-        <span className="art-spark art-spark-one">
-          <Icon name="spark" size={13} />
-        </span>
-        <span className="art-spark art-spark-two">
-          <Icon name="star" size={9} />
-        </span>
+        <EventArt value={event.emoji} size={56} />
       </div>
       <div className="celebration-info">
-        <div className="celebration-tags">
-          <span className="category-chip">
-            {eventCategories.find((c) => c.value === event.category)?.label || art.category}
-          </span>
-          <span className="repeat-chip">
-            {event.yearly ? '每年纪念' : event.kind === 'anniversary' ? '纪念日' : '共同倒计时'}
-          </span>
-        </div>
         <h3>{event.title}</h3>
-        <span className="celebration-date">
-          <Icon name="calendar" size={13} />
-          {dateLabel(nextOccurrence(event.target_at, event.yearly))}
-        </span>
+        <p className="celebration-meta">
+          <span className="category-chip">{categoryLabel}</span>
+          <span className="repeat-chip">{kindLabel}</span>
+          <span className="celebration-date">
+            <Icon name="calendar" size={13} />
+            {dateLabel(nextOccurrence(event.target_at, event.yearly))}
+          </span>
+        </p>
       </div>
       <div className={`celebration-count ${days === 0 ? 'is-today' : ''}`}>
-        <span>{days === 0 ? '就是今天' : days < 0 ? '已经过去' : '距离这一天还有'}</span>
+        <span>{days === 0 ? '就是今天' : days < 0 ? '已经过去' : '还有'}</span>
         <strong className={Math.abs(days) > 999 ? 'long-count' : ''}>
-          {days === 0 ? 'TODAY' : Math.abs(days)}
+          {days === 0 ? '今天' : Math.abs(days)}
         </strong>
-        <span className="micro">{days === 0 ? 'MAKE A MEMORY!' : 'DAYS'}</span>
+        {days !== 0 && <span>天</span>}
       </div>
-      <button
-        className="icon-button celebration-edit"
-        aria-label={`编辑${event.title}`}
-        onClick={onEdit}
-      >
-        <Icon name="edit" size={12} />
-      </button>
-      <button
-        className="icon-button celebration-delete"
-        aria-label={`删除${event.title}`}
-        onClick={onDelete}
-      >
-        <Icon name="close" size={12} />
-      </button>
-      <div className="celebration-bottom">
-        <span>
-          {days < 0
-            ? '一起走过，也值得收藏。'
-            : days === 0
-              ? '今天就去创造属于我们的回忆吧。'
-              : '平凡的日子，因为有你而闪闪发光。'}
-        </span>
-        <Icon name="heart" size={12} />
+      <div className="celebration-actions">
+        <button
+          className="icon-button celebration-edit"
+          aria-label={`编辑${event.title}`}
+          onClick={onEdit}
+        >
+          <Icon name="edit" size={12} />
+        </button>
+        <button
+          className="icon-button celebration-delete"
+          aria-label={`删除${event.title}`}
+          onClick={onDelete}
+        >
+          <Icon name="close" size={12} />
+        </button>
       </div>
     </article>
   )
@@ -276,7 +265,8 @@ export function Events({
     [deleting, setDeleting] = useState<EventItem | null>(null),
     [editing, setEditing] = useState<EventItem | null>(null),
     [filter, setFilter] = useState('all'),
-    [categoryFilter, setCategoryFilter] = useState<EventCategory | 'all'>('all')
+    [categoryFilter, setCategoryFilter] = useState<EventCategory | 'all'>('all'),
+    [showExtras, setShowExtras] = useState(false)
   const { busy, run } = useTask(),
     toast = useToast()
   const space = controller.space!
@@ -299,31 +289,19 @@ export function Events({
       <PageHeading
         eyebrow="GOOD THINGS TAKE TWO"
         title="值得期待"
-        subtitle="把已经一起走过的、今天发生的、未来期待的，都留在这里。"
-      />
-      <div className="expectations-banner">
-        <div className="banner-caption">
-          <span className="banner-clock">
-            <Icon name="calendar" size={28} />
-          </span>
-          <div>
-            <span className="micro">ANNIVERSARY & COUNTDOWN</span>
-            <p>我们共同等待的，每一个重要日子</p>
-          </div>
-        </div>
+        subtitle="临近的日子排在前面。旅行、生日，或者下一次见面。"
+      >
         <Button tone="pink" onClick={() => setAdding(true)}>
           <Icon name="plus" size={16} />
           添加期待
         </Button>
-      </div>
-      <LoveMilestones controller={controller} />
-      <RelationshipTimeline controller={controller} />
+      </PageHeading>
       <EventOutboxPanel controller={controller} />
-      <div className="expectations-list-heading">
+      <div className="expectations-toolbar">
         <div className="page-tabs" aria-label="期待分类">
           {[
-            ['all', '全部期待'],
-            ['countdown', '共同倒计时'],
+            ['all', '全部'],
+            ['countdown', '倒计时'],
             ['anniversary', '纪念日'],
           ].map(([value, name]) => (
             <button
@@ -340,7 +318,6 @@ export function Events({
           ))}
         </div>
         <div className="event-category-filter">
-          <span>按类型</span>
           <PixelSelect
             aria-label="按事件类型筛选"
             value={categoryFilter}
@@ -351,95 +328,45 @@ export function Events({
             ]}
           />
         </div>
-        <span className="list-sort">
-          <MapIcon size={16} />
-          从近到远，慢慢靠近
-        </span>
       </div>
-      <div className="expectations-layout">
-        <div className="celebration-list">
-          {events.length ? (
-            events.map((event) => (
-              <CelebrationCard
-                key={event.id}
-                event={event}
-                onEdit={() => setEditing(event)}
-                onDelete={() => setDeleting(event)}
-              />
-            ))
-          ) : (
-            <div className="event-empty">
-              <PixelPal
-                type={space.me.avatar}
-                className="event-empty-pal"
-                style={{ width: 85, height: 85 }}
-              />
-              <h3>下一份期待，由我们一起写</h3>
-              <p>旅行、生日，或者下一次见面。</p>
-            </div>
-          )}
-          <button className="new-expectation" onClick={() => setAdding(true)}>
-            <span>
-              <Icon name="plus" size={20} />
-            </span>
-            <div>
-              <strong>再添一份小期待</strong>
-              <small>想和你一起做的事，永远写不完。</small>
-            </div>
-            <Icon name="arrow" size={18} />
-          </button>
-        </div>
-        <aside className="expectations-aside">
-          <div className="postcard-title">
-            <span className="micro">A POSTCARD FROM THE FUTURE</span>
-            <Icon name="heart" size={15} />
+      <div className="celebration-list">
+        {events.length ? (
+          events.map((event) => (
+            <CelebrationCard
+              key={event.id}
+              event={event}
+              onEdit={() => setEditing(event)}
+              onDelete={() => setDeleting(event)}
+            />
+          ))
+        ) : (
+          <div className="event-empty">
+            <PixelPal
+              type={space.me.avatar}
+              className="event-empty-pal"
+              style={{ width: 85, height: 85 }}
+            />
+            <h3>下一份期待，由我们一起写</h3>
+            <p>旅行、生日，或者下一次见面。</p>
           </div>
-          <div className="postcard-art">
-            <span className="postcard-sun">
-              <Icon name="star" size={32} />
-            </span>
-            <span className="postcard-message">下一站，见到你。</span>
-            <div className="postcard-pals">
-              <PixelPal
-                type={space.partner?.avatar || 'bunny'}
-                outfit={space.partner?.outfits?.[space.partner?.avatar || 'bunny']}
-                className="postcard-pal"
-              />
-              <PixelPal
-                type={space.me.avatar}
-                outfit={space.me.outfits?.[space.me.avatar]}
-                className="postcard-pal"
-              />
-            </div>
-            <div className="postcard-ground" />
-          </div>
-          <div className="postcard-note">
-            <h3>
-              不用赶路，
-              <br />
-              我们一起慢慢来。
-            </h3>
-            <p>
-              一场旅行、一块蛋糕、一个拥抱。
-              <br />
-              和你有关的小事，都值得倒数。
-            </p>
-            <div>
-              <EventArt value="coffee" size={23} />
-              <EventArt value="gift" size={23} />
-              <EventArt value="plane" size={25} />
-              <span className="micro">WITH YOU, ALWAYS.</span>
-            </div>
-          </div>
-        </aside>
+        )}
       </div>
-      <div className="pixel-note">
-        <Icon name="heart" size={22} />
-        <p>
-          未到的日子从近到远排列，过去的日子仍留在这里。
-          <br />
-          <span>每一份平凡的等待，都有一个关于我们的答案。</span>
-        </p>
+      <div className="expectations-more">
+        <button
+          type="button"
+          className="expectations-more-toggle"
+          aria-expanded={showExtras}
+          onClick={() => setShowExtras((open) => !open)}
+        >
+          <span>{showExtras ? '收起成就与时间线' : '恋爱成就与时间线'}</span>
+          <Icon name="arrow" size={12} className={showExtras ? 'up' : 'down'} />
+        </button>
+        {showExtras && (
+          <div className="expectations-extras">
+            <LoveMilestones controller={controller} />
+            <RelationshipTimeline controller={controller} />
+          </div>
+        )}
       </div>
       {adding && <EventForm controller={controller} onClose={() => setAdding(false)} />}
       {editing && (

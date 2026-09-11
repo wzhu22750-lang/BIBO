@@ -16,6 +16,16 @@ export const CHARACTER_IDS = [
   'sheep',
   'owl',
   'pig',
+  'tiger',
+  'lion',
+  'deer',
+  'seal',
+  'elephant',
+  'hedgehog',
+  'redpanda',
+  'whale',
+  'monkey',
+  'cow',
 ] as const
 
 export type CharacterId = (typeof CHARACTER_IDS)[number]

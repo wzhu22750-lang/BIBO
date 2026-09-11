@@ -164,8 +164,8 @@ describe('套装与随机穿搭的角色适配', () => {
 })
 
 describe('角色设计基准（统一风格、不统一结构）', () => {
-  it('17 款角色共享同一画布基准但身体结构参数互不相同', () => {
-    expect(CHARACTER_LIST.length).toBe(17)
+  it('27 款角色共享同一画布基准但身体结构参数互不相同', () => {
+    expect(CHARACTER_LIST.length).toBe(27)
     const skullTops = new Set(CHARACTER_IDS.map((id) => CHARACTER_VISUAL_PROFILES[id].skullTopY))
     const earStyles = new Set(CHARACTER_IDS.map((id) => CHARACTER_VISUAL_PROFILES[id].earStyle))
     // 颅顶高度至少 4 种、耳朵形态至少 5 种：结构差异被显式建模

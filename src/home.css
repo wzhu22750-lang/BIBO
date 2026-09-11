@@ -306,15 +306,12 @@
   }
 }
 @media (max-width: 760px) {
-  .expectations-list-heading {
+  .expectations-toolbar {
     flex-wrap: wrap;
   }
   .event-category-filter {
     flex: 1 0 100%;
     width: auto;
-  }
-  .list-sort {
-    flex: 1 0 100%;
   }
 }
 

@@ -36,9 +36,16 @@
 * {
   box-sizing: border-box;
 }
+html,
 body {
   margin: 0;
-  min-width: 320px;
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+body {
+  min-width: 0;
 }
 button,
 input,
@@ -210,6 +217,8 @@ img {
   padding-left: var(--safe-left);
   padding-right: var(--safe-right);
   background: #fffef8;
+  max-width: 100%;
+  overflow-x: clip;
 }
 .sidebar {
   width: var(--sidebar-width);
@@ -4798,7 +4807,7 @@ img {
     padding-bottom: 70px;
     --app-top: var(--safe-top);
     --app-bottom: max(8px, var(--safe-bottom));
-    --app-nav: calc(78px + var(--app-bottom));
+    --app-nav: var(--dock-actual-height, calc(78px + var(--app-bottom)));
   }
   .topbar {
     min-height: 60px;
@@ -4818,6 +4827,8 @@ img {
   }
   .topbar-right {
     gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
   .topbar-divider {
     display: none;
@@ -5141,7 +5152,7 @@ img {
     background: #fffef7;
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    padding: 7px 6px max(9px, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+    padding: 7px 6px max(9px, var(--safe-bottom, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))));
     box-shadow: 0 -3px 0 #20211d09;
     min-height: 66px;
   }
@@ -5262,9 +5273,9 @@ img {
     font-size: 10px;
   }
   .main-wrap.page-wrap-chat {
-    min-height: 100dvh;
-    height: 100dvh;
-    max-height: 100dvh;
+    min-height: calc(100dvh - var(--safe-top, 0px) - var(--app-nav, var(--dock-actual-height, 78px)));
+    height: calc(100dvh - var(--safe-top, 0px) - var(--app-nav, var(--dock-actual-height, 78px)));
+    max-height: calc(100dvh - var(--safe-top, 0px) - var(--app-nav, var(--dock-actual-height, 78px)));
     display: flex;
     flex-direction: column;
     overflow: hidden;

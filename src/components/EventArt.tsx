@@ -47,6 +47,7 @@ const imported: Partial<Record<EventArtId, string>> = {
   balloon,
 }
 import { ColoredPixelIcon, coloredPixelIconIds } from './ColoredPixelIcons'
+import { EventArtNew100, newEventArt100Ids } from './EventArtNew100'
 
 export function MapIcon({ size = 24 }: { size?: number }) {
   return (
@@ -111,6 +112,8 @@ export function EventArt({
     )
   if (coloredPixelIconIds.includes(id as any))
     return <ColoredPixelIcon id={id} size={size} className={className} />
+  if (newEventArt100Ids.includes(id as any))
+    return <EventArtNew100 id={id} size={size} className={className} />
   if (imported[id])
     return (
       <img

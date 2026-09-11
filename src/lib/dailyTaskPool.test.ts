@@ -9,12 +9,12 @@ import {
 import type { DailyTaskHistoryItem } from './dailyTaskTypes'
 
 describe('dailyTaskPool and deterministic selector', () => {
-  it('contains exactly 365 curated daily tasks (one for each day of the year)', () => {
-    expect(DAILY_TASK_POOL.length).toBe(365)
+  it('contains 565 curated daily tasks (one for each day of the year and expanded pool)', () => {
+    expect(DAILY_TASK_POOL.length).toBe(565)
     const uniqueIds = new Set(DAILY_TASK_POOL.map((t) => t.id))
-    expect(uniqueIds.size).toBe(365)
+    expect(uniqueIds.size).toBe(565)
     const uniqueTitles = new Set(DAILY_TASK_POOL.map((t) => t.title))
-    expect(uniqueTitles.size).toBe(365)
+    expect(uniqueTitles.size).toBe(565)
   })
 
   it('assigns 365 unique tasks for all 365 days of a calendar year', () => {

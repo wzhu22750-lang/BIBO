@@ -32,7 +32,7 @@ describe('Character System Completeness', () => {
 
   it('preserves all 12 original characters and adds at least 4 new ones (total >= 15)', () => {
     expect(CHARACTER_LIST.length).toBeGreaterThanOrEqual(15)
-    expect(CHARACTER_LIST.length).toBe(17)
+    expect(CHARACTER_LIST.length).toBe(27)
 
     for (const id of ORIGINAL_12) {
       expect(CHARACTER_MAP[id as CharacterId]).toBeDefined()

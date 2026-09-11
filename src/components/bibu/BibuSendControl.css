@@ -1,0 +1,268 @@
+/* BIBU 情绪小扇面独立样式 */
+
+.bibu-send-control {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  pointer-events: none;
+  z-index: 40;
+}
+
+/* 底部中央 BIBU 触发按钮（隐形触摸区 >= 44x44px） */
+.bibu-send-control .dock-bibo {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(2px 2px 0 var(--ink));
+  pointer-events: auto;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 0.12s ease-out,
+    filter 0.12s ease-out;
+  transform-origin: center bottom;
+}
+
+.bibu-send-control .dock-bibo > svg {
+  width: 42px;
+  height: 42px;
+  display: block;
+}
+
+/* 按下立即压缩（约 0.94） */
+.bibu-send-control .dock-bibo.is-pressing {
+  transform: scale(0.94) translateY(1px);
+  filter: drop-shadow(1px 1px 0 var(--ink));
+}
+
+/* 展开中保持微抬与粉色高亮 */
+.bibu-send-control .dock-bibo.selector-active {
+  transform: scale(1.06) translateY(-2px);
+  filter: drop-shadow(2px 3px 0 #ff85d8);
+}
+
+.bibu-send-control .dock-bibo:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.bibu-send-control .dock-bibo:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: none;
+}
+
+/* 按钮下方文字标签 */
+.bibu-dock-label {
+  font-family: var(--pixel);
+  font-size: 7.5px;
+  line-height: 1.2;
+  background: var(--yellow);
+  padding: 2px 4px;
+  border: 1px solid var(--ink);
+  margin-top: 2px;
+  margin-bottom: 1px;
+  color: var(--ink);
+  white-space: nowrap;
+  pointer-events: auto;
+  user-select: none;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.bibu-dock-label.selecting {
+  background: var(--pink);
+  color: var(--ink);
+  font-weight: bold;
+}
+
+/* 情绪小扇面弹出面板（视口约束，320px 宽度安全容纳 6 个 44px 槽位） */
+.bibu-arc-picker {
+  position: fixed;
+  bottom: calc(var(--dock-actual-height, 60px) + env(safe-area-inset-bottom, 0px) + 12px);
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: min(calc(100vw - 16px), 360px);
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  border-radius: 4px;
+  padding: 8px 8px 10px;
+  pointer-events: auto;
+  touch-action: none;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+}
+
+/* 顶端单行状态与提示信息 */
+.bibu-picker-tip {
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--ink);
+  padding: 4px 6px 6px;
+  margin-bottom: 6px;
+  border-bottom: 1.5px dashed #cfd6c4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.3px;
+}
+
+.bibu-picker-tip.tip-cancelled {
+  color: #c93b2b;
+}
+
+.bibu-picker-tip.tip-selected {
+  color: var(--ink);
+}
+
+/* 浅弧形固定槽位轨道 */
+.bibu-arc-track {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(44px, 1fr));
+  gap: 4px;
+  align-items: end;
+  justify-items: center;
+  position: relative;
+  min-height: 64px;
+}
+
+/* 独立槽位按钮（满足 >= 44x44px 触控标准） */
+.bibu-arc-slot {
+  position: relative;
+  width: 100%;
+  min-width: 44px;
+  min-height: 54px;
+  background: transparent;
+  border: 1.5px solid transparent;
+  border-radius: 3px;
+  padding: 4px 2px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+}
+
+.bibu-arc-slot:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+/* 槽位内部动画承载层 */
+.bibu-arc-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  pointer-events: none;
+  width: 100%;
+}
+
+.bibu-arc-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+
+.bibu-arc-name {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* 选中项高亮：轻抬 8–12px、放大至约 1.15、明亮黄色底、硬边缘投影 */
+.bibu-arc-slot.is-selected {
+  background: var(--yellow);
+  border-color: var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  z-index: 10;
+}
+
+.bibu-arc-slot.is-selected .bibu-arc-name {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* 仅在屏幕阅读器中展示的实时区域 */
+.bibu-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 大字号适配（不截断内容，自适应撑开高度） */
+html[data-fs-big] .bibu-arc-picker {
+  padding-bottom: 12px;
+}
+
+html[data-fs-big] .bibu-picker-tip {
+  font-size: 13px;
+  white-space: normal;
+}
+
+html[data-fs-big] .bibu-arc-name {
+  font-size: 12px;
+}
+
+/* 横屏和窄屏保障 */
+@media (max-width: 340px) {
+  .bibu-arc-picker {
+    padding: 6px 4px 8px;
+    width: calc(100vw - 12px);
+  }
+  .bibu-arc-track {
+    gap: 2px;
+  }
+  .bibu-arc-slot {
+    min-width: 42px;
+  }
+  .bibu-arc-name {
+    font-size: 10px;
+  }
+}
+
+/* 尊重减弱动效偏好：停用弹簧、跟随，仅保留即时状态切换 */
+@media (prefers-reduced-motion: reduce) {
+  .bibu-send-control .dock-bibo {
+    transition: none !important;
+  }
+  .bibu-arc-slot {
+    transition: none !important;
+  }
+  .bibu-arc-content {
+    transition: none !important;
+    transform: none !important;
+  }
+}

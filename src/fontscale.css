@@ -63,12 +63,12 @@ html[data-fs-grow] .event-date {
   white-space: normal;
 }
 html[data-fs-grow] .page-tabs,
-html[data-fs-grow] .expectations-list-heading .page-tabs,
+html[data-fs-grow] .expectations-toolbar .page-tabs,
 html[data-fs-grow] .relationship-timeline .page-tabs {
   flex-wrap: wrap;
   row-gap: 8px;
 }
-html[data-fs-grow] .expectations-list-heading .page-tabs button {
+html[data-fs-grow] .expectations-toolbar .page-tabs button {
   padding: 10px 12px;
 }
 html[data-fs-grow] .list-sort,
@@ -208,7 +208,8 @@ html[data-fs-big] .milestones-heading {
   flex-wrap: wrap;
   row-gap: 8px;
 }
-html[data-fs-big] .dock-bibu-picker .picker-tip {
+html[data-fs-big] .dock-bibu-picker .picker-tip,
+html[data-fs-big] .bibu-picker-tip {
   max-width: min(92vw, 280px);
   white-space: normal;
   overflow-wrap: anywhere;
