@@ -89,4 +89,4 @@ npm run android:release:check
 
 - [ ] **Vercel 生产部署**：生产域名配置 HTTPS 且正确反向代理，无公开暴露私密 Service Role 密钥。
 - [ ] **Supabase Webhook 端到端打通**：`messages` 与 `pings` 插入记录时，触发器成功调用 Edge Function。
-- [ ] **FCM 远程真实送达**：在已配置 `google-services.json` 的双物理设备间完成后台远程推送真实送达验收。
+- [ ] **个推远程真实送达**：在已配置个推的物理设备间完成后台远程推送真实送达验收。

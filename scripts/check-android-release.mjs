@@ -48,20 +48,9 @@ if (!signingValues.every((value) => value && value.trim())) {
   failures.push('BIBU_RELEASE_KEYSTORE 指向的签名文件不存在')
 }
 
-const firebasePath = resolve(root, 'android/app/google-services.json')
-if (!existsSync(firebasePath)) {
-  failures.push('缺少 android/app/google-services.json；无法进行真实 FCM release 验收')
-} else {
-  try {
-    const firebase = JSON.parse(readFileSync(firebasePath, 'utf8'))
-    const packages = (firebase.client || [])
-      .map((client) => client?.client_info?.android_client_info?.package_name)
-      .filter(Boolean)
-    if (!packages.includes('love.bibu.space'))
-      failures.push('google-services.json 中没有 love.bibu.space Android client')
-  } catch {
-    failures.push('google-services.json 不是有效 JSON')
-  }
+const getuiAppId = process.env.GETUI_APP_ID?.trim()
+if (!getuiAppId) {
+  failures.push('缺少 GETUI_APP_ID 环境变量（个推客户端 App Id，APK 构建必填）')
 }
 
 for (const warning of warnings) console.warn(`WARN: ${warning}`)

@@ -1,5 +1,4 @@
 import { Capacitor, registerPlugin, type PluginListenerHandle } from '@capacitor/core'
-import { PushNotifications } from '@capacitor/push-notifications'
 import { parseRoute } from '../lib/routes'
 export type CapabilityResult = { supported: boolean; reason?: string }
 export type NotificationPermission = CapabilityResult & { granted: boolean }
@@ -29,9 +28,21 @@ export type PushReceived = {
   body?: string
   data?: Record<string, unknown>
 }
+export interface PushDiagnostics {
+  cid: string
+  isPushOnline: boolean
+  notificationsEnabled: boolean
+  sdkVersion: string
+  deviceModel: string
+  androidVersion: string
+}
+
 interface DevicePlugin {
   scheduleReminder(input: ReminderInput): Promise<CapabilityResult>
-  firebaseConfiguration(): Promise<CapabilityResult & { configured: boolean }>
+  pushReady(): Promise<CapabilityResult & { configured: boolean }>
+  pushRegistration(): Promise<PushRegistration>
+  pushUnregister(): Promise<CapabilityResult>
+  getPushDiagnostics(): Promise<PushDiagnostics>
   cancelReminder(input: { id: number }): Promise<CapabilityResult>
   listReminders(): Promise<CapabilityResult & { items: ReminderRecord[] }>
   usagePermission(): Promise<NotificationPermission>
@@ -43,14 +54,25 @@ interface DevicePlugin {
   vibrate(input: { pattern: number[] }): Promise<CapabilityResult>
   launchRoute(): Promise<{ route?: string }>
   addListener(
-    event: 'deepLink',
-    listener: (value: { route: string }) => void,
+    event: 'deepLink' | 'pushCid',
+    listener: (value: { route?: string; token?: string }) => void,
   ): Promise<PluginListenerHandle>
 }
 const plugin = registerPlugin<DevicePlugin>('BiboDevice')
 const native = () => Capacitor.getPlatform() === 'android'
 export const isAndroidApp = native
 const unavailable = (reason: string): CapabilityResult => ({ supported: false, reason })
+async function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), ms)
+  })
+  try {
+    return await Promise.race([promise, timeout])
+  } finally {
+    if (timer) clearTimeout(timer)
+  }
+}
 export function safeNativeRoute(value: string) {
   const parsed = parseRoute(value)
   // Only internal application fragments; never execute/open an arbitrary URL.
@@ -149,135 +171,125 @@ export const BibuNative = {
     async register(options: { requestPermission?: boolean } = {}): Promise<PushRegistration> {
       if (!native()) return unavailable('远程 Push 设备注册仅在 Android 应用中可用')
       try {
-        const firebase = await plugin.firebaseConfiguration()
-        if (!firebase.configured)
+        const ready = await plugin.pushReady()
+        if (!ready.configured)
           return {
             supported: false,
-            reason: 'Android 未配置 Firebase google-services.json，未调用 Push 注册',
+            reason: 'Android 未配置个推 GETUI_APPID，未调用 Push 注册',
           }
-        let permission = await PushNotifications.checkPermissions()
-        if (permission.receive !== 'granted') {
+        let permission = await plugin.notificationPermission()
+        if (!permission.granted) {
           if (options.requestPermission === false)
             return { supported: true, reason: '系统通知权限尚未开启，未主动弹出权限请求' }
-          permission = await PushNotifications.requestPermissions()
+          permission = await plugin.requestNotificationPermission()
         }
-        if (permission.receive !== 'granted')
+        if (!permission.granted)
           return { supported: true, reason: 'Android 系统通知权限未开启' }
-        await PushNotifications.createChannel({
-          id: 'bibo_love_v3',
-          name: '两个人的哔卟',
-          description: '情侣 Ping 通知',
-          importance: 4,
-          visibility: 0,
-          sound: 'default',
-          vibration: true,
-        })
-        // Chat messages get their own HIGH-importance channel: heads-up banner,
-        // system default sound and vibration, governed by Android system rules
-        // (DND/silence still apply — we never bypass them).
-        await PushNotifications.createChannel({
-          id: 'bibo_messages_v2',
-          name: 'BIBU！悄悄话',
-          description: '伴侣消息通知',
-          importance: 4,
-          visibility: 0,
-          sound: 'default',
-          vibration: true,
-        })
-        const token = await new Promise<string>((resolve, reject) => {
-          let settled = false
-          let registration: PluginListenerHandle | undefined
-          let registrationError: PluginListenerHandle | undefined
-          const cleanup = () => {
-            clearTimeout(timer)
-            void registration?.remove()
-            void registrationError?.remove()
-          }
-          const succeed = (value: string) => {
-            if (settled) return
-            settled = true
-            cleanup()
-            resolve(value)
-          }
-          const fail = (error: Error) => {
-            if (settled) return
-            settled = true
-            cleanup()
-            reject(error)
-          }
-          const timer = setTimeout(
-            () => fail(new Error('FCM token 获取超时；请确认 google-services.json 已配置')),
-            20000,
-          )
-          void (async () => {
-            try {
-              registration = await PushNotifications.addListener('registration', (value) =>
-                succeed(value.value),
-              )
-              registrationError = await PushNotifications.addListener(
-                'registrationError',
-                (value) => fail(new Error(value.error || 'FCM token 注册失败')),
-              )
-              await PushNotifications.register()
-            } catch (error) {
-              fail(error instanceof Error ? error : new Error(String(error)))
-            }
-          })()
-        })
-        if (!token || token.length < 20)
-          return { supported: false, reason: 'Android 返回了无效的 Push token' }
-        return { supported: true, token }
+        // 通知渠道由原生 BibuNotifications.ensureChannels 统一创建（个推/提醒共用），
+        // 这里不需要再建。CID 由原生个推 SDK 获取。
+        const registration = await withTimeout(
+          plugin.pushRegistration(),
+          20000,
+          '个推 CID 获取超时；请确认 GETUI_APPID 已配置且应用已联网',
+        )
+        const cid = registration?.token
+        if (!cid || cid.length < 20)
+          return { supported: false, reason: 'Android 返回了无效的 Push CID' }
+        return { supported: true, token: cid }
       } catch (error) {
         return {
           supported: false,
-          reason: error instanceof Error ? error.message : 'FCM token 注册失败',
+          reason: error instanceof Error ? error.message : '个推 CID 获取失败',
         }
       }
     },
-    async listenReceived(listener: (value: PushReceived) => void): Promise<() => void> {
+    async listenReceived(): Promise<() => void> {
+      // 个推透传消息统一由原生 GTIntentService 渲染系统通知（进程被杀也能弹），
+      // 不再转发给 WebView，避免双重通知。
       if (!native()) return () => {}
-      const handle = await PushNotifications.addListener('pushNotificationReceived', (value) =>
-        listener({ id: value.id, title: value.title, body: value.body, data: value.data }),
-      )
-      return () => {
-        void handle.remove()
-      }
+      return () => {}
     },
     async listenRegistration(listener: (token: string) => void): Promise<() => void> {
       if (!native()) return () => {}
-      const handle = await PushNotifications.addListener('registration', (value) => {
-        if (value.value.length >= 20) listener(value.value)
+      let last: string | undefined
+      const handle = await plugin.addListener('pushCid', (value) => {
+        const token = value.token
+        if (token && token.length >= 20 && token !== last) {
+          last = token
+          listener(token)
+        }
       })
+      try {
+        const current = await plugin.pushRegistration()
+        if (
+          current?.supported &&
+          current.token &&
+          current.token.length >= 20 &&
+          current.token !== last
+        ) {
+          last = current.token
+          listener(current.token)
+        }
+      } catch {
+        // CID 尚未就绪时，由 pushCid 事件补发
+      }
       return () => {
         void handle.remove()
       }
     },
     async unregister(): Promise<CapabilityResult> {
-      if (!native()) return unavailable('Web 没有 Android Push token')
+      if (!native()) return unavailable('Web 没有 Android Push CID')
       try {
-        await PushNotifications.unregister()
+        await plugin.pushUnregister()
         return { supported: true }
       } catch (error) {
         return {
           supported: false,
-          reason: error instanceof Error ? error.message : 'Push token 注销失败',
+          reason: error instanceof Error ? error.message : 'Push CID 注销失败',
         }
       }
     },
     async listenAction(listener: (route: string) => void): Promise<() => void> {
       if (!native()) return () => {}
-      const handle = await PushNotifications.addListener(
-        'pushNotificationActionPerformed',
-        (event) => {
-          const route =
-            event.notification.data && typeof event.notification.data.route === 'string'
-              ? event.notification.data.route
-              : '#home'
-          listener(safeNativeRoute(route))
-        },
-      )
+      // 个推通知点击 → 原生通知 PendingIntent → MainActivity → deepLink 事件
+      const handle = await plugin.addListener('deepLink', (value) => {
+        if (value.route) listener(safeNativeRoute(value.route))
+      })
+      try {
+        const initial = await plugin.launchRoute()
+        if (initial.route) listener(safeNativeRoute(initial.route))
+      } catch {
+        // 冷启动意图读取失败时忽略
+      }
       return () => {
         void handle.remove()
+      }
+    },
+    async getDiagnostics(): Promise<PushDiagnostics & { supported: boolean }> {
+      if (!native()) {
+        return {
+          supported: false,
+          cid: '',
+          isPushOnline: false,
+          notificationsEnabled: false,
+          sdkVersion: 'Web',
+          deviceModel: navigator.userAgent,
+          androidVersion: 'N/A',
+        }
+      }
+      try {
+        const diag = await plugin.getPushDiagnostics()
+        return { supported: true, ...diag }
+      } catch {
+        return {
+          supported: false,
+          cid: '',
+          isPushOnline: false,
+          notificationsEnabled: false,
+          sdkVersion: 'unknown',
+          deviceModel: 'unknown',
+          androidVersion: 'unknown',
+        }
       }
     },
   },
@@ -294,7 +306,7 @@ export const BibuNative = {
     async listen(listener: (route: string) => void): Promise<() => void> {
       if (!native()) return () => {}
       const handle = await plugin.addListener('deepLink', (value) =>
-        listener(safeNativeRoute(value.route)),
+        listener(safeNativeRoute(value.route ?? '#home')),
       )
       try {
         const initial = await plugin.launchRoute()

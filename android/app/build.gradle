@@ -10,6 +10,15 @@ def releaseSigningReady = [releaseKeystorePath, releaseStorePassword, releaseKey
 }
 def requestedVersionCode = System.getenv('BIBU_VERSION_CODE') ?: System.getenv('BIBO_VERSION_CODE')
 def requestedVersionName = System.getenv('BIBU_VERSION_NAME') ?: System.getenv('BIBO_VERSION_NAME')
+def loadEnvReleaseValue = { key ->
+    def envFile = file("${rootDir}/../.env.release")
+    if (envFile.exists()) {
+        def line = envFile.readLines().find { it.trim().startsWith("${key}=") }
+        if (line) return line.split('=', 2)[1].trim()
+    }
+    return null
+}
+def getuiAppId = System.getenv('GETUI_APP_ID') ?: System.getenv('GT_APP_ID') ?: loadEnvReleaseValue('GETUI_APP_ID') ?: ''
 def versionCodeValue = requestedVersionCode?.isInteger() ? requestedVersionCode.toInteger() : 1
 def versionNameValue = requestedVersionName?.trim() ?: '0.1.0'
 
@@ -30,6 +39,11 @@ android {
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
+        manifestPlaceholders = [
+            GETUI_APPID: getuiAppId,
+            // 个推 SDK AAR 要求安装渠道占位符，不启用厂商通道时填任意值即可
+            GT_INSTALL_CHANNEL: 'bibu_default',
+        ]
     }
     signingConfigs {
         release {
@@ -54,6 +68,8 @@ repositories {
     flatDir{
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
     }
+    // 个推 SDK Maven 仓库
+    maven { url 'https://mvn.getui.com/nexus/content/repositories/releases/' }
 }
 
 dependencies {
@@ -67,17 +83,10 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
-    // Direct compile dependency for the bridge's Firebase configuration preflight.
-    implementation "com.google.firebase:firebase-messaging:$firebaseMessagingVersion"
+    // 个推推送 SDK：gtc = 公共核心，gtsdk = 主推送，gsido = 数据采集
+    implementation 'com.getui:gtc:3.3.3.0'
+    implementation 'com.getui:gtsdk:3.3.15.0'
+    implementation 'com.getui:gsido:1.4.14.0'
 }
 
 apply from: 'capacitor.build.gradle'
-
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
-    }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
-}

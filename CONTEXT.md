@@ -66,7 +66,7 @@ Auth(PKCE 邮箱) → useSpace 加载 loadSpace() 快照 → Realtime 订阅 9 �
 ## 6. 当前状态
 
 - **完成度**：前端全功能 100%，离线/缓存 95%，数据库/RLS 95%，Edge Functions 已部署，Android 原生层 85%。
-- **发布阻塞项**（CURRENT_STATUS.md）：正式 release keystore 签名环境变量、`google-services.json`、真实双机 FCM 送达验收、线上 Webhook→Edge Function 端到端核验。
+- **发布阻塞项**（CURRENT_STATUS.md）：正式 release keystore 签名环境变量、真实双机个推送达验收、线上 Webhook→Edge Function 端到端核验。
 - **已接受问题**：Vite 单包 >500kB（建议 code-splitting）；Kotlin 旧 API 警告（刻意保留向前兼容）；部分同色系装扮对比度偏低（有黑描边兜底）。
 - **未做**：复杂 SW 预缓存、国际化、自定义头像照片上传（目前统一 16 款像素小动物）。
 

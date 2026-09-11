@@ -1,6 +1,10 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { buildPingPush, isUnregisteredFcmError, type PingPushRecord } from '../_shared/pingPush.ts'
-import { googleAccessToken, parseServiceAccount, sendFcmMessage } from '../_shared/fcm.ts'
+import { buildPingPush, type PingPushRecord } from '../_shared/pingPush.ts'
+import {
+  isInvalidCidError,
+  parseGeTuiEnv,
+  sendGeTuiTransmission,
+} from '../_shared/getui.ts'
 const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':
@@ -21,9 +25,9 @@ Deno.serve(async (request) => {
   if (!expected || secretHeader !== expected) return json({ error: 'Webhook 未授权' }, 401)
   const url = Deno.env.get('SUPABASE_URL'),
     service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
-    accountRaw = Deno.env.get('FCM_SERVICE_ACCOUNT_JSON')
-  if (!url || !service || !accountRaw)
-    return json({ error: 'Push 发送服务尚未配置 service key / FCM service account' }, 503)
+    getui = parseGeTuiEnv(Deno.env.toObject())
+  if (!url || !service || !getui)
+    return json({ error: 'Push 发送服务尚未配置 service key / 个推 GETUI_* 环境变量' }, 503)
   let payload: { record?: PingPushRecord }
   try {
     payload = await request.json()
@@ -33,12 +37,6 @@ Deno.serve(async (request) => {
   const record = payload.record
   if (!record?.id || !record.couple_id || !record.sender_id)
     return json({ sent: 0, skipped: '匿名或无效 Ping' }, 200)
-  let account
-  try {
-    account = parseServiceAccount(accountRaw)
-  } catch (error) {
-    return json({ error: String(error instanceof Error ? error.message : error) }, 503)
-  }
   const admin = createClient(url, service)
   // The webhook secret authenticates the caller, but its JSON body is still
   // untrusted. Read the persisted Ping and use it as the source of truth.
@@ -73,31 +71,38 @@ Deno.serve(async (request) => {
   console.log(
     `[send-ping-push] Ping ${verifiedRecord.id} -> Partner ${partner} (${targets.length} targets)`,
   )
-  let access: string
+  let payload
   try {
-    access = await googleAccessToken(account)
+    payload = buildPingPush(verifiedRecord, targets[0].token as string)
   } catch (error) {
-    return json({ error: '获取 FCM access token 失败', details: String(error) }, 502)
+    return json({ error: '构造 Ping 推送载荷失败', details: String(error) }, 502)
   }
   let sent = 0,
     invalid = 0,
     failed = 0
   for (const device of targets) {
-    const token = device.token as string
-    const result = await sendFcmMessage(account, access, buildPingPush(verifiedRecord, token))
+    const cid = device.token as string
+    let result: { ok: boolean; status: number; text: string }
+    try {
+      result = await sendGeTuiTransmission(getui, cid, { ...payload })
+    } catch (error) {
+      failed++
+      console.error(`[send-ping-push] CID ${cid.slice(0, 10)}... 发送异常: ${String(error)}`)
+      continue
+    }
     console.log(
-      `[send-ping-push] Token ${token.slice(0, 10)}... status: ${result.status}, ok: ${result.ok}`,
+      `[send-ping-push] CID ${cid.slice(0, 10)}... status: ${result.status}, ok: ${result.ok}, text: ${result.text.slice(0, 200)}`,
     )
     if (result.ok) {
       sent++
       continue
     }
-    if (isUnregisteredFcmError(result.status, result.text)) {
+    if (isInvalidCidError(result.status, result.text)) {
       invalid++
-      await admin.from('device_installations').delete().eq('user_id', partner).eq('token', token)
+      await admin.from('device_installations').delete().eq('user_id', partner).eq('token', cid)
     } else failed++
   }
   if (failed > 0)
-    return json({ sent, invalid, failed, error: '部分 FCM 请求失败；可由数据库 Webhook 重试' }, 502)
+    return json({ sent, invalid, failed, error: '部分个推请求失败；可由数据库 Webhook 重试' }, 502)
   return json({ sent, invalid, failed: 0 }, 200)
 })

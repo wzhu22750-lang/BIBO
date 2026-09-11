@@ -8,8 +8,13 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_stat_bibo" />
-        <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="@string/default_notification_channel_id" />
+        <meta-data android:name="GETUI_APPID" android:value="${GETUI_APPID}" />
+        <service
+            android:name=".BibuPushService"
+            android:exported="false"
+            android:label="PushService"
+            android:process=":pushservice" />
+        <service android:name=".BibuGTIntentService" android:exported="false" />
 
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
@@ -51,6 +56,13 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
     </application>
+
+    <!-- 适配 Android 11+：让个推 SDK 可以冷唤起服务 -->
+    <queries>
+        <intent>
+            <action android:name="com.getui.sdk.action" />
+        </intent>
+    </queries>
 
     <!-- Permissions -->
 

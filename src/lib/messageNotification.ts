@@ -36,7 +36,7 @@ export function newPartnerMessages(
 }
 /**
  * BIBU has exactly one conversation per couple. Background/screen-off delivery
- * belongs strictly to FCM to prevent duplicate stacked notifications.
+ * belongs strictly to push delivery to prevent duplicate stacked notifications.
  * Realtime only notifies when the app is in the foreground AND the user
  * is not currently on the chat page.
  */

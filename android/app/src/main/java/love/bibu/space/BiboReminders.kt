@@ -64,13 +64,9 @@ object BiboReminders {
             putExtra("biboRoute",row.optString("route","#focus"))
         }
         val click=PendingIntent.getActivity(context,id,intent,PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        val largeIcon = notificationLargeIcon(context)
         try {
             val notification=NotificationCompat.Builder(context,CHANNEL)
                 .setSmallIcon(love.bibu.space.R.drawable.ic_stat_bibo)
-                .apply {
-                    if (largeIcon != null) setLargeIcon(largeIcon)
-                }
                 .setContentTitle(row.getString("title")).setContentText(row.getString("body"))
                 .setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setContentIntent(click).setAutoCancel(true).build()
             (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).notify("reminder",id,notification)

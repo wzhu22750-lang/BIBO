@@ -12,15 +12,12 @@ object DeepLinkPolicy {
         val data = intent.data
         if (data != null)
             return dataRoute(data.scheme, data.host, data.path, data.getQueryParameter("message"), data.getQueryParameter("event"), scheme)
-        // FCM notification click on a cold-started process: the Capacitor PushNotifications
-        // plugin replays only messages received while running, so the launch intent here
-        // carries the push data as extras (route/ping_id/kind) plus google.message_id and
-        // no data URI. Treat it as a navigation only when it looks like an FCM click intent.
-        return fcmClickRoute(intent.getStringExtra("google.message_id"), intent.getStringExtra("route"))
+        // 兼容第三方或推送附加 extras 中的 route
+        return pushClickRoute(intent.getStringExtra("route"))
     }
 
-    fun fcmClickRoute(messageId: String?, route: String?): String? {
-        if (messageId == null || route == null) return null
+    fun pushClickRoute(route: String?): String? {
+        if (route == null) return null
         return if (validHash(route)) route else "#home"
     }
 

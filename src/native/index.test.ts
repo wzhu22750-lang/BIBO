@@ -11,7 +11,10 @@ const mocks = vi.hoisted(() => ({
   listReminders: vi.fn(),
   usagePermission: vi.fn(),
   openUsageSettings: vi.fn(),
-  firebaseConfiguration: vi.fn(),
+  pushReady: vi.fn(),
+  pushRegistration: vi.fn(),
+  pushUnregister: vi.fn(),
+  getPushDiagnostics: vi.fn(),
 }))
 vi.mock('@capacitor/core', () => ({
   Capacitor: { getPlatform: () => mocks.platform },
@@ -54,13 +57,29 @@ describe('BibuNative boundary', () => {
     expect(safeNativeRoute('#chat?message=abc')).toBe('#chat?message=abc')
     expect(safeNativeRoute('#chat?message=../x')).toBe('#chat')
   })
-  it('blocks Push registration before the official plugin when Firebase is absent', async () => {
+  it('blocks Push registration when 个推 GETUI_APPID is not configured', async () => {
     mocks.platform = 'android'
-    mocks.firebaseConfiguration.mockResolvedValue({ supported: true, configured: false })
+    mocks.pushReady.mockResolvedValue({ supported: true, configured: false })
     expect(await BibuNative.push.register()).toEqual({
       supported: false,
-      reason: 'Android 未配置 Firebase google-services.json，未调用 Push 注册',
+      reason: 'Android 未配置个推 GETUI_APPID，未调用 Push 注册',
     })
+    expect(mocks.pushRegistration).not.toHaveBeenCalled()
+  })
+  it('returns push diagnostics from device plugin', async () => {
+    mocks.platform = 'android'
+    mocks.getPushDiagnostics.mockResolvedValue({
+      cid: 'test-cid-1234567890',
+      isPushOnline: true,
+      notificationsEnabled: true,
+      sdkVersion: '3.3.7.0',
+      deviceModel: 'Xiaomi 13',
+      androidVersion: 'Android 14 (API 34)',
+    })
+    const diag = await BibuNative.push.getDiagnostics()
+    expect(diag.cid).toBe('test-cid-1234567890')
+    expect(diag.isPushOnline).toBe(true)
+    expect(diag.deviceModel).toBe('Xiaomi 13')
   })
   it('uses the Android bridge and validates untrusted vibration input', async () => {
     mocks.platform = 'android'

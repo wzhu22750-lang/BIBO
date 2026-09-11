@@ -13,12 +13,12 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import com.google.firebase.FirebaseApp
 import com.getcapacitor.JSObject
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
@@ -27,16 +27,19 @@ import com.getcapacitor.PermissionState
 import com.getcapacitor.annotation.CapacitorPlugin
 import com.getcapacitor.annotation.Permission
 import com.getcapacitor.annotation.PermissionCallback
+import com.igexin.sdk.PushManager
 
 @CapacitorPlugin(name = "BiboDevice", permissions = [Permission(alias = "notifications", strings = [Manifest.permission.POST_NOTIFICATIONS])])
 class BiboDevicePlugin : Plugin() {
     private val channel = "bibo_love_v3"
     private val messageChannel = "bibo_messages_v2"
     override fun load() {
-        // Create push channels as early as the bridge exists so an FCM
+        // Create push channels as early as the bridge exists so a GeTui
         // notification arriving later (even after process death and relaunch)
         // lands on the right channel instead of the system "Miscellaneous" one.
         ensureChannels(context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+        // CID 就绪时通知 WebView（设备注册由前端 listenRegistration 监听）。
+        BibuPushState.onCid { cid -> notifyListeners("pushCid", JSObject().put("token", cid), true) }
     }
     private fun ensureChannels(manager: NotificationManager) {
         if (Build.VERSION.SDK_INT < 26) return
@@ -84,13 +87,9 @@ class BiboDevicePlugin : Plugin() {
             putExtra("biboRoute", safeRoute(call.getString("route")))
         }
         val pending = PendingIntent.getActivity(context, id, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        val largeIcon = notificationLargeIcon(context)
         val notification = NotificationCompat.Builder(context, target)
             .setSmallIcon(love.bibu.space.R.drawable.ic_stat_bibo)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
-            .apply {
-                if (largeIcon != null) setLargeIcon(largeIcon)
-            }
             .setContentTitle((call.getString("title") ?: "BIBU！").take(80))
             .setContentText((call.getString("body") ?: "收到一个小小的想念").take(240))
             .setContentIntent(pending).setAutoCancel(true).build()
@@ -158,8 +157,54 @@ class BiboDevicePlugin : Plugin() {
             } catch(error: Exception) { call.reject("无法读取设备使用记录", error) }
         }
     }
-    @PluginMethod fun firebaseConfiguration(call: PluginCall) {
-        call.resolve(result().put("configured", FirebaseApp.getApps(context).isNotEmpty()))
+    @PluginMethod fun pushReady(call: PluginCall) {
+        call.resolve(result().put("configured", getuiAppId().isNotBlank()))
+    }
+    private fun getuiAppId(): String =
+        try {
+            context.packageManager
+                .getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
+                .metaData?.getString("GETUI_APPID").orEmpty()
+        } catch (_: Exception) {
+            ""
+        }
+    @PluginMethod fun pushRegistration(call: PluginCall) {
+        val cached = BibuPushState.cid ?: PushManager.getInstance().getClientid(context)
+        if (!cached.isNullOrBlank()) {
+            BibuPushState.setCid(cached)
+            call.resolve(result().put("token", cached))
+            return
+        }
+        // CID 尚未就绪：等待 GTIntentService 回调（前端侧带超时）。
+        BibuPushState.onCid { cid -> call.resolve(result().put("token", cid)) }
+        bridge.execute { PushManager.getInstance().initialize(context.applicationContext) }
+    }
+    @PluginMethod fun getPushDiagnostics(call: PluginCall) {
+        bridge.execute {
+            val context = context.applicationContext
+            val pm = PushManager.getInstance()
+            val cid = pm.getClientid(context) ?: BibuPushState.cid ?: ""
+            val isOnline = BibuPushState.isOnline
+            val notificationsEnabled = androidx.core.app.NotificationManagerCompat.from(context).areNotificationsEnabled()
+            val ret = JSObject()
+            ret.put("cid", cid)
+            ret.put("isPushOnline", isOnline ?: false)
+            ret.put("notificationsEnabled", notificationsEnabled)
+            ret.put("sdkVersion", "3.3.7.0")
+            ret.put("deviceModel", "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
+            ret.put("androidVersion", "Android ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT})")
+            call.resolve(ret)
+        }
+    }
+    @PluginMethod fun pushUnregister(call: PluginCall) {
+        try {
+            // 个推 SDK 无 stopPushService，关闭收消息用 turnOffPush（再登录时 turnOnPush 恢复）
+            PushManager.getInstance().turnOffPush(context.applicationContext)
+        } catch (_: Exception) {
+            // SDK 未初始化时关闭会抛异常，忽略即可
+        }
+        BibuPushState.clear()
+        call.resolve(result())
     }
     @PluginMethod fun scheduleReminder(call: PluginCall) {
         try {

@@ -1,7 +1,6 @@
 import { registerDeviceInstallation } from './lib/api'
 import { BibuNative } from './native'
 import { parseRoute } from './lib/routes'
-import { positiveHash } from './lib/pingNotification'
 import { recoverPendingAccountDeletion } from './lib/accountDeletionRecovery'
 import { useEffect, useState, useCallback } from 'react'
 import { Capacitor } from '@capacitor/core'
@@ -198,7 +197,7 @@ export default function App() {
     void (async () => {
       try {
         // Install the refresh listener before the first registration call so a
-        // very fast FCM callback cannot be lost. The silent attempt only
+        // very fast push notification callback cannot be lost. The silent attempt only
         // repairs an already-granted installation; the visible Settings action
         // remains the place that asks for notification permission.
         const cleanup = await BibuNative.push.listenRegistration((token) => {
@@ -293,41 +292,8 @@ export default function App() {
       void listener.then((handle) => handle.remove())
     }
   }, [])
-  useEffect(() => {
-    let disposed = false
-    let stop: (() => void) | undefined
-    void BibuNative.push
-      .listenReceived((value) => {
-        if (disposed) return
-        const data = value.data || {}
-        const messageId = typeof data.message_id === 'string' ? data.message_id : ''
-        const pingId = typeof data.ping_id === 'string' ? data.ping_id : ''
-        if (!messageId && !pingId) return
-        const route = typeof data.route === 'string' ? data.route : '#home'
-        const kind = messageId ? 'message' : 'ping'
-        const stableId = messageId || pingId
-        void BibuNative.notifications
-          .show({
-            id: positiveHash(stableId),
-            title: value.title || (kind === 'message' ? '收到一条悄悄话' : '收到一个小小的哔卟'),
-            body:
-              value.body ||
-              (kind === 'message' ? '打开 BIBU！查看消息' : '打开 BIBU！查看这个小小的想念'),
-            route,
-            ...(kind === 'message' ? { channel: 'messages' as const } : {}),
-          })
-          .catch(() => {})
-      })
-      .then((cleanup) => {
-        if (disposed) cleanup()
-        else stop = cleanup
-      })
-      .catch(() => {})
-    return () => {
-      disposed = true
-      stop?.()
-    }
-  }, [])
+  // 个推透传消息统一由原生 BibuGTIntentService 渲染系统通知（含进程被杀场景），
+  // WebView 不再为 push 弹通知，避免双重通知。
   useEffect(() => {
     if (!Capacitor.isNativePlatform() || !supabase) return
     let active = true

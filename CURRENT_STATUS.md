@@ -64,6 +64,6 @@ BIBU！已完成前端全功能、数据持久化与离线缓存、Supabase 后�
 在正式打出面向终端用户的生产 Release APK 之前，必须完成以下前置配置：
 
 1. **正式签名凭据**：创建并配置 `.env.release`（或环境变量）中的 `BIBU_RELEASE_KEYSTORE`、`BIBU_RELEASE_STORE_PASSWORD`、`BIBU_RELEASE_KEY_ALIAS`、`BIBU_RELEASE_KEY_PASSWORD`。
-2. **Firebase 配置文件**：获取对应 `love.bibu.space` 包名的 `android/app/google-services.json` 并放入对应目录。
-3. **真实物理设备 FCM 送达验收**：在两台真实物理 Android 设备上完成前台、后台、锁屏、进程被杀后的 Push 唤醒与点击跳转验收。
+2. **个推凭据配置**：在 `.env.release` 与 Supabase Edge Function Secrets 中配置 `GETUI_APP_ID`、`GETUI_APP_KEY`、`GETUI_MASTER_SECRET`。
+3. **真实物理设备个推送达验收**：在两台真实物理 Android 设备上完成前台、后台、锁屏、进程被杀后的 Push 唤醒与点击跳转验收。
 4. **线上 Supabase 触发器端到端核验**：确保远程 Database Webhook 对 `public.pings` 与 `public.messages` 的 AFTER INSERT 触发器稳定调用 Edge Function。
