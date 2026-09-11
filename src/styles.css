@@ -2303,121 +2303,142 @@ img {
   box-shadow: var(--shadow);
 }
 
-/* 掌机 CRT/LCD 液晶监控屏 */
-.crt-monitor-screen {
-  background: #151e13;
-  border: var(--line);
-  padding: 12px 14px;
-  box-shadow: inset 2px 2px 6px rgba(0,0,0,0.7);
+/* === 想念信报箱 TELEGRAM LETTERBOX (复古暖调像素信局) === */
+.telegram-station-box {
+  background: #fdfdf9;
+  border: 1px solid #dbe5cf;
+  padding: 13px;
   display: grid;
-  gap: 8px;
-  position: relative;
-  overflow: hidden;
-}
-.crt-monitor-screen::after {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 1px, transparent 2px);
-  pointer-events: none;
-}
-.crt-header-line {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 11px;
-  font-family: var(--pixel), monospace;
-}
-.crt-status-online {
-  color: #4ade80;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-weight: 700;
-}
-.crt-status-offline {
-  color: #fb923c;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-weight: 700;
-}
-.crt-blink-led {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  background: #4ade80;
-  box-shadow: 0 0 6px #4ade80;
-  animation: crt-led-flash 1s infinite steps(2);
-}
-@keyframes crt-led-flash {
-  0% { opacity: 1; }
-  50% { opacity: 0.3; }
+  gap: 11px;
 }
 
-.crt-data-row {
+/* 顶部状态章 (复古像素邮戳风格) */
+.telegram-status-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  font-family: monospace;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.telegram-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px;
   font-size: 11px;
-  color: #93c5fd;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+.telegram-status-pill.is-online {
+  background: #eef9ec;
+  color: #1f6b2d;
+  border-color: #b7e8bc;
+}
+.telegram-status-pill.is-offline {
+  background: #fdf6e9;
+  color: #92400e;
+  border-color: #fed7aa;
+}
+.pixel-status-square {
+  width: 7px;
+  height: 7px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.pixel-status-square.online {
+  background: #22c55e;
+  box-shadow: 1px 1px 0 #15803d;
+}
+.pixel-status-square.offline {
+  background: #f97316;
+  box-shadow: 1px 1px 0 #c2410c;
+}
+
+/* CID 与信息卡带 */
+.telegram-cid-strip {
+  background: #f4f7ee;
+  border: 1px solid #d5dfc9;
+  padding: 8px 11px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   overflow: hidden;
 }
-.crt-cid-text {
-  color: #fde047;
+.telegram-cid-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #5c684d;
+  flex-shrink: 0;
+}
+.telegram-cid-value {
+  font-family: monospace;
+  font-size: 11px;
+  color: #2b3520;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.crt-copy-btn {
-  background: #374151;
-  color: #e5e7eb;
-  border: 1px solid #4b5563;
-  padding: 2px 6px;
-  font-size: 9px;
+.telegram-copy-btn {
+  background: #fff;
+  border: 1px solid #9aa986;
+  color: #2b3520;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
   cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 1px 1px 0 #9aa986;
+  transition: transform 0.05s ease;
 }
-.crt-meta-line {
-  font-size: 9.5px;
-  color: #9ca3af;
-  font-family: monospace;
+.telegram-copy-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: none;
 }
 
-/* 掌机街机风格诊断按键组 */
-.arcade-buttons-deck {
+/* 元数据小药丸标 */
+.telegram-meta-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.telegram-meta-pill {
+  font-size: 9.5px;
+  padding: 3px 7px;
+  background: #f0f4e8;
+  color: #617050;
+  border: 1px solid #d8e2cf;
+  line-height: 1.3;
+}
+
+/* 温馨小提示条 */
+.telegram-hint-note {
+  font-size: 10.5px;
+  color: #687857;
+  background: #fafcf6;
+  border-left: 3px solid #84cc16;
+  padding: 6px 10px;
+  line-height: 1.5;
+  margin: 0;
+}
+.telegram-hint-note.alert {
+  border-left-color: #f59e0b;
+  color: #92400e;
+  background: #fffbeb;
+}
+
+/* 按钮组 */
+.telegram-actions-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+  margin-top: 4px;
 }
-@media (max-width: 420px) {
-  .arcade-buttons-deck {
+@media (max-width: 480px) {
+  .telegram-actions-grid {
     grid-template-columns: 1fr;
   }
 }
-.arcade-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 10px;
-  border: var(--line);
-  font-weight: 700;
-  font-size: 11px;
-  cursor: pointer;
-  box-shadow: 2px 2px 0 var(--ink);
-  transition: all 0.08s ease;
-  user-select: none;
-}
-.arcade-btn:active {
-  transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0 var(--ink);
-}
-.arcade-btn.btn-green { background: #86efac; color: #064e3b; }
-.arcade-btn.btn-yellow { background: #fef08a; color: #713f12; }
-.arcade-btn.btn-pink { background: #fbcfe8; color: #831843; }
-.arcade-btn.btn-white { background: #f3f4f6; color: #1f2937; }
 
 /* 声音与震动实体开关行 */
 .retro-feedback-row {

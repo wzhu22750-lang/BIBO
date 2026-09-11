@@ -14,7 +14,6 @@ import { Icon } from '../components/PixelArt'
 import { CharacterSelector, PixelCharacter, type PixelCharacterAnimation } from '../components/pet'
 import { CHARACTER_MAP } from '../lib/pet'
 import { db } from '../lib/supabase'
-import { disableFeedback, enableFeedback } from '../lib/notifications'
 import { localDateInput } from '../lib/dates'
 import { PixelDatePicker } from '../components/PixelPickers'
 
@@ -349,34 +348,12 @@ export function Settings({
 
         {/* 右列：通信联络与系统安全 */}
         <div className="cartridge-col">
-          {/* === CARD 3: 通信天线与个推联络站 === */}
-          <div className="retro-cartridge">
-            <PushRegistrationPanel controller={controller} />
-
-            {/* 声音与震动物理开关 */}
-            <div className="retro-feedback-row" style={{ borderTop: 'var(--line)' }}>
-              <div className="feedback-text">
-                <h4>触感与声音音效</h4>
-                <p>{sound ? '本页已授权，播放 8-bit 音效与振动' : '点击开启声音与触感振动反馈'}</p>
-              </div>
-              <button
-                type="button"
-                className={`toggle ${sound ? 'active' : ''}`}
-                onClick={() => {
-                  if (sound) {
-                    disableFeedback()
-                    setSound(false)
-                  } else {
-                    void enableFeedback()
-                    setSound(true)
-                  }
-                }}
-                aria-label={sound ? '关闭声音与震动' : '开启声音与震动'}
-              >
-                <span />
-              </button>
-            </div>
-          </div>
+          {/* === CARD 3: 想念信报箱（个推实时推送与反馈） === */}
+          <PushRegistrationPanel
+            controller={controller}
+            sound={sound}
+            setSound={setSound}
+          />
 
           {/* === CARD 4: 空间保险箱与系统设置 === */}
           <div className="retro-cartridge">

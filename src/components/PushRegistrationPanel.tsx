@@ -1,14 +1,25 @@
 import { useEffect, useState } from 'react'
 import type { SpaceController } from '../hooks/useSpace'
 import {
+  clearStoredPushToken,
   readStoredPushToken,
   registerDevicePush,
   storePushToken,
+  unregisterDevicePush,
 } from '../lib/pushRegistration'
+import { disableFeedback, enableFeedback } from '../lib/notifications'
 import { BibuNative, type NotificationPermission, type PushDiagnostics } from '../native'
-import { Icon } from './PixelArt'
+import { Button } from './ui'
 
-export function PushRegistrationPanel({ controller }: { controller: SpaceController }) {
+export function PushRegistrationPanel({
+  controller,
+  sound,
+  setSound,
+}: {
+  controller: SpaceController
+  sound?: boolean
+  setSound?: (on: boolean) => void
+}) {
   const initialToken = readStoredPushToken()
   const [registered, setRegistered] = useState(Boolean(initialToken))
   const [token, setToken] = useState<string | undefined>(initialToken)
@@ -27,7 +38,7 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
         setToken(diag.cid)
       }
     } catch {
-      // 忽略非原生环境异常
+      // 忽略非原生环境
     }
   }
 
@@ -64,16 +75,16 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
 
   const handleTestLocalMessage = async () => {
     setBusy(true)
-    setStatusMsg('正在发送悄悄话横幅测试...')
+    setStatusMsg('正在发送通知横幅测试...')
     try {
       await BibuNative.notifications.show({
         id: 999,
-        title: 'BIBU！悄悄话渠道测试',
-        body: '如果你看到了这条系统横幅，说明通知通道（bibo_messages_v2）完全正常！',
+        title: 'BIBU！想念通道测试',
+        body: '收到来自伴侣的想念，系统通知与个推通道完全畅通！',
         route: '#chat',
         channel: 'messages',
       })
-      setStatusMsg('测试横幅已投递，请看通知栏')
+      setStatusMsg('测试横幅已投递，请查看手机通知栏')
     } catch (e) {
       setStatusMsg(e instanceof Error ? e.message : '发送失败')
     } finally {
@@ -83,7 +94,7 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
 
   const handleRefreshRegistration = async () => {
     setBusy(true)
-    setStatusMsg('正在重新检查状态并登记 CID...')
+    setStatusMsg('正在检查状态并激活长连接...')
     try {
       const reg = await BibuNative.push.register()
       const currentToken = reg.token || diagnostics?.cid || token
@@ -95,9 +106,28 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
       }
       setRegistered(true)
       await refreshDiagnostics()
-      setStatusMsg('个推 CID 登记成功，长连接已激活！')
+      setStatusMsg('长连接已重新激活，CID 登记成功！')
     } catch (e) {
-      setStatusMsg(e instanceof Error ? e.message : '登记失败')
+      setStatusMsg(e instanceof Error ? e.message : '激活失败')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleRevoke = async () => {
+    setBusy(true)
+    setStatusMsg('正在撤销登记...')
+    try {
+      const currentToken = token || diagnostics?.cid
+      if (currentToken && controller.space?.me?.id) {
+        await unregisterDevicePush(controller.space.me.id, currentToken)
+      }
+      clearStoredPushToken()
+      setToken(undefined)
+      setRegistered(false)
+      setStatusMsg('已从云端撤销登记')
+    } catch (e) {
+      setStatusMsg(e instanceof Error ? e.message : '撤销失败')
     } finally {
       setBusy(false)
     }
@@ -121,116 +151,119 @@ export function PushRegistrationPanel({ controller }: { controller: SpaceControl
       await navigator.clipboard.writeText(report)
       setCopiedReport(true)
       setTimeout(() => setCopiedReport(false), 2000)
-      setStatusMsg('已复制完整诊断报告')
+      setStatusMsg('排查报告已复制到剪贴板')
     } catch {
       setStatusMsg('写入剪贴板失败')
     }
   }
 
   const isOnline = diagnostics?.isPushOnline === true
+  const cidValue = diagnostics?.cid || token || ''
 
   return (
-    <div className="link-station-card">
+    <div className="retro-cartridge telegram-card">
       <div className="retro-window-bar bar-green">
         <span className="micro">
-          <i className="sq" /> GETUI LINK STATION · 通信与个推联络站
+          <i className="sq" /> TELEGRAM · 想念信报箱
         </span>
-        <div className="dots">■ ■ ■</div>
+        <div className="dots">•••</div>
       </div>
 
       <div className="retro-cartridge-body">
-        {/* CRT 终端液晶监控屏 */}
-        <div className="crt-monitor-screen">
-          <div className="crt-header-line">
-            <span>[SIGNAL ANTENNA]</span>
+        <div className="telegram-station-box">
+          {/* 状态指示胶囊 */}
+          <div className="telegram-status-bar">
             {isOnline ? (
-              <span className="crt-status-online">
-                <i className="crt-blink-led" /> ONLINE 在线 (长连接通畅)
+              <span className="telegram-status-pill is-online">
+                <i className="pixel-status-square online" /> 链路通畅 · 在线 (ONLINE)
               </span>
             ) : (
-              <span className="crt-status-offline">
-                <i
-                  className="crt-blink-led"
-                  style={{ background: '#fb923c', boxShadow: '0 0 6px #fb923c' }}
-                />
-                OFFLINE 离线 (请点击重新激活)
+              <span className="telegram-status-pill is-offline">
+                <i className="pixel-status-square offline" /> 等待心跳 · 离线 (OFFLINE)
               </span>
             )}
+            <span className="telegram-meta-pill">个推 SDK v{diagnostics?.sdkVersion || '3.3.15'}</span>
           </div>
 
-          <div className="crt-data-row">
-            <span>CID:</span>
-            <span className="crt-cid-text">{diagnostics?.cid || token || '等待分配...'}</span>
-            {(diagnostics?.cid || token) && (
-              <button type="button" className="crt-copy-btn" onClick={() => void copyCid()}>
-                {copiedCid ? '已复制' : '复制'}
+          {/* CID 条带 */}
+          <div className="telegram-cid-strip">
+            <span className="telegram-cid-label">设备 CID</span>
+            <span className="telegram-cid-value" title={cidValue}>
+              {cidValue ? cidValue : '未分配 (点击激活)'}
+            </span>
+            {cidValue ? (
+              <button type="button" className="telegram-copy-btn" onClick={() => void copyCid()}>
+                {copiedCid ? '已复制 ✓' : '复制'}
               </button>
+            ) : null}
+          </div>
+
+          {/* 状态徽章条目 */}
+          <div className="telegram-meta-pills">
+            <span className="telegram-meta-pill">
+              机型: {diagnostics?.deviceModel ? `${diagnostics.deviceModel} (API ${diagnostics.androidVersion || '?'})` : 'Web / 本地环境'}
+            </span>
+            <span className="telegram-meta-pill">
+              通知栏: {permission?.granted ? '已授权 ✓' : '未授权'}
+            </span>
+            <span className="telegram-meta-pill">
+              伴侣链路: {registered ? '已绑定' : '未绑定'}
+            </span>
+          </div>
+
+          {/* 提示消息 */}
+          {statusMsg ? (
+            <p className="telegram-hint-note alert">✦ {statusMsg}</p>
+          ) : (
+            <p className="telegram-hint-note">
+              ✦ 当伴侣在远方发送想念或留言时，系统将通过本信箱即时唤醒提醒
+            </p>
+          )}
+
+          {/* 按钮组 */}
+          <div className="telegram-actions-grid">
+            <Button tone="green" disabled={busy} onClick={() => void handleRefreshRegistration()}>
+              {busy ? '正在激活…' : '重新检查 / 激活'}
+            </Button>
+            <Button tone="yellow" disabled={busy} onClick={() => void handleTestLocalMessage()}>
+              自测通知横幅
+            </Button>
+            <Button tone="white" disabled={busy} onClick={() => void handleCopyReport()}>
+              {copiedReport ? '已复制报告 ✓' : '复制排查报告'}
+            </Button>
+            {registered && (
+              <Button tone="white" disabled={busy} onClick={() => void handleRevoke()}>
+                撤销设备登记
+              </Button>
             )}
           </div>
-
-          <div className="crt-meta-line">
-            <span>机型: {diagnostics?.deviceModel || 'Android Phone'} (API {diagnostics?.androidVersion || '36'})</span>
-            <span style={{ marginLeft: '10px' }}>
-              SDK: v{diagnostics?.sdkVersion || '3.3.15.0'}
-            </span>
-          </div>
-
-          <div className="crt-meta-line" style={{ color: registered ? '#86efac' : '#fca5a5' }}>
-            <span>伴侣云端链路: {registered ? '已完成登记' : '未登记'}</span>
-            <span style={{ marginLeft: '10px', color: permission?.granted ? '#86efac' : '#fca5a5' }}>
-              通知栏: {permission?.granted ? '已授权' : '未开启'}
-            </span>
-          </div>
         </div>
 
-        {/* 状态消息 */}
-        {statusMsg && (
-          <div
-            style={{
-              padding: '6px 10px',
-              fontSize: '11px',
-              background: '#f0fdf4',
-              border: '1px solid #bbf7d0',
-              color: '#166534',
-              fontWeight: 700,
-            }}
-          >
-            ✦ {statusMsg}
+        {/* 声音与震动设置嵌入在信报箱底部 */}
+        {setSound && (
+          <div className="retro-feedback-row" style={{ marginTop: '12px' }}>
+            <div className="feedback-text">
+              <h4>触感与声音音效</h4>
+              <p>{sound ? '本页已授权，播放 8-bit 音效与振动' : '点击开启声音与触感振动反馈'}</p>
+            </div>
+            <button
+              type="button"
+              className={`toggle ${sound ? 'active' : ''}`}
+              onClick={() => {
+                if (sound) {
+                  disableFeedback()
+                  setSound(false)
+                } else {
+                  void enableFeedback()
+                  setSound(true)
+                }
+              }}
+              aria-label={sound ? '关闭声音与震动' : '开启声音与震动'}
+            >
+              <span />
+            </button>
           </div>
         )}
-
-        {/* 街机风格诊断按键组 */}
-        <div className="arcade-buttons-deck">
-          <button
-            type="button"
-            className="arcade-btn btn-green"
-            disabled={busy}
-            onClick={() => void handleRefreshRegistration()}
-          >
-            <Icon name="spark" size={13} />
-            <span>重新检查 / 激活</span>
-          </button>
-
-          <button
-            type="button"
-            className="arcade-btn btn-yellow"
-            disabled={busy}
-            onClick={() => void handleTestLocalMessage()}
-          >
-            <Icon name="chat" size={13} />
-            <span>自测通知横幅</span>
-          </button>
-
-          <button
-            type="button"
-            className="arcade-btn btn-white"
-            disabled={busy}
-            onClick={() => void handleCopyReport()}
-          >
-            <Icon name="heart" size={13} />
-            <span>{copiedReport ? '已复制报告' : '复制排查报告'}</span>
-          </button>
-        </div>
       </div>
     </div>
   )
