@@ -254,28 +254,6 @@ export function Photos({ controller, demo }: { controller: SpaceController; demo
         <span className="micro">OUR MEMORY TIMELINE ↓</span>
       </div>
       {!demo && <PhotoOutboxPanel controller={controller} />}
-      {!demo && !controller.cachedAt && (
-        <div className="memory-pagination">
-          <Button
-            tone="white"
-            disabled={pages.busy || pages.pageNumber === 1}
-            onClick={pages.previous}
-          >
-            上一页回忆
-          </Button>
-          <span>第 {pages.pageNumber} 页 · 按上传时间倒序，每页 30 张</span>
-          <Button tone="white" disabled={pages.busy || !pages.hasMore} onClick={pages.next}>
-            下一页回忆
-          </Button>
-          <Button tone="white" disabled={pages.busy} onClick={pages.refresh}>
-            刷新当前页
-          </Button>
-          {pages.busy && <p role="status">正在读取回忆与私有图片链接…</p>}
-          {pages.error && (
-            <p role="alert">回忆读取失败：{pages.error}。可刷新重试，不会删除你的资料。</p>
-          )}
-        </div>
-      )}
       {photos.length ? (
         <div className="photos-grid">
           {photos.map((photo, i) => (
@@ -288,6 +266,50 @@ export function Photos({ controller, demo }: { controller: SpaceController; demo
           title="第一张照片，会是什么呢？"
           description="只对彼此开放的照片墙，等你放进第一个瞬间。"
         />
+      )}
+      {!demo && !controller.cachedAt && (
+        <nav className="memory-pagination" aria-label="回忆分页导航">
+          <div className="memory-pagination-bar">
+            <div className="memory-page-status">
+              <span className="memory-page-badge">第 {pages.pageNumber} 页</span>
+              <span className="memory-page-hint">每页 30 张 · 按上传倒序</span>
+            </div>
+            <div className="memory-pagination-actions">
+              <Button
+                tone="white"
+                disabled={pages.busy || pages.pageNumber === 1}
+                onClick={pages.previous}
+                className="memory-page-btn"
+              >
+                <Icon name="arrow" size={12} className="toggle-arrow up" />
+                上一页
+              </Button>
+              <Button
+                tone="white"
+                disabled={pages.busy || !pages.hasMore}
+                onClick={pages.next}
+                className="memory-page-btn"
+              >
+                下一页
+                <Icon name="arrow" size={12} className="toggle-arrow down" />
+              </Button>
+              <Button
+                tone="white"
+                disabled={pages.busy}
+                onClick={pages.refresh}
+                className="memory-page-btn memory-refresh-btn"
+                title="刷新当前页"
+              >
+                <Icon name="undo" size={12} />
+                刷新
+              </Button>
+            </div>
+          </div>
+          {pages.busy && <p className="memory-pagination-msg" role="status">正在读取回忆与私有图片链接…</p>}
+          {pages.error && (
+            <p className="memory-pagination-msg error" role="alert">回忆读取失败：{pages.error}。可刷新重试，不会删除你的资料。</p>
+          )}
+        </nav>
       )}
       <div className="pixel-note">
         <Icon name="lock" />

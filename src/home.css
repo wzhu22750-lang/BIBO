@@ -237,15 +237,94 @@
   overflow-wrap: anywhere;
 }
 .memory-pagination {
+  margin: 20px 0 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.memory-pagination-bar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
-  margin: 16px 0 24px;
+  padding: 10px 14px;
+  background: var(--paper, #fffdfa);
+  border: var(--line, 2px solid #20211d);
+  box-shadow: 2px 2px 0 var(--ink, #20211d);
 }
-.memory-pagination p {
-  flex-basis: 100%;
+.memory-page-status {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.memory-page-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: var(--yellow, #fff066);
+  border: 1.5px solid var(--ink, #20211d);
+  box-shadow: 1px 1px 0 var(--ink, #20211d);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink, #20211d);
+}
+.memory-page-hint {
+  font-size: 11px;
+  color: #747a69;
+  letter-spacing: 0.2px;
+}
+.memory-pagination-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.memory-page-btn {
+  padding: 6px 12px !important;
+  min-height: 34px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  box-shadow: 2px 2px 0 var(--ink, #20211d) !important;
+  gap: 6px !important;
+}
+.memory-page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: 1px 1px 0 var(--ink, #20211d) !important;
+}
+.memory-pagination-msg {
+  font-size: 12px;
+  color: #747a69;
+  margin: 4px 0 0;
+  padding-left: 4px;
   overflow-wrap: anywhere;
+}
+.memory-pagination-msg.error {
+  color: #d13438;
+}
+@media (max-width: 440px) {
+  .memory-pagination-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .memory-page-status {
+    justify-content: space-between;
+    width: 100%;
+  }
+  .memory-pagination-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 8px;
+    width: 100%;
+  }
+  .memory-page-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 .inactive-outbox {
   text-align: left;
