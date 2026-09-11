@@ -168,29 +168,65 @@ class BiboDevicePlugin : Plugin() {
         } catch (_: Exception) {
             ""
         }
-    @PluginMethod fun pushRegistration(call: PluginCall) {
-        val cached = BibuPushState.cid ?: PushManager.getInstance().getClientid(context)
-        if (!cached.isNullOrBlank()) {
-            BibuPushState.setCid(cached)
-            call.resolve(result().put("token", cached))
-            return
+    /**
+     * 个推初始化必须先于读取 CID。CID 是持久化标识，不代表当前长连接已经启动。
+     * 尤其是进程被系统杀死后，不能因为读到了缓存 CID 就跳过 initialize。
+     * 关键：若此前曾调用过 turnOffPush（如退出登录、注销），个推会把关闭状态持久化在本地。
+     * 重新初始化时必须显式调用 turnOnPush 唤醒长连接通道，否则 SDK 绝不建连。
+     */
+    private fun ensurePushInitialized() {
+        val app = context.applicationContext
+        val pm = PushManager.getInstance()
+        // 恢复推送总开关（避免因注销或卸载残留导致 SDK 持久化处于 turnOffPush 状态）
+        try {
+            pm.turnOnPush(app)
+        } catch (_: Exception) {
         }
-        // CID 尚未就绪：等待 GTIntentService 回调（前端侧带超时）。
-        BibuPushState.onCid { cid -> call.resolve(result().put("token", cid)) }
-        bridge.execute { PushManager.getInstance().initialize(context.applicationContext) }
+        // initialize() 会从 Manifest 发现 BibuGTIntentService；显式注册可避免
+        // SDK/Manifest 扫描差异导致回调服务没有被绑定。
+        pm.registerPushIntentService(app, BibuGTIntentService::class.java)
+        pm.initialize(app)
     }
+
+    @PluginMethod fun pushRegistration(call: PluginCall) {
+        bridge.execute {
+            try {
+                ensurePushInitialized()
+                val pm = PushManager.getInstance()
+                val cached = BibuPushState.cid ?: pm.getClientid(context.applicationContext)
+                if (!cached.isNullOrBlank()) {
+                    BibuPushState.setCid(cached)
+                    call.resolve(result().put("token", cached))
+                    return@execute
+                }
+                // CID 尚未就绪：等待 GTIntentService 回调（前端侧带超时）。
+                BibuPushState.onCid { cid -> call.resolve(result().put("token", cid)) }
+            } catch (error: Exception) {
+                call.reject("个推 SDK 初始化失败", error)
+            }
+        }
+    }
+
     @PluginMethod fun getPushDiagnostics(call: PluginCall) {
         bridge.execute {
-            val context = context.applicationContext
+            val app = context.applicationContext
             val pm = PushManager.getInstance()
-            val cid = pm.getClientid(context) ?: BibuPushState.cid ?: ""
-            val isOnline = BibuPushState.isOnline
-            val notificationsEnabled = androidx.core.app.NotificationManagerCompat.from(context).areNotificationsEnabled()
+            try {
+                ensurePushInitialized()
+                // 该方法是异步把查询请求交给 pushservice；真实状态仍会通过
+                // onReceiveOnlineState 回调回传。不要把缓存 CID 当成在线状态。
+                pm.queryPushOnLine(app)
+            } catch (error: Exception) {
+                // 忽略非关键异常
+            }
+            val cid = pm.getClientid(app) ?: BibuPushState.cid ?: ""
+            val notificationsEnabled = androidx.core.app.NotificationManagerCompat
+                .from(app).areNotificationsEnabled()
             val ret = JSObject()
             ret.put("cid", cid)
-            ret.put("isPushOnline", isOnline ?: false)
+            ret.put("isPushOnline", BibuPushState.isOnline ?: false)
             ret.put("notificationsEnabled", notificationsEnabled)
-            ret.put("sdkVersion", "3.3.7.0")
+            ret.put("sdkVersion", "3.3.15.0")
             ret.put("deviceModel", "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
             ret.put("androidVersion", "Android ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT})")
             call.resolve(ret)

@@ -64,9 +64,8 @@ object BibuNotifications {
         if (!enabled(context)) return
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val target = if (kind == "message") MESSAGE_CHANNEL else PING_CHANNEL
-        if (Build.VERSION.SDK_INT >= 26 &&
-            manager.getNotificationChannel(target).importance == NotificationManager.IMPORTANCE_NONE
-        ) {
+        val channel = if (Build.VERSION.SDK_INT >= 26) manager.getNotificationChannel(target) else null
+        if (Build.VERSION.SDK_INT >= 26 && channel != null && channel.importance == NotificationManager.IMPORTANCE_NONE) {
             return
         }
         val safeRoute = if (DeepLinkPolicy.validHash(route)) route else "#home"

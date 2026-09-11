@@ -5,11 +5,11 @@ import { SettingsNote } from '../components/SettingsNote'
 import { AccountDeletion } from '../components/AccountDeletion'
 import { InactiveOutbox } from '../components/InactiveOutbox'
 import { InvitationManager } from '../components/InvitationManager'
-import { BibuNative } from '../native'
+
 import { useState } from 'react'
 import type { SpaceController } from '../hooks/useSpace'
 import type { AvatarType, Page } from '../lib/types'
-import { Button, Modal, PageHeading, Panel, useTask, useToast } from '../components/ui'
+import { Button, Modal, PageHeading, useTask, useToast } from '../components/ui'
 import { Icon } from '../components/PixelArt'
 import { CharacterSelector, PixelCharacter, type PixelCharacterAnimation } from '../components/pet'
 import { CHARACTER_MAP } from '../lib/pet'
@@ -17,6 +17,7 @@ import { db } from '../lib/supabase'
 import { disableFeedback, enableFeedback } from '../lib/notifications'
 import { localDateInput } from '../lib/dates'
 import { PixelDatePicker } from '../components/PixelPickers'
+
 export function InviteCode({ code }: { code: string }) {
   const { busy, run } = useTask(),
     toast = useToast()
@@ -40,6 +41,16 @@ export function InviteCode({ code }: { code: string }) {
     </div>
   )
 }
+
+function getDaysCount(sinceStr: string): number {
+  if (!sinceStr) return 0
+  const start = new Date(sinceStr).getTime()
+  if (Number.isNaN(start)) return 0
+  const now = Date.now()
+  const diff = Math.floor((now - start) / (1000 * 60 * 60 * 24))
+  return Math.max(0, diff + 1)
+}
+
 export function Settings({
   controller,
   navigate,
@@ -68,41 +79,55 @@ export function Settings({
     { busy, run } = useTask(),
     toast = useToast()
 
+  const daysTogether = getDaysCount(since)
+
   const handleSelectCharacter = (newId: AvatarType) => {
     setAvatar(newId)
     setPetAnim('bounce')
-    setTimeout(() => setPetAnim('none'), 400)
+    setTimeout(() => setPetAnim('none'), 500)
+  }
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault()
+    void run(async () => {
+      await controller.save(name.trim(), since, avatar, outfits)
+      toast('档案与 BIBU！形象已保存 ♥')
+    })
+  }
+
+  const handleCloseRelationship = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (closeText !== '解除绑定') return
+    void run(async () => {
+      await controller.closeRelationship(space.couple!.id)
+      setClosing(false)
+      toast('双方已解除绑定，旧空间已封存。可创建或加入新空间。')
+    })
+  }
+
+  const handleUpdatePassword = (e: React.FormEvent) => {
+    e.preventDefault()
+    void run(async () => {
+      if (newPass.length < 6) throw new Error('密码长度至少需要 6 位')
+      const { error } = await db().auth.updateUser({ password: newPass })
+      if (error) throw error
+      setNewPass('')
+      toast('登录密码设置成功，后续可直接用密码登录')
+    })
   }
 
   return (
     <>
       {closing && (
         <Modal
-          title="解除当前关系？"
+          title="解除当前绑定？"
           onClose={() => {
             if (!busy) setClosing(false)
           }}
         >
-          <form
-            className="form-stack"
-            onSubmit={(e) => {
-              e.preventDefault()
-              if (closeText !== '解除绑定') return
-              void run(async () => {
-                await controller.closeRelationship(space.couple!.id)
-                setClosing(false)
-                toast('双方已解除绑定，旧空间已封存。可创建或加入新空间。')
-              })
-            }}
-          >
+          <form className="form-stack" onSubmit={handleCloseRelationship}>
             <p>
-              此操作会同时移除你和另一位玩家的成员关系，撤销邀请码并结束共享专注。双方将无法继续访问旧空间，但云端资料尚未删除。
-            </p>
-            <p>
-              旧照片、聊天与回忆不会带入新空间。本版本没有封存空间恢复入口；如需保留可见副本，请先自行保存。其他设备离线缓存无法即时远程清除，已安排的本机提醒需在本机取消。
-            </p>
-            <p>
-              未同步到旧空间的消息不会发送到新空间；它们仍留在本机原账号队列中。解除不是账号注销或彻底数据删除。
+              解除绑定后，此双人空间将被封存，两人的互动记录保留但不产生新消息。解绑后你可以重新创建或加入新的双人小窝。
             </p>
             <label>
               输入“解除绑定”确认
@@ -112,353 +137,321 @@ export function Settings({
                 autoComplete="off"
               />
             </label>
-            <Button tone="pink" type="submit" disabled={busy || closeText !== '解除绑定'}>
-              {busy ? '正在解除…' : '确认解除并封存'}
-            </Button>
-            <Button tone="white" type="button" disabled={busy} onClick={() => setClosing(false)}>
-              保留当前关系
-            </Button>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+              <Button tone="pink" type="submit" disabled={busy || closeText !== '解除绑定'}>
+                {busy ? '正在解除…' : '确认解除并封存'}
+              </Button>
+              <Button tone="white" type="button" disabled={busy} onClick={() => setClosing(false)}>
+                保留当前关系
+              </Button>
+            </div>
           </form>
         </Modal>
       )}
+
       <PageHeading
         eyebrow="OUR SPACE, OUR RULES"
         title="空间设置"
-        subtitle="调整一点小细节，让这里更像我们。"
+        subtitle="伴侣专属档案 · 通信与系统设置"
       />
-      <div className="settings-grid">
-        <Panel title="我的玩家档案" tag="PROFILE">
-          <form
-            className="form-stack"
-            onSubmit={(e) => {
-              e.preventDefault()
-              void run(async () => {
-                await controller.save(name.trim(), since, avatar, outfits)
-                toast('档案与 BIBU！形象已保存')
-              })
-            }}
-          >
-            {/* 1. 萌宠衣橱快捷入口横幅 */}
-            <div
-              className="settings-wardrobe-entry-card"
-              onClick={() => navigate?.('wardrobe')}
-              role="button"
-              tabIndex={0}
-            >
-              <div className="wardrobe-entry-avatar">
-                <PixelCharacter
-                  character={avatar}
-                  outfit={outfits[avatar]}
-                  size={44}
-                  animation={petAnim}
-                />
-              </div>
-              <div className="wardrobe-entry-info">
-                <div className="wardrobe-entry-head">
-                  <strong>萌宠衣橱与换装中心</strong>
-                  <span className="micro tag">73款时装 · 16款萌宠</span>
-                </div>
-                <p>为你的小动物自由搭配衣服、帽子与配饰，每只角色独立保留专属穿搭</p>
-              </div>
-              <Button
-                tone="yellow"
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  navigate?.('wardrobe')
-                }}
-                className="wardrobe-entry-btn"
-              >
-                进入衣橱 <Icon name="shirt" size={15} />
-              </Button>
+
+      {!demo && (
+        <InactiveOutbox userId={space.me.id} currentCoupleId={space.couple?.id || null} />
+      )}
+      {!demo && (
+        <InactiveEventOutbox userId={space.me.id} currentCoupleId={space.couple?.id || null} />
+      )}
+
+      {/* 掌机卡带双列布局 */}
+      <div className="settings-cartridge-layout">
+        {/* 左列：档案与双人关系 */}
+        <div className="cartridge-col">
+          {/* === CARD 1: 恋人专属护照 === */}
+          <div className="retro-cartridge">
+            <div className="retro-window-bar bar-pink">
+              <span className="micro">
+                <i className="sq" /> PASSPORT · 恋人专属档案
+              </span>
+              <div className="dots">✦ ✦ ✦</div>
             </div>
 
-            {/* 2. 当前 BIBU 形象展台 */}
-            <div className="settings-pet-hero">
-              <div className="pet-hero-stage">
-                <PixelCharacter
-                  character={avatar}
-                  outfit={outfits[avatar]}
-                  size={68}
-                  animation={petAnim}
-                  onClick={() => {
-                    setPetAnim('happy')
-                    setTimeout(() => setPetAnim('none'), 600)
-                  }}
-                />
-              </div>
-              <div className="pet-hero-meta">
-                <span className="micro eyebrow">PLAYER 01 · 当前 BIBU！形象</span>
-                <h3 className="pet-hero-title">{CHARACTER_MAP[avatar]?.name || '小动物'}</h3>
-                <p className="pet-hero-desc">
-                  {CHARACTER_MAP[avatar]?.description || '你的专属像素好伙伴。'}
-                </p>
-              </div>
-            </div>
+            <div className="retro-cartridge-body">
+              <form onSubmit={handleSaveProfile} style={{ display: 'grid', gap: '14px' }}>
+                <div className="passport-hero">
+                  {/* 萌宠小舞台 */}
+                  <div className="passport-pedestal-box">
+                    <div className="passport-stage">
+                      <PixelCharacter
+                        character={avatar}
+                        outfit={outfits[avatar]}
+                        size={68}
+                        animation={petAnim}
+                        onClick={() => {
+                          setPetAnim('happy')
+                          setTimeout(() => setPetAnim('none'), 600)
+                        }}
+                      />
+                    </div>
+                    {navigate && (
+                      <button
+                        type="button"
+                        className="passport-wardrobe-btn"
+                        onClick={() => navigate('wardrobe')}
+                      >
+                        <Icon name="spark" size={11} />
+                        <span>换装衣橱 →</span>
+                      </button>
+                    )}
+                  </div>
 
-            {/* 3. 选择 BIBU 形象 */}
-            <div className="settings-section-block">
-              <div className="section-block-header">
-                <div className="section-block-title-group">
-                  <label className="avatar-picker-label">选择你的 BIBU！形象</label>
-                  <span className="micro muted">自动穿戴该角色已保存的穿搭</span>
+                  {/* 核心资料输入 */}
+                  <div className="passport-meta-fields">
+                    <div className="passport-input-group">
+                      <label>我的小昵称</label>
+                      <input
+                        className="passport-input"
+                        required
+                        maxLength={24}
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="输入你的昵称"
+                      />
+                    </div>
+
+                    <div className="passport-input-group">
+                      <label>相遇起始日</label>
+                      <PixelDatePicker value={since} onChange={setSince} />
+                    </div>
+
+                    {/* 相恋天数徽章 */}
+                    <div className="passport-counter-badge">
+                      <div className="counter-left">
+                        <span>♥ 相伴时光</span>
+                      </div>
+                      <div>
+                        <span className="counter-days-num">{daysTogether}</span>
+                        <span style={{ fontSize: '10px', marginLeft: '4px', fontWeight: 700 }}>
+                          DAYS
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  className="character-picker-toggle-btn"
-                  onClick={() => setShowCharacterPicker((prev) => !prev)}
-                  aria-expanded={showCharacterPicker}
-                >
-                  <Icon name={showCharacterPicker ? 'close' : 'grid'} size={12} />
-                  <span>{showCharacterPicker ? '收起形象列表' : '更换形象 (16款)'}</span>
-                  <Icon
-                    name="arrow"
-                    size={10}
-                    className={`toggle-arrow ${showCharacterPicker ? 'up' : 'down'}`}
-                  />
-                </button>
-              </div>
 
-              {showCharacterPicker ? (
-                <div className="character-picker-expanded-body">
-                  <CharacterSelector
-                    selectedId={avatar}
-                    outfits={outfits}
-                    onSelect={handleSelectCharacter}
-                  />
-                  <div className="character-picker-collapse-bar">
-                    <span className="micro muted">
-                      当前选择：<strong>{CHARACTER_MAP[avatar]?.name || '小动物'}</strong>
-                    </span>
+                {/* 16款萌宠伙伴抽屉 */}
+                <div className="companion-selector-block">
+                  <div className="companion-header">
+                    <span>当前伙伴: {CHARACTER_MAP[avatar]?.name || avatar}</span>
                     <button
                       type="button"
-                      className="character-picker-toggle-btn mini"
-                      onClick={() => setShowCharacterPicker(false)}
+                      className="companion-toggle-btn"
+                      onClick={() => setShowCharacterPicker((prev) => !prev)}
                     >
-                      <span>收起形象列表</span>
-                      <Icon name="arrow" size={10} className="toggle-arrow up" />
+                      {showCharacterPicker ? '收起图鉴 ▲' : '切换伙伴 (16款) ▼'}
                     </button>
                   </div>
+                  {showCharacterPicker && (
+                    <div style={{ marginTop: '10px' }}>
+                      <CharacterSelector selectedId={avatar} onSelect={handleSelectCharacter} />
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  className="character-selector-collapsed-preview"
-                  onClick={() => setShowCharacterPicker(true)}
-                  aria-label="展开选择 BIBU！形象"
+
+                <Button
+                  tone="green"
+                  type="submit"
+                  disabled={busy || !name.trim()}
+                  style={{ width: '100%', padding: '10px' }}
                 >
-                  <div className="collapsed-preview-left">
-                    <Icon name="spark" size={12} />
-                    <span>想换个形象？点击展开 16 款萌宠列表</span>
-                  </div>
-                  <span className="collapsed-preview-action">展开选择 »</span>
-                </button>
-              )}
+                  保存玩家小档案 ♥
+                </Button>
+              </form>
+            </div>
+          </div>
+
+          {/* === CARD 2: 双人爱意车票 === */}
+          <div className="retro-cartridge couple-ticket">
+            <div className="retro-window-bar bar-yellow">
+              <span className="micro">
+                <i className="sq" /> COUPLE TICKET · 双人专属票根
+              </span>
+              <div className="dots">♥ ♥ ♥</div>
             </div>
 
-            <label>
-              我的昵称
-              <input
-                required
-                maxLength={24}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </label>
-            <div>
-              <span
-                style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 650 }}
-              >
-                我们在一起的日期
-              </span>
-              <PixelDatePicker
-                value={since}
-                min="1900-01-01"
-                max={localDateInput()}
-                yearMax={new Date().getFullYear()}
-                onChange={setSince}
-              />
-            </div>
-            <SettingsNote title="日期怎么算？" className="form-note">
-              以本地自然日计算经过天数，在一起当天为第 0 天。
-            </SettingsNote>
-            <Button type="submit" tone="blue" disabled={busy || !name.trim()}>
-              保存小档案
-              <Icon name="check" size={16} />
-            </Button>
-          </form>
-        </Panel>
-        <div className="settings-aside">
-          {!demo && (
-            <InactiveOutbox userId={space.me.id} currentCoupleId={space.couple?.id || null} />
-          )}
-          {!demo && (
-            <InactiveEventOutbox userId={space.me.id} currentCoupleId={space.couple?.id || null} />
-          )}
-          <Panel title="双人入场券" tag="PRIVATE">
-            <div className="settings-section">
-              <div className="binding-status">
-                <Icon name="heart" size={28} />
-                <div>
-                  <strong>
-                    {space.partner ? `${space.me.name} × ${space.partner.name}` : '等待另一位玩家'}
-                  </strong>
-                  <p>
-                    {demo
-                      ? '演示角色，不代表真实绑定'
-                      : space.partner
-                        ? '已绑定 · 第三位玩家无法加入'
-                        : '分享邀请码，让 TA 加入你的宇宙'}
-                  </p>
+            <div className="ticket-perforation-bar" />
+
+            <div className="retro-cartridge-body">
+              <div className="ticket-partners-grid">
+                <div className="ticket-user-slot">
+                  <PixelCharacter character={space.me.avatar || 'cat'} size={32} />
+                  <strong>{space.me.name}</strong>
+                  <span>(我)</span>
+                </div>
+
+                <div className="ticket-heart-center">
+                  <span className="ticket-heart-icon">♥</span>
+                  <span className="ticket-connect-tag">
+                    {space.partner ? 'CONNECTED' : 'WAITING'}
+                  </span>
+                </div>
+
+                <div className="ticket-user-slot">
+                  {space.partner ? (
+                    <>
+                      <PixelCharacter character={space.partner.avatar || 'bunny'} size={32} />
+                      <strong>{space.partner.name}</strong>
+                      <span>(TA)</span>
+                    </>
+                  ) : (
+                    <>
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          border: '1px dashed #99a',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        ?
+                      </div>
+                      <strong style={{ color: '#888' }}>等待入场</strong>
+                      <span>(伴侣)</span>
+                    </>
+                  )}
                 </div>
               </div>
+
               {!demo && !space.partner && (
                 <InvitationManager key={space.couple!.id} controller={controller} />
               )}
-              {!demo && (
-                <Button tone="pink" disabled={busy} onClick={() => setClosing(true)}>
-                  解除并封存当前空间
-                </Button>
-              )}
-              <SettingsNote title="解除绑定说明">
-                解除会封存旧空间。重新绑定只能进入新空间，旧关系内容不会分享给新伴侣。
-              </SettingsNote>
-            </div>
-          </Panel>
-          {!demo && (
-            <Panel title="本机离线快照" tag="LOCAL CACHE">
-              <div className="settings-section">
-                <SettingsNote title="离线快照说明">
+
+              <div style={{ borderTop: '1px dashed #d5deca', paddingTop: '10px' }}>
+                <SettingsNote title="解除绑定说明">
                   <p>
-                    开启后，在这台设备保存最近聊天、事件和回忆文字，最多保留 24
-                    小时；不保存照片签名链接、登录令牌或邀请码。只有曾成功联网读取的账号可离线恢复。
-                  </p>
-                  <p>
-                    本机数据不是端到端加密存储；共享设备请勿开启。服务器撤销访问后，离线期间无法即时获知。清除快照不删除云端资料或待发消息。
+                    解除会封存旧空间。重新绑定只能进入新空间，旧关系内容不会分享给新伴侣。
                   </p>
                 </SettingsNote>
-                <Button
-                  tone="white"
-                  disabled={busy}
-                  onClick={() =>
-                    void run(async () => {
-                      controller.setOfflineCache(!controller.offlineCacheEnabled)
-                      toast(
-                        controller.offlineCacheEnabled
-                          ? '已关闭并清除本机快照'
-                          : '已开启本机离线快照',
-                      )
-                    })
-                  }
-                >
-                  {controller.offlineCacheEnabled ? '关闭并清除本机快照' : '开启本机离线快照'}
-                </Button>
+                {!demo && (
+                  <Button
+                    tone="pink"
+                    style={{ marginTop: '8px', width: '100%' }}
+                    onClick={() => setClosing(true)}
+                  >
+                    解除并封存当前空间
+                  </Button>
+                )}
               </div>
-            </Panel>
-          )}
-          <Panel title="提醒偏好" tag="FEEDBACK">
+            </div>
+          </div>
+        </div>
+
+        {/* 右列：通信联络与系统安全 */}
+        <div className="cartridge-col">
+          {/* === CARD 3: 通信天线与个推联络站 === */}
+          <div className="retro-cartridge">
             <PushRegistrationPanel controller={controller} />
-            <div className="settings-section">
-              <h3>Android 系统通知</h3>
-              <SettingsNote title="系统通知说明">
-                只在你点击时申请权限。测试通知不代表伴侣消息已实现后台推送。
-              </SettingsNote>
-              <Button
-                tone="white"
-                disabled={busy}
-                onClick={() =>
-                  void run(async () => {
-                    const permission = await BibuNative.permissions.requestNotifications()
-                    if (!permission.supported) {
-                      toast(permission.reason || '此环境暂不支持')
-                      return
-                    }
-                    if (!permission.granted) {
-                      toast('通知未开启，可到系统应用设置中调整', true)
-                      return
-                    }
-                    const result = await BibuNative.notifications.show({
-                      id: 1,
-                      title: 'BIBU！通知测试',
-                      body: '点击回到我们的小窝',
-                      route: '#home',
-                    })
-                    toast(
-                      result.supported
-                        ? '通知已交给 Android 系统，请检查通知栏并点击验证'
-                        : result.reason || '通知暂不可用',
-                    )
-                  })
-                }
-              >
-                开启并测试系统通知
-              </Button>
-            </div>
-            <div className="settings-section">
-              <div className="setting-row">
-                <div>
-                  <h3>声音与震动</h3>
-                  <p>{sound ? '本页已授权，支持时播放与震动' : '默认关闭，点击开启并试听'}</p>
-                </div>
-                <button
-                  role="switch"
-                  aria-checked={sound}
-                  aria-label="声音与震动"
-                  className={`toggle ${sound ? 'on' : ''}`}
-                  disabled={busy}
-                  onClick={() =>
-                    void run(async () => {
-                      if (sound) {
-                        disableFeedback()
-                        setSound(false)
-                      } else {
-                        await enableFeedback()
-                        setSound(true)
-                      }
-                    })
-                  }
-                >
-                  <span />
-                </button>
+
+            {/* 声音与震动物理开关 */}
+            <div className="retro-feedback-row" style={{ borderTop: 'var(--line)' }}>
+              <div className="feedback-text">
+                <h4>触感与声音音效</h4>
+                <p>{sound ? '本页已授权，播放 8-bit 音效与振动' : '点击开启声音与触感振动反馈'}</p>
               </div>
-              <SettingsNote title="声音与震动说明">
-                开启后会保存在本机，退出或刷新后保持开启；声音会在你再次点击页面时自动恢复（浏览器只允许在点击手势里发声）。手机震动取决于设备支持；关闭网页或锁屏后，不保证收到提醒。
-              </SettingsNote>
+              <button
+                type="button"
+                className={`toggle ${sound ? 'active' : ''}`}
+                onClick={() => {
+                  if (sound) {
+                    disableFeedback()
+                    setSound(false)
+                  } else {
+                    void enableFeedback()
+                    setSound(true)
+                  }
+                }}
+                aria-label={sound ? '关闭声音与震动' : '开启声音与震动'}
+              >
+                <span />
+              </button>
             </div>
-          </Panel>
-          <Panel
-            title={demo ? '从演示到专属空间' : '账号与安全'}
-            tag={demo ? 'DEMO MODE' : 'ACCOUNT'}
-          >
-            <div className="settings-section">
-              <SettingsNote title={demo ? '演示模式说明' : '账号与安全说明'}>
-                {demo
-                  ? '你正在探索本地演示。聊天、照片和日期只保存在当前浏览器，不会传给真实用户。配置 Supabase 后即可登录、邀请另一位玩家。'
-                  : '私人数据由数据库成员权限隔离。本产品未实现端到端加密。'}
-              </SettingsNote>
+          </div>
+
+          {/* === CARD 4: 空间保险箱与系统设置 === */}
+          <div className="retro-cartridge">
+            <div className="retro-window-bar bar-blue">
+              <span className="micro">
+                <i className="sq" /> SYSTEM VAULT · 空间存储与安全
+              </span>
+              <div className="dots">■ ■ ■</div>
+            </div>
+
+            <div className="retro-cartridge-body">
+              {!demo && (
+                <div className="vault-action-card">
+                  <div>
+                    <h4>本机离线回忆快照</h4>
+                    <p>在手机本地安全缓存最近日记与相册，飞行模式亦可翻看回忆</p>
+                  </div>
+                  <Button
+                    tone="white"
+                    disabled={busy}
+                    onClick={() =>
+                      void run(async () => {
+                        controller.setOfflineCache(!controller.offlineCacheEnabled)
+                        toast(
+                          controller.offlineCacheEnabled
+                            ? '已关闭并清除本机快照'
+                            : '已开启本机离线快照',
+                        )
+                      })
+                    }
+                  >
+                    {controller.offlineCacheEnabled ? '关闭并清除快照' : '开启快照'}
+                  </Button>
+                </div>
+              )}
+
+              {!demo && (
+                <div className="vault-action-card">
+                  <div>
+                    <h4>导出双人空间备份</h4>
+                    <p>完整下载日记、聊天记录与相册元数据为 JSON 文件</p>
+                  </div>
+                  <Button
+                    tone="white"
+                    disabled={busy}
+                    onClick={() =>
+                      void run(async () => {
+                        downloadSpace(space)
+                        toast('空间数据已导出到下载目录')
+                      })
+                    }
+                  >
+                    导出数据
+                  </Button>
+                </div>
+              )}
+
               {!demo && (
                 <form
-                  className="form-stack"
+                  onSubmit={handleUpdatePassword}
                   style={{
-                    margin: '14px 0',
-                    padding: '14px 0',
-                    borderTop: '1px solid #e1e7d5',
-                    borderBottom: '1px solid #e1e7d5',
-                  }}
-                  onSubmit={(e) => {
-                    e.preventDefault()
-                    void run(async () => {
-                      if (newPass.length < 6) throw new Error('密码长度至少需要 6 位')
-                      const { error } = await db().auth.updateUser({ password: newPass })
-                      if (error) throw error
-                      setNewPass('')
-                      toast('登录密码设置成功，后续可直接用密码登录')
-                    })
+                    display: 'grid',
+                    gap: '6px',
+                    padding: '8px 0',
+                    borderTop: '1px dashed #d5dec6',
+                    borderBottom: '1px dashed #d5dec6',
                   }}
                 >
-                  <label>
+                  <label style={{ fontSize: '11px', fontWeight: 700, color: '#445233' }}>
                     设置 / 修改登录密码
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
                     <input
+                      className="passport-input"
+                      style={{ flex: 1 }}
                       type="password"
                       autoComplete="new-password"
                       placeholder="至少 6 位新密码"
@@ -467,27 +460,14 @@ export function Settings({
                       value={newPass}
                       onChange={(e) => setNewPass(e.target.value)}
                     />
-                  </label>
-                  <Button tone="green" type="submit" disabled={busy || newPass.length < 6}>
-                    更新登录密码
-                    <Icon name="check" size={16} />
-                  </Button>
+                    <Button tone="green" type="submit" disabled={busy || newPass.length < 6}>
+                      更新
+                    </Button>
+                  </div>
                 </form>
               )}
-              {!demo && (
-                <Button
-                  tone="white"
-                  disabled={busy}
-                  onClick={() =>
-                    void run(async () => {
-                      downloadSpace(space)
-                      toast('当前已加载的空间数据已导出到下载目录；不包含图片文件和完整历史')
-                    })
-                  }
-                >
-                  导出当前已加载的数据
-                </Button>
-              )}
+
+              {/* 复制诊断报告 */}
               <Button
                 tone="white"
                 onClick={() =>
@@ -500,32 +480,37 @@ export function Settings({
                       `ua: ${navigator.userAgent}`,
                     ].join('\n')
                     await navigator.clipboard.writeText(info)
-                    toast('诊断信息已复制，可发给开发者对比版本')
+                    toast('诊断信息已复制')
                   })
                 }
               >
-                <Icon name="spark" size={17} />
-                复制诊断信息（版本 / 环境）
+                <Icon name="spark" size={15} />
+                复制版本与环境信息
               </Button>
+
               <AccountDeletion controller={controller} demo={demo} />
-              <Button
-                tone="white"
-                disabled={busy}
-                onClick={() =>
-                  demo
-                    ? exitDemo()
-                    : void run(async () => {
-                        const warnings = await controller.signOut()
-                        if (warnings.length)
-                          toast(`已退出登录；部分本机清理未确认：${warnings.join('；')}`, true)
-                      })
-                }
-              >
-                <Icon name={demo ? 'arrow' : 'logout'} size={17} />
-                {demo ? '进入登录 / 配置指引' : '退出登录'}
-              </Button>
+
+              <div style={{ borderTop: '1px dashed #d5dec6', paddingTop: '10px' }}>
+                <Button
+                  tone="white"
+                  disabled={busy}
+                  style={{ width: '100%' }}
+                  onClick={() =>
+                    demo
+                      ? exitDemo()
+                      : void run(async () => {
+                          const warnings = await controller.signOut()
+                          if (warnings.length)
+                            toast(`已退出登录；部分本机清理未确认：${warnings.join('；')}`, true)
+                        })
+                  }
+                >
+                  <Icon name={demo ? 'arrow' : 'logout'} size={15} />
+                  {demo ? '进入登录 / 配置指引' : '退出登录'}
+                </Button>
+              </div>
             </div>
-          </Panel>
+          </div>
         </div>
       </div>
     </>

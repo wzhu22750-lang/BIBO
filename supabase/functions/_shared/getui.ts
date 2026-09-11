@@ -81,9 +81,13 @@ export async function sendGeTuiTransmission(
     body: JSON.stringify({
       request_id: crypto.randomUUID(),
       cid,
-      settings: { ttl: 3600000 },
-      push_message: { transmission: { content: JSON.stringify(payload) } },
-      push_channel: { strategy: { default: 1 } },
+      settings: {
+        ttl: 3600000,
+        strategy: { default: 1 },
+      },
+      push_message: {
+        transmission: JSON.stringify(payload),
+      },
     }),
   })
   const text = await res.text()

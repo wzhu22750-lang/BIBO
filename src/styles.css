@@ -1989,12 +1989,481 @@ img {
   margin-top: 9px;
   color: #697151;
 }
-.settings-grid {
+/* === BIBU！掌机复古像素设置卡带系统 (Game Boy Studio UI) === */
+
+.settings-cartridge-stream {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
-  gap: 28px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 22px;
   align-items: start;
 }
+@media (max-width: 900px) {
+  .settings-cartridge-stream {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+}
+
+.cartridge-col {
+  display: grid;
+  gap: 22px;
+  min-width: 0;
+}
+
+/* 实体游戏卡带通用外壳 */
+.retro-cartridge {
+  border: var(--line);
+  background: #fffdf7;
+  box-shadow: var(--shadow);
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.retro-window-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  height: 34px;
+  border-bottom: var(--line);
+  font-weight: 700;
+  font-size: 11px;
+}
+.retro-window-bar .micro {
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--pixel), monospace;
+}
+.retro-window-bar i.sq {
+  width: 7px;
+  height: 7px;
+  background: var(--ink);
+  display: inline-block;
+}
+.retro-window-bar .dots {
+  letter-spacing: 3px;
+  font-size: 14px;
+}
+
+.retro-window-bar.bar-pink { background: var(--pink); }
+.retro-window-bar.bar-yellow { background: var(--yellow); }
+.retro-window-bar.bar-green { background: var(--green); }
+.retro-window-bar.bar-blue { background: var(--blue); }
+
+.retro-cartridge-body {
+  padding: 16px 18px;
+  display: grid;
+  gap: 16px;
+}
+
+/* === CARD 1: 恋人护照 PASSPORT === */
+.passport-hero {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+}
+@media (max-width: 480px) {
+  .passport-hero {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+}
+
+.passport-pedestal-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.passport-stage {
+  width: 106px;
+  height: 106px;
+  border: var(--line);
+  background: repeating-conic-gradient(#e7eed8 0% 25%, #dbe5cb 0% 50%) 50% / 16px 16px;
+  box-shadow: 2px 2px 0 var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.passport-wardrobe-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 5px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  border: var(--line);
+  background: #fdf2c2;
+  color: #554400;
+  box-shadow: 1px 1px 0 var(--ink);
+  cursor: pointer;
+  text-decoration: none;
+  width: 100%;
+}
+.passport-wardrobe-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: none;
+}
+
+.passport-meta-fields {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+.passport-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.passport-input-group label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #566442;
+}
+.passport-input {
+  border: var(--line);
+  background: #fff;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  outline: none;
+  box-shadow: inset 1px 1px 0 rgba(0,0,0,0.1);
+}
+.passport-input:focus {
+  background: #fffae6;
+  border-color: #000;
+}
+
+/* 相伴天数勋章 */
+.passport-counter-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #fff0f7;
+  border: var(--line);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+.counter-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #b81e6b;
+}
+.counter-days-num {
+  font-size: 16px;
+  font-weight: 900;
+  font-family: var(--pixel), monospace;
+  color: #dc2626;
+}
+
+/* 萌宠伙伴快速选择条 */
+.companion-selector-block {
+  border-top: 1px dashed #ced9be;
+  padding-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+.companion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #435032;
+}
+.companion-toggle-btn {
+  background: #eef3e4;
+  border: 1px solid #9db084;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* === CARD 2: 双人专属爱意车票 COUPLE TICKET === */
+.couple-ticket {
+  background: #fffef2;
+  border: var(--line);
+  box-shadow: var(--shadow);
+}
+.ticket-perforation-bar {
+  height: 6px;
+  background: repeating-linear-gradient(90deg, #20211d 0, #20211d 6px, transparent 6px, transparent 12px);
+  opacity: 0.35;
+  margin: 0 12px;
+}
+.ticket-partners-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  align-items: center;
+  background: #fbfbf4;
+  border: 1px solid #dce4ce;
+  padding: 14px;
+}
+.ticket-user-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+  overflow: hidden;
+}
+.ticket-user-slot strong {
+  font-size: 13px;
+  color: var(--ink);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ticket-user-slot span {
+  font-size: 9px;
+  color: #7b886c;
+}
+.ticket-heart-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.ticket-heart-icon {
+  color: #ec4899;
+  animation: pulse-heart 1.6s infinite ease-in-out;
+}
+@keyframes pulse-heart {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+}
+.ticket-connect-tag {
+  font-size: 8px;
+  font-weight: 800;
+  padding: 2px 5px;
+  background: #fdf2c2;
+  border: 1px solid var(--ink);
+  color: #554400;
+}
+
+.ticket-invite-box {
+  display: grid;
+  gap: 6px;
+  background: #182216;
+  border: var(--line);
+  padding: 10px 12px;
+  color: #a7f3d0;
+}
+.invite-lcd-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 9px;
+  font-family: var(--pixel), monospace;
+  color: #6ee7b7;
+}
+.invite-lcd-code {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.invite-lcd-code code {
+  font-family: var(--pixel), monospace;
+  font-size: 15px;
+  letter-spacing: 2px;
+  color: #fef08a;
+}
+.invite-copy-pill {
+  padding: 4px 8px;
+  background: var(--yellow);
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 700;
+  border: 1px solid var(--ink);
+  cursor: pointer;
+}
+
+/* === CARD 3: 通信卫星与个推联络站 LINK STATION === */
+.link-station-card {
+  border: var(--line);
+  background: #f9fbf4;
+  box-shadow: var(--shadow);
+}
+
+/* 掌机 CRT/LCD 液晶监控屏 */
+.crt-monitor-screen {
+  background: #151e13;
+  border: var(--line);
+  padding: 12px 14px;
+  box-shadow: inset 2px 2px 6px rgba(0,0,0,0.7);
+  display: grid;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+}
+.crt-monitor-screen::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 1px, transparent 2px);
+  pointer-events: none;
+}
+.crt-header-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-family: var(--pixel), monospace;
+}
+.crt-status-online {
+  color: #4ade80;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+}
+.crt-status-offline {
+  color: #fb923c;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+}
+.crt-blink-led {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: #4ade80;
+  box-shadow: 0 0 6px #4ade80;
+  animation: crt-led-flash 1s infinite steps(2);
+}
+@keyframes crt-led-flash {
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.crt-data-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: monospace;
+  font-size: 11px;
+  color: #93c5fd;
+  overflow: hidden;
+}
+.crt-cid-text {
+  color: #fde047;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.crt-copy-btn {
+  background: #374151;
+  color: #e5e7eb;
+  border: 1px solid #4b5563;
+  padding: 2px 6px;
+  font-size: 9px;
+  cursor: pointer;
+}
+.crt-meta-line {
+  font-size: 9.5px;
+  color: #9ca3af;
+  font-family: monospace;
+}
+
+/* 掌机街机风格诊断按键组 */
+.arcade-buttons-deck {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+@media (max-width: 420px) {
+  .arcade-buttons-deck {
+    grid-template-columns: 1fr;
+  }
+}
+.arcade-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: var(--line);
+  font-weight: 700;
+  font-size: 11px;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 var(--ink);
+  transition: all 0.08s ease;
+  user-select: none;
+}
+.arcade-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+.arcade-btn.btn-green { background: #86efac; color: #064e3b; }
+.arcade-btn.btn-yellow { background: #fef08a; color: #713f12; }
+.arcade-btn.btn-pink { background: #fbcfe8; color: #831843; }
+.arcade-btn.btn-white { background: #f3f4f6; color: #1f2937; }
+
+/* 声音与震动实体开关行 */
+.retro-feedback-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #f3f6eb;
+  border: 1px solid #d4dec3;
+}
+.feedback-text h4 {
+  font-size: 12px;
+  font-weight: 700;
+  margin: 0;
+  color: #2b3520;
+}
+.feedback-text p {
+  font-size: 10px;
+  color: #69775a;
+  margin: 2px 0 0 0;
+}
+
+/* === CARD 4: 系统保险箱与空间管理 VAULT === */
+.vault-action-card {
+  border: 1px solid #dce4ce;
+  background: #fbfcf8;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.vault-action-card h4 {
+  font-size: 12px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--ink);
+}
+.vault-action-card p {
+  font-size: 10px;
+  color: #6b775e;
+  margin: 2px 0 0 0;
+}
+
+
 .settings-avatar {
   display: flex;
   align-items: center;
@@ -3926,14 +4395,10 @@ img {
   margin-top: auto;
 }
 
-.settings-aside {
-  display: grid;
-  gap: 23px;
-}
 .settings-section {
-  padding: 21px;
+  padding: 16px 18px;
   display: grid;
-  gap: 17px;
+  gap: 14px;
 }
 .settings-section > p {
   font-size: 12px;
