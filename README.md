@@ -1,109 +1,128 @@
-# BIBU！· 哔卟哔卟
+# 💌 BIBU！哔卟哔卟
 
-> 两个人，一整个小宇宙。双人专属的像素游戏空间。
+> 两个人，一整个小宇宙 ✨
 
-BIBU！是一款专为情侣打造的私人像素互动应用。包含即时悄悄话、恋爱里程碑、私密照片回忆墙、专注陪伴、萌宠衣橱定制以及随时随地双向发射的恋爱情绪提醒。
+真的会有人为了谈恋爱，自己写一个 App 吗？
+……会，就是我。而且它现在是我俩每天都会打开的东西 🥹
 
----
-
-## 一、技术栈
-
-- **前端框架**：React 19 + TypeScript + Vite
-- **像素视觉与样式**：CSS Custom Properties + 全矢量自研 SVG 资产 + Pixelarticons + Press Start 2P 字体
-- **后端与数据库**：Supabase（PostgreSQL + Row Level Security + Storage + Realtime + Deno Edge Functions）
-- **移动端容器与原生桥**：Capacitor 8 + Kotlin 原生能力层（Android Notifications, AlarmManager, UsageStats）
-- **测试与质量工具**：Vitest + PGlite 本地数据库测试 + Prettier
+事情是这样的：市面上的「情侣 App」我下过一圈，广告、会员、情侣广场、动不动催你拉好友进来。
+我只想要一个**只有两个人、没有第三个人能看到的角落**，于是它有了自己的名字——**BIBU！**（哔卟哔卟）
+一个高饱和像素风、粗黑描边、点一下会有「咔哒」手感的复古游戏小窝 🎮
 
 ---
 
-## 二、快速运行
+## 🕹️ 我们俩的一天，长这样
 
-### 1. 安装与启动
+- **早上想 TA 了就戳一下** —— 屏幕中央那颗像素心心，长按会像小扇面一样展开 6 种情绪：哔卟哔卟、想你、抱一下、快来、晚安、我回来啦。
+  松手就发射。对方手机/网页会「哔卟」一声，配着专属像素小动画 + 震动 + 音效（自己合成的小方波，不是随便找的音效文件 🔊）
+- **一起走过多少天，它记得比我们都清楚** —— 恋爱天数按自然日算，开始那天是第 0 天，2 月 29 日也不会算错 🗓️
+  纪念日、倒计时都收在一个「值得期待」里，配了 **100 款**手绘级像素场景图标（可搜索可分类），每次翻到一个小图标都会「啊，是那天」🌊🍰🚂
+- **悄悄话是只给我们俩的** —— 中文输入法不打断、支持翻很久以前的消息、草稿自动留、没网也能先写进待发队列，联网自己发出去 💬
+- **照片墙是私密的** —— 照片存在私有存储桶里，链接是限时 1 小时的；打开过的照片会留在本机缓存里，地铁里没信号也能翻（本地压缩到 1280px，不占空间）📸
+  每张回忆还能写上「发生日期」「那天的心情」，甚至关联到某个纪念日或某句悄悄话——点一下就能跳过去 🔗
+- **想一起变好的时候** —— 各自开专注计时，互相看得到对方在努力；Android 上还真的读得到今天屏幕用了多久（**只在本机读，不上传**），该休息了会提醒你 ⏳
+- **换装可以玩一下午** —— 27 款复古像素小动物、60+ 件衣服帽子配饰（外加 10 套整套搭配），有的还会互相打架（兼容矩阵会告诉你哪顶帽子不适合哪只小动物 👒）
+  喜欢的搭配可以「部署」成头像
+- **每天一张每日任务** —— 两个人各自完成，一起攒连续天数 🔥
 
-需要 Node.js 22.12 或更高版本：
+---
+
+## 🎨 它有多「像素」
+
+- 全站不用圆角卡片、不用毛玻璃、不用渐变——只有 2px 黑描边、硬边投影和「按下去会往右下角位移 2px」的物理手感
+- 品牌字体 `Press Start 2P`，中文走系统字保证长文可读
+- **所有图标都是矢量 SVG**，一个 emoji 都没有，连 `♥`、`→` 都是画的 🖌️
+- 主色是那种很吵的黄 `#fff238`，配奶油白底纸和水绿/粉红点缀
+
+---
+
+## 🧱 技术宅的心血（想抄作业的看这里）
+
+| 你在乎的 | 它是什么                                                                                    |
+| -------- | ------------------------------------------------------------------------------------------- |
+| 前端     | React 19 + TypeScript + Vite 8                                                              |
+| 后端     | Supabase（PostgreSQL + RLS + Storage + Realtime + Deno Edge Functions）                     |
+| 手机端   | Capacitor 8 + 自写 Kotlin 原生插件（通知 / AlarmManager 提醒 / UsageStats / 深链接 / 震动） |
+| 离线     | IndexedDB 图片 LRU 缓存、消息/事件/照片三套待发队列、24h 离线快照                           |
+| 质量     | Vitest + PGlite 跑真实 PostgreSQL 的 RLS/RPC 测试（400+ 用例）                              |
+
+几个我比较较真的地方：
+
+- **写操作全部「意图先落盘」**：没网也敢点，联网后用固定 UUID 幂等重试，服务端回执逐字段核对过才删队列
+- **权限是真的关死的**：每张表都开 RLS，浏览器端只有公开密钥，业务表连 INSERT 权限都不给，全走 RPC
+- **照片走限时签名链接**，不对外公开；删除前还会校验「这张是不是你传的」
+- **APK 走热更新**：`server.url` 指向线上站点，改网页 → 推 main → APK 打开就是新版，不用重新打包 🚀
+
+---
+
+## 🚀 想自己搭一个？
+
+需要 Node.js 22.12 或更高。
 
 ```bash
 npm install
 npm run dev
 ```
 
-启动后访问终端输出的本地地址（默认 `http://localhost:5173`）。
+打开终端里那个地址（默认 `http://localhost:5173`）就能玩：
 
-### 2. 开箱即用模式
+- **开箱即用**：不配任何环境变量时是本地演示模式，数据留在浏览器里
+- **默认共享库**：App 内置了一个公开的 Supabase 项目凭据，不自己搭后端也能体验双人登录与同步
 
-- **本地演示 (Demo)**：无环境变量时自动以本地演示模式运行，数据保存在浏览器 IndexedDB 与 LocalStorage 中，可自由体验全部功能。
-- **默认共享数据库**：应用内置了默认共享的 Supabase 公开凭据，无需自行搭建后端即可体验双人魔法链接登录与同步。
-
----
-
-## 三、基础配置
-
-如果需要接入你自己的 Supabase 项目：
-
-1. 复制环境文件模板：
-   ```bash
-   cp .env.example .env.local
-   ```
-2. 在 `.env.local` 填入你的项目凭据（仅限公开前端密钥，绝不可放入 `service_role` 密钥）：
-   ```dotenv
-   VITE_SUPABASE_URL=https://your-project.supabase.co
-   VITE_SUPABASE_PUBLISHABLE_KEY=your-public-anon-key
-   ```
-3. 在 Supabase 后台 **Authentication → URL Configuration** 配置以下项：
-   - **Site URL**：`https://你的域名`
-   - **Redirect URLs**：
-     - `http://localhost:5173`（本地开发）
-     - `https://你的域名`（Web 生产站）
-     - `love.bibu.space://`（Android 原生深链接）
-
----
-
-## 四、Web 部署 (Vercel)
-
-1. 将仓库推送到你的 GitHub，并在 Vercel 导入该工程。
-2. 构建预设选择 **Vite**：
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
-3. 在 Vercel 环境变量中配置 `VITE_SUPABASE_URL` 与 `VITE_SUPABASE_PUBLISHABLE_KEY`。
-4. 部署后将生成的正式 HTTPS 域名加入 Supabase 的 Redirect URLs。
-
----
-
-## 五、Android 构建
-
-本项目内置完整的 Capacitor Android 工程：
+想接**自己的** Supabase 项目：
 
 ```bash
-# 1. 编译前端产物并同步到 Android 资源目录
-npm run android:sync
-
-# 2. 编译生成 Debug APK
-npm run android:build
-
-# 3. 检查 Release 发布前准备度
-npm run android:release:check
-
-# 4. 构建签名 Release APK（需要配置签名密钥环境变量）
-npm run android:release:build
+cp .env.example .env.local
 ```
 
-编译产物位于 `android/app/build/outputs/apk/`。
+```dotenv
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your-public-anon-key
+```
+
+只填公开前端密钥，**绝对不要**把 `service_role` 密钥放进前端。
+然后去 Supabase 后台 **Authentication → URL Configuration** 配置：
+
+- **Site URL**：`https://你的域名`
+- **Redirect URLs**：`http://localhost:5173`、`https://你的域名`、`love.bibu.space://`（Android 深链接）
+
+Web 部署（Vercel）：构建预设选 **Vite**，Build Command `npm run build`，Output Directory `dist`，环境变量填上面两个。
+
+Android：
+
+```bash
+npm run android:sync          # 编译前端并同步到 Android 工程
+npm run android:build         # 出 Debug APK
+npm run android:release:check # 发布前门禁检查
+npm run android:release:build # 签名 Release APK
+```
+
+产物在 `android/app/build/outputs/apk/`。
 
 ---
 
-## 六、当前重要限制与边界
+## ⚠️ 说句实话（重要）
 
-1. **消息送达非绝对保证**：在网页完全关闭或手机强制休眠状态下，推送依赖系统通知通道与网络通道；请勿将应用用于紧急联络。
-2. **私密空间与权限**：每个账号仅能归属于一个空间，每个空间上限严格为 2 人。所有数据均受 RLS 隔离保护。
-3. **设备隐私机制**：屏幕使用时间与专注时长仅在 Android 本机明确授权后在设备内部读取，不向云端上传具体的应用使用详情。
-4. **端到端加密说明**：当前架构属于基于数据库角色的访问权限隔离（RLS），并非端到端加密（E2EE）。
+1. **消息不是绝对送达**：网页完全关掉、手机深度休眠时，推送依赖系统通道和网络，别拿它当紧急联络方式
+2. **每个账号只能属于一个空间，每个空间严格 2 人**，所有数据靠 RLS 隔离
+3. **屏幕使用时间只在本机读**，具体用了哪些 App 不会上传云端
+4. **不是端到端加密**：现在是基于数据库角色的权限隔离（RLS），别拿它存证件照 💥
 
 ---
 
-## 七、开发者文档与状态索引
+## 📚 文档索引
 
-- 详细本地架构、命令与分支开发指南：请查阅 [DEVELOPMENT.md](file:///DEVELOPMENT.md)
-- 数据库表结构、RLS 权限与生命周期设计：请查阅 [DATABASE.md](file:///DATABASE.md)
-- 视觉设计语言、色彩 Token 与组件规范：请查阅 [DESIGN_SYSTEM.md](file:///DESIGN_SYSTEM.md)
-- 核心测试套件与发版验收清单：请查阅 [VERIFICATION.md](file:///VERIFICATION.md)
-- 当前项目完成度、已知问题与发布阻塞项：请查阅 [CURRENT_STATUS.md](file:///CURRENT_STATUS.md)
+- 本地架构、命令与分支开发指南 → [DEVELOPMENT.md](DEVELOPMENT.md)
+- 表结构、RLS 权限与生命周期设计 → [DATABASE.md](DATABASE.md)
+- 视觉语言、色彩 Token 与组件规范 → [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)
+- 测试套件与发版验收清单 → [VERIFICATION.md](VERIFICATION.md)
+- 完成度、已知问题与发布阻塞项 → [CURRENT_STATUS.md](CURRENT_STATUS.md)
+
+---
+
+写它花的时间比谈恋爱还多（不是），但每次看到那颗心心被点亮，都觉得值 💗
+有想抄作业的、想问细节的，评论区/Issue 见 👋
+
+---
+
+#情侣App #独立开发 #像素风 #程序员日常 #React #Supabase #Capacitor #自己动手丰衣足食 #恋爱日常 #SideProject
