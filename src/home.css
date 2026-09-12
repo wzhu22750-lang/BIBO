@@ -113,6 +113,50 @@
   min-width: 200px;
   max-width: 100%;
 }
+.memory-order-toggle {
+  display: inline-flex;
+  flex: none;
+  border: var(--line, 2px solid #20211d);
+  background: var(--paper, #fffdfa);
+  box-shadow: 2px 2px 0 var(--ink, #20211d);
+}
+.memory-order-toggle > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 30px;
+  padding: 3px 9px;
+  border: 0;
+  background: transparent;
+  color: var(--ink, #20211d);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.memory-order-toggle > button + button {
+  border-left: var(--line, 2px solid #20211d);
+}
+.memory-order-toggle > button.selected {
+  background: var(--yellow, #fff066);
+}
+.memory-order-toggle > button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.memory-order-toggle .toggle-arrow {
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+.memory-order-toggle .toggle-arrow.down {
+  transform: rotate(90deg);
+}
+.memory-order-toggle .toggle-arrow.up {
+  transform: rotate(-90deg);
+}
 .memory-story,
 .memory-link {
   white-space: pre-wrap;

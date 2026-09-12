@@ -74,6 +74,7 @@ beforeAll(async () => {
   await pg.exec(
     readFileSync('supabase/migrations/202609100001_photo_icon_and_upload_limit.sql', 'utf8'),
   )
+  await pg.exec(readFileSync('supabase/migrations/202609100003_photo_history_order.sql', 'utf8'))
   legacyAfter = (await pg.query<Record<string, unknown>>('select * from public.photos')).rows[0]
   legacyEvent = (await pg.query<Record<string, unknown>>('select * from public.events')).rows[0]
   await pg.exec(
@@ -505,22 +506,43 @@ describe.sequential('private two-player database boundary', () => {
         ],
       )
     await asUser(A)
-    const fetch = async (before: string | null) =>
+    // 游标为 (回忆日期, 上传时间, id)：未填 occurred_on 时回落为上传日期。
+    const fetch = async (before: { id: string; created_at: string } | null, asc = false) =>
       (
-        await pg.query<{ id: string; created_at: string }>(
-          'select * from public.photo_history($1,$2,$3,$4)',
-          [couple, before ? at : null, before, event],
+        await pg.query<{ id: string; created_at: string; occurred_on: string | null }>(
+          'select * from public.photo_history($1,$2,$3,$4,$5,$6)',
+          [
+            couple,
+            before ? at.slice(0, 10) : null,
+            before ? before.created_at : null,
+            before ? before.id : null,
+            event,
+            asc,
+          ],
         )
       ).rows
     const first = await fetch(null)
     expect(first).toHaveLength(31)
-    const second = await fetch(first[29].id)
+    const second = await fetch(first[29])
     expect(second).toHaveLength(31)
-    const third = await fetch(second[29].id)
+    const third = await fetch(second[29])
     expect(third).toHaveLength(5)
     expect(
       new Set([...first.slice(0, 30), ...second.slice(0, 30), ...third].map((p) => p.id)).size,
     ).toBe(65)
+    // 正序：从最旧一张开始，游标向更晚的方向翻页，两页不重叠。
+    const ascFirst = await fetch(null, true)
+    const ascSecond = await fetch(ascFirst[29], true)
+    const ascThird = await fetch(ascSecond[29], true)
+    expect(ascFirst).toHaveLength(31)
+    expect(ascSecond).toHaveLength(31)
+    expect(ascThird).toHaveLength(5)
+    expect(
+      new Set([...ascFirst.slice(0, 30), ...ascSecond.slice(0, 30), ...ascThird].map((p) => p.id))
+        .size,
+    ).toBe(65)
+    expect(ascFirst[0].id).toBe('60000000-0000-0000-0000-000000000001')
+    expect(first[0].id).toBe('60000000-0000-0000-0000-000000000065')
     await asUser(C)
     expect(await fetch(null)).toEqual([])
     await pg.exec('reset role; set role anon')

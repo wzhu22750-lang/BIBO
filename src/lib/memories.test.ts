@@ -25,6 +25,8 @@ describe('memory metadata and date provenance', () => {
     photos[0].occurred_on = '2000-01-01'
     const original = [...photos]
     expect(sortedMemories(photos).at(-1)?.id).toBe(photos[0].id)
+    expect(sortedMemories(photos, 'asc')[0]?.id).toBe(photos[0].id)
+    expect(sortedMemories(photos, 'asc')).toEqual(sortedMemories(photos).reverse())
     expect(photos).toEqual(original)
   })
 })

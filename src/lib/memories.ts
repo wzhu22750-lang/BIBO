@@ -34,13 +34,17 @@ export function memoryInput(value: Partial<MemoryInput> = {}): MemoryInput {
 export function memoryDateLabel(photo: Photo) {
   return photo.occurred_on ? photo.occurred_on.replaceAll('-', '.') : null
 }
-export function sortedMemories(photos: Photo[]) {
-  return [...photos].sort(
+// 回忆时间：优先发生日期，缺失时回落到上传日期（UTC），与 photo_history RPC 保持一致。
+export type MemoryOrder = 'desc' | 'asc'
+export function memoryDateOf(photo: Pick<Photo, 'occurred_on' | 'created_at'>) {
+  return photo.occurred_on || photo.created_at.slice(0, 10)
+}
+export function sortedMemories(photos: Photo[], order: MemoryOrder = 'desc') {
+  const ordered = [...photos].sort(
     (a, b) =>
-      (b.occurred_on || b.created_at.slice(0, 10)).localeCompare(
-        a.occurred_on || a.created_at.slice(0, 10),
-      ) ||
+      memoryDateOf(b).localeCompare(memoryDateOf(a)) ||
       b.created_at.localeCompare(a.created_at) ||
       b.id.localeCompare(a.id),
   )
+  return order === 'asc' ? ordered.reverse() : ordered
 }

@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
 import { loadPhotoPage } from '../lib/api'
 import { errorText } from '../lib/supabase'
-import type { Photo } from '../lib/types'
+import { photoCursor, PhotoHistoryUnsupportedError } from '../lib/photoHistory'
 import type { PhotoCursor, PhotoPage } from '../lib/photoHistory'
+import type { MemoryOrder } from '../lib/memories'
+import type { Photo } from '../lib/types'
 export function usePhotoPages(
   coupleId: string,
   eventId: string | null,
   enabled: boolean,
+  order: MemoryOrder = 'desc',
   fetchPage = loadPhotoPage,
 ) {
-  const scope = `${coupleId}:${eventId || ''}`
+  const scope = `${coupleId}:${eventId || ''}:${order}`
   const [navigation, setNavigation] = useState<{ scope: string; cursors: (PhotoCursor | null)[] }>({
     scope,
     cursors: [null],
@@ -23,7 +26,8 @@ export function usePhotoPages(
     page: PhotoPage
     error: string
     busy: boolean
-  }>({ key: '', page: { photos: [], hasMore: false }, error: '', busy: false })
+    unsupported: boolean
+  }>({ key: '', page: { photos: [], hasMore: false }, error: '', busy: false, unsupported: false })
   const refresh = useCallback(() => setRevision((n) => n + 1), [])
   useEffect(() => {
     if (!enabled) return
@@ -33,19 +37,32 @@ export function usePhotoPages(
       page: s.key === key ? s.page : { photos: [], hasMore: false },
       error: '',
       busy: true,
+      unsupported: false,
     }))
-    void fetchPage(coupleId, cursor, eventId).then(
+    void fetchPage(coupleId, cursor, eventId, order).then(
       (page) => {
-        if (active) setState({ key, page, error: '', busy: false })
+        if (active) setState({ key, page, error: '', busy: false, unsupported: false })
       },
       (e) => {
-        if (active) setState((s) => ({ ...s, key, busy: false, error: errorText(e) }))
+        if (!active) return
+        // 后端 photo_history 迁移未应用：不报错，交给页面用本地快照降级渲染。
+        if (e instanceof PhotoHistoryUnsupportedError) {
+          setState({
+            key,
+            page: { photos: [], hasMore: false },
+            error: '',
+            busy: false,
+            unsupported: true,
+          })
+          return
+        }
+        setState((s) => ({ ...s, key, busy: false, error: errorText(e), unsupported: false }))
       },
     )
     return () => {
       active = false
     }
-  }, [coupleId, eventId, cursor?.id, cursor?.created_at, key, revision, enabled, fetchPage])
+  }, [coupleId, eventId, cursor?.id, cursor?.created_at, key, revision, enabled, order, fetchPage])
   useEffect(() => {
     if (!enabled) return
     const wake = () => {
@@ -61,21 +78,24 @@ export function usePhotoPages(
   const active =
     state.key === key
       ? state
-      : { key, page: { photos: [] as Photo[], hasMore: false }, error: '', busy: enabled }
+      : {
+          key,
+          page: { photos: [] as Photo[], hasMore: false },
+          error: '',
+          busy: enabled,
+          unsupported: false,
+        }
   return {
     ...active.page,
     busy: active.busy,
     error: active.error,
+    unsupported: active.unsupported,
     pageNumber: cursors.length,
     refresh,
     next() {
       if (active.busy || !active.page.hasMore) return
       const last = active.page.photos.at(-1)
-      if (last)
-        setNavigation({
-          scope,
-          cursors: [...cursors, { id: last.id, created_at: last.created_at }],
-        })
+      if (last) setNavigation({ scope, cursors: [...cursors, photoCursor(last)] })
     },
     previous() {
       if (!active.busy && cursors.length > 1)

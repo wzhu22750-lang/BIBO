@@ -1,11 +1,13 @@
-import { photoPage } from './photoHistory'
+import { photoPage, PhotoHistoryUnsupportedError } from './photoHistory'
+import type { PhotoCursor, PhotoPage } from './photoHistory'
 import { deleteOwnedPhoto, type PhotoDeletionStore } from './photoDeletion'
 import { validReferenceId, type ReferenceKind } from './routes'
 import type { LinkedRecord } from './types'
-import { memoryInput } from './memories'
+import { memoryDateOf, memoryInput } from './memories'
+import type { MemoryOrder } from './memories'
 import { mergePings, PING_HISTORY_LIMIT } from './pingHistory'
 import type { PingKind } from './ping'
-import { db, must, errorText } from './supabase'
+import { db, must, errorText, missingRpc } from './supabase'
 import type {
   AvatarType,
   Couple,
@@ -314,17 +316,22 @@ export async function deletePhoto(id: string, coupleId: string, userId: string) 
 
 export async function loadPhotoPage(
   coupleId: string,
-  before: import('./photoHistory').PhotoCursor | null,
+  before: PhotoCursor | null,
   eventId: string | null,
-): Promise<import('./photoHistory').PhotoPage> {
-  const rows = must(
-    await db().rpc('photo_history', {
-      space_id: coupleId,
-      before_time: before?.created_at || null,
-      before_id: before?.id || null,
-      event_filter: eventId,
-    }),
-  ) as Photo[]
+  order: MemoryOrder = 'desc',
+): Promise<PhotoPage> {
+  const result = await db().rpc('photo_history', {
+    space_id: coupleId,
+    before_date: before ? memoryDateOf(before) : null,
+    before_time: before?.created_at || null,
+    before_id: before?.id || null,
+    event_filter: eventId,
+    order_asc: order === 'asc',
+  })
+  // 后端还没应用 202609100003 迁移时，明确降级而不是把原始 PostgREST 报错丢给用户。
+  if (result.error && missingRpc(result.error))
+    throw new PhotoHistoryUnsupportedError(errorText(result.error))
+  const rows = must(result) as Photo[]
   const page = photoPage(rows)
   const visible = page.photos
   const signed = visible.length

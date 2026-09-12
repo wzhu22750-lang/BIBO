@@ -8,9 +8,9 @@ describe('daily home', () => {
     expect(dailyPrompt('couple', now)).toEqual(dailyPrompt('couple', new Date(2026, 8, 8, 23)))
     expect(dailyPrompt('couple', now)).not.toEqual(dailyPrompt('couple', new Date(2026, 8, 9)))
   })
-  it('rotates unique memories without mutating input or depending on server order', () => {
-    const photos: Photo[] = Array.from({ length: 5 }, (_, i) => ({
-      id: `${i}`,
+  it('draws three distinct random memories per local day, stable within the day', () => {
+    const photos: Photo[] = Array.from({ length: 12 }, (_, i) => ({
+      id: String(i).padStart(2, '0'),
       couple_id: 'c',
       uploaded_by: 'u',
       path: '',
@@ -21,9 +21,16 @@ describe('daily home', () => {
     const result = dailyMemories(photos, 'c', now)
     expect(result).toHaveLength(3)
     expect(new Set(result.map((p) => p.id)).size).toBe(3)
+    // 同一天多次渲染（哪怕已到深夜）拿到同一批回忆
+    expect(result).toEqual(dailyMemories(photos, 'c', new Date(2026, 8, 8, 23, 59, 59)))
     expect(result).toEqual(dailyMemories([...photos].reverse(), 'c', now))
     expect(photos).toEqual(original)
-    expect(result).not.toEqual(dailyMemories(photos, 'c', new Date(2026, 8, 9)))
+    // 每天随机抽，跨天会换一批，而不是固定轮转相邻三张
+    const week = Array.from({ length: 7 }, (_, d) =>
+      dailyMemories(photos, 'c', new Date(2026, 8, 8 + d)),
+    )
+    expect(new Set(week.map((day) => day.map((p) => p.id).join(','))).size).toBeGreaterThan(1)
+    expect(new Set(week.flat().map((p) => p.id)).size).toBeGreaterThan(3)
     expect(dailyMemories([], 'c', now)).toEqual([])
     expect(dailyMemories(photos.slice(0, 1), 'c', now)).toHaveLength(1)
   })

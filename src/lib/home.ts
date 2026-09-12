@@ -13,15 +13,32 @@ function seed(value: string) {
     0,
   )
 }
-// Stable for the couple and local calendar day, not random on every render.
+// Deterministic PRNG (mulberry32) so the same couple + local day always draws
+// the same three memories, while the pick looks random and changes every day.
+function draw(seedValue: number) {
+  let state = seedValue >>> 0
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0
+    let t = state
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
 export function dailyPrompt(coupleId: string, now = new Date()) {
   return prompts[(seed(coupleId) + dayNumber(now)) % prompts.length]
 }
+// 每天随机抽三张回忆：用 (coupleId, 自然日) 做种子的 Fisher–Yates 洗牌，
+// 保证同一天内多次渲染结果一致，跨天则换一批。
 export function dailyMemories(photos: Photo[], coupleId: string, now = new Date()) {
-  const ordered = [...photos].sort((a, b) => a.id.localeCompare(b.id))
-  if (!ordered.length) return []
-  const start = (seed(coupleId) + dayNumber(now)) % ordered.length
-  return [...ordered.slice(start), ...ordered.slice(0, start)].slice(0, 3)
+  const pool = [...photos].sort((a, b) => a.id.localeCompare(b.id))
+  if (!pool.length) return []
+  const random = draw(seed(`${coupleId}:${dayNumber(now)}`))
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1))
+    ;[pool[i], pool[j]] = [pool[j], pool[i]]
+  }
+  return pool.slice(0, 3)
 }
 export function upcomingEvents(space: Pick<Space, 'events'>, now = new Date()) {
   return sortedEvents(

@@ -6,6 +6,7 @@ import { compressPhoto } from '../lib/imageCompress'
 import type { PhotoDateResult } from '../lib/photoDate'
 import { MemoryFields } from '../components/MemoryFields'
 import { memoryInput, memoryDateLabel, sortedMemories, DEFAULT_PHOTO_ART } from '../lib/memories'
+import type { MemoryOrder } from '../lib/memories'
 import { useRef, useState } from 'react'
 import type { Photo } from '../lib/types'
 import type { SpaceController } from '../hooks/useSpace'
@@ -207,21 +208,24 @@ export function Photos({ controller, demo }: { controller: SpaceController; demo
     [caption, setCaption] = useState(''),
     [memory, setMemory] = useState(() => memoryInput()),
     [photoDate, setPhotoDate] = useState<PhotoDateResult | null>(null),
-    [eventFilter, setEventFilter] = useState('')
+    [eventFilter, setEventFilter] = useState(''),
+    [order, setOrder] = useState<MemoryOrder>('desc')
   const pickedFileRef = useRef<File | null>(null)
   const pages = usePhotoPages(
     controller.space!.couple!.id,
     eventFilter || null,
     !demo && !controller.cachedAt,
+    order,
   )
   const { busy, run } = useTask(),
-    toast = useToast(),
-    photos =
-      demo || controller.cachedAt
-        ? sortedMemories(controller.space!.photos).filter(
-            (p) => !eventFilter || p.event_id === eventFilter,
-          )
-        : pages.photos
+    toast = useToast()
+  // 分页 RPC 不可用（后端迁移未跟上）时，退回本机已加载的回忆快照，排序仍然生效。
+  const snapshot = demo || !!controller.cachedAt || pages.unsupported
+  const photos = snapshot
+    ? sortedMemories(controller.space!.photos, order).filter(
+        (p) => !eventFilter || p.event_id === eventFilter,
+      )
+    : pages.photos
   return (
     <>
       <PageHeading
@@ -248,10 +252,30 @@ export function Photos({ controller, demo }: { controller: SpaceController; demo
       </div>
       <div className="collection-label">
         <span>
-          <b>{String(photos.length).padStart(2, '0')}</b>{' '}
-          {demo || controller.cachedAt ? '个已加载瞬间' : '个本页瞬间'}
+          {String(photos.length).padStart(2, '0')} {snapshot ? '个已加载瞬间' : '个本页瞬间'}
         </span>
-        <span className="micro">OUR MEMORY TIMELINE ↓</span>
+        <div className="memory-order-toggle" role="group" aria-label="回忆时间排序">
+          <button
+            type="button"
+            className={order === 'desc' ? 'selected' : ''}
+            aria-pressed={order === 'desc'}
+            title="按回忆时间倒序，最新在前"
+            onClick={() => setOrder('desc')}
+          >
+            <Icon name="arrow" size={11} className="toggle-arrow down" />
+            最新在前
+          </button>
+          <button
+            type="button"
+            className={order === 'asc' ? 'selected' : ''}
+            aria-pressed={order === 'asc'}
+            title="按回忆时间正序，最早在前"
+            onClick={() => setOrder('asc')}
+          >
+            <Icon name="arrow" size={11} className="toggle-arrow up" />
+            最早在前
+          </button>
+        </div>
       </div>
       {!demo && <PhotoOutboxPanel controller={controller} />}
       {photos.length ? (
@@ -267,12 +291,21 @@ export function Photos({ controller, demo }: { controller: SpaceController; demo
           description="只对彼此开放的照片墙，等你放进第一个瞬间。"
         />
       )}
-      {!demo && !controller.cachedAt && (
+      {!demo && !controller.cachedAt && pages.unsupported && (
+        <nav className="memory-pagination" aria-label="回忆分页降级提示">
+          <p className="memory-pagination-msg" role="status">
+            当前暂只展示已加载的最近 200 张回忆，时间排序仍可用；完整翻页稍后自动恢复。
+          </p>
+        </nav>
+      )}
+      {!demo && !controller.cachedAt && !pages.unsupported && (
         <nav className="memory-pagination" aria-label="回忆分页导航">
           <div className="memory-pagination-bar">
             <div className="memory-page-status">
               <span className="memory-page-badge">第 {pages.pageNumber} 页</span>
-              <span className="memory-page-hint">每页 30 张 · 按上传倒序</span>
+              <span className="memory-page-hint">
+                每页 30 张 · 按回忆时间{order === 'asc' ? '正序（最早在前）' : '倒序（最新在前）'}
+              </span>
             </div>
             <div className="memory-pagination-actions">
               <Button

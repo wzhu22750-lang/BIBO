@@ -78,6 +78,7 @@
 
 - **默认项目 Ref**：`zqwzdoejxsfscisudacu`
 - **增量迁移状态**：已按序应用至 `202609100001_photo_icon_and_upload_limit`（照片上传上限 5MB→10MB，新增照片图标 `photos.emoji`）。`202609090001_daily_tasks` 新增 `daily_tasks` / `daily_task_completions`、RLS 策略、`ensure_daily_task` / `complete_daily_task` RPC 并加入 Realtime publication。已撤销客户端直写 photos 和 focus_sessions 的权限；`greeting_title` / `greeting_subtitle` 已生效 NOT NULL 与长度约束。
+- **已应用迁移（照片墙排序）**：`202609100003_photo_history_order`（2026-09-12 经 Supabase Management API 应用）重建 `photo_history` RPC：排序键从「上传时间」改为「回忆时间」`coalesce(occurred_on, created_at::date)`，新增 `order_asc`（默认 `false`）与 `before_date` 游标，支持照片墙正序／倒序分页。已验证新签名 `photo_history(uuid,date,timestamptz,uuid,uuid,boolean)` 已进入 PostgREST schema cache（anon 调用返回 `42501 permission denied`，而不再是 `PGRST202`）。若后续在未应用该迁移的环境部署，前端会自动降级为本地快照渲染（最近 200 张）并提示，不会报错。
 - **已部署 Edge Functions**：
   - `send-message-push` (ACTIVE)
   - `send-ping-push` (ACTIVE)

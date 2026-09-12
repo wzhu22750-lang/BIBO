@@ -35,6 +35,17 @@ export function errorText(error: unknown) {
   }
   return String(error)
 }
+// PostgREST 在函数未部署/签名不匹配时返回 PGRST202（schema cache 里找不到函数）。
+// 用于区分「后端迁移没跟上」与真正的业务错误，让前端退回可用降级路径。
+export function missingRpc(error: unknown) {
+  if (!error || typeof error !== 'object') return false
+  const e = error as { code?: string; message?: string }
+  return (
+    e.code === 'PGRST202' ||
+    /schema cache/i.test(e.message || '') ||
+    /Could not find the function/i.test(e.message || '')
+  )
+}
 export function must<T>(result: { data: T; error: unknown }): NonNullable<T> {
   if (result.error) throw result.error
   if (result.data === null || result.data === undefined)

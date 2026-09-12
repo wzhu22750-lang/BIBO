@@ -1,9 +1,6 @@
 import type { AvatarType, Page } from '../../lib/types'
-import type { WardrobeViewMode } from '../../lib/routes'
 import type { CharacterId, CharacterOutfits, Outfit, WardrobeItem } from '../../lib/pet'
 import type { PixelCharacterAnimation } from '../../components/pet/PixelCharacter'
-
-export type { WardrobeViewMode }
 
 export type SharedWardrobeProps = {
   activeChar: CharacterId
