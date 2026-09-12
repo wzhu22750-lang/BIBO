@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" width="1200" height="360" shapeRendering="crispEdges" role="img" aria-label="BIBU！哔卟哔卟 · 两个人，一整个像素小宇宙">
+  <title>BIBU！哔卟哔卟</title>
+  <!-- 底纸 -->
+  <rect width="1200" height="360" fill="#fffef7"/>
+  <!-- 复古窗口标题栏（与 App 的 OUR LOVE STORY.EXE 卡片同款） -->
+  <rect width="1200" height="56" fill="#fff238"/>
+  <rect y="52" width="1200" height="4" fill="#20211d"/>
+  <rect x="1048" y="20" width="18" height="18" fill="#20211d"/>
+  <rect x="1096" y="20" width="18" height="18" fill="#20211d"/>
+  <rect x="1144" y="20" width="18" height="18" fill="#20211d"/>
+  <rect x="24" y="20" width="18" height="18" fill="#20211d"/>
+  <rect x="48" y="20" width="18" height="18" fill="#20211d"/>
+  <rect x="72" y="20" width="18" height="18" fill="#20211d"/>
+  <!-- 像素字 BIBU! -->
+  <rect x="252" y="124" width="96" height="24" fill="#20211d"/>
+  <rect x="252" y="148" width="24" height="24" fill="#20211d"/>
+  <rect x="348" y="148" width="24" height="24" fill="#20211d"/>
+  <rect x="252" y="172" width="24" height="24" fill="#20211d"/>
+  <rect x="348" y="172" width="24" height="24" fill="#20211d"/>
+  <rect x="252" y="196" width="96" height="24" fill="#20211d"/>
+  <rect x="252" y="220" width="24" height="24" fill="#20211d"/>
+  <rect x="348" y="220" width="24" height="24" fill="#20211d"/>
+  <rect x="252" y="244" width="24" height="24" fill="#20211d"/>
+  <rect x="348" y="244" width="24" height="24" fill="#20211d"/>
+  <rect x="252" y="268" width="96" height="24" fill="#20211d"/>
+  <rect x="396" y="124" width="120" height="24" fill="#20211d"/>
+  <rect x="444" y="148" width="24" height="24" fill="#20211d"/>
+  <rect x="444" y="172" width="24" height="24" fill="#20211d"/>
+  <rect x="444" y="196" width="24" height="24" fill="#20211d"/>
+  <rect x="444" y="220" width="24" height="24" fill="#20211d"/>
+  <rect x="444" y="244" width="24" height="24" fill="#20211d"/>
+  <rect x="396" y="268" width="120" height="24" fill="#20211d"/>
+  <rect x="540" y="124" width="96" height="24" fill="#20211d"/>
+  <rect x="540" y="148" width="24" height="24" fill="#20211d"/>
+  <rect x="636" y="148" width="24" height="24" fill="#20211d"/>
+  <rect x="540" y="172" width="24" height="24" fill="#20211d"/>
+  <rect x="636" y="172" width="24" height="24" fill="#20211d"/>
+  <rect x="540" y="196" width="96" height="24" fill="#20211d"/>
+  <rect x="540" y="220" width="24" height="24" fill="#20211d"/>
+  <rect x="636" y="220" width="24" height="24" fill="#20211d"/>
+  <rect x="540" y="244" width="24" height="24" fill="#20211d"/>
+  <rect x="636" y="244" width="24" height="24" fill="#20211d"/>
+  <rect x="540" y="268" width="96" height="24" fill="#20211d"/>
+  <rect x="684" y="124" width="24" height="24" fill="#20211d"/>
+  <rect x="780" y="124" width="24" height="24" fill="#20211d"/>
+  <rect x="684" y="148" width="24" height="24" fill="#20211d"/>
+  <rect x="780" y="148" width="24" height="24" fill="#20211d"/>
+  <rect x="684" y="172" width="24" height="24" fill="#20211d"/>
+  <rect x="780" y="172" width="24" height="24" fill="#20211d"/>
+  <rect x="684" y="196" width="24" height="24" fill="#20211d"/>
+  <rect x="780" y="196" width="24" height="24" fill="#20211d"/>
+  <rect x="684" y="220" width="24" height="24" fill="#20211d"/>
+  <rect x="780" y="220" width="24" height="24" fill="#20211d"/>
+  <rect x="684" y="244" width="24" height="24" fill="#20211d"/>
+  <rect x="780" y="244" width="24" height="24" fill="#20211d"/>
+  <rect x="708" y="268" width="72" height="24" fill="#20211d"/>
+  <rect x="876" y="124" width="48" height="24" fill="#20211d"/>
+  <rect x="876" y="148" width="48" height="24" fill="#20211d"/>
+  <rect x="876" y="172" width="48" height="24" fill="#20211d"/>
+  <rect x="876" y="196" width="48" height="24" fill="#20211d"/>
+  <rect x="876" y="220" width="48" height="24" fill="#20211d"/>
+  <rect x="876" y="268" width="48" height="24" fill="#20211d"/>
+  <!-- 装饰：爱心、闪光、星星（硬像素投影，无模糊） -->
+  <g transform="translate(96 196) scale(4)"><path d="M4 3h5v2h2v2h2V5h2V3h5v2h2v8h-2v2h-2v2h-2v2h-2v2h-4v-2H8v-2H6v-2H4v-2H2V5h2z" fill="#20211d"/></g><g transform="translate(88 188) scale(4)"><path d="M4 3h5v2h2v2h2V5h2V3h5v2h2v8h-2v2h-2v2h-2v2h-2v2h-4v-2H8v-2H6v-2H4v-2H2V5h2z" fill="#ffa6e8"/></g>
+  <g transform="translate(1020 232) scale(3)"><path d="M4 3h5v2h2v2h2V5h2V3h5v2h2v8h-2v2h-2v2h-2v2h-2v2h-4v-2H8v-2H6v-2H4v-2H2V5h2z" fill="#20211d"/></g><g transform="translate(1012 224) scale(3)"><path d="M4 3h5v2h2v2h2V5h2V3h5v2h2v8h-2v2h-2v2h-2v2h-2v2h-4v-2H8v-2H6v-2H4v-2H2V5h2z" fill="#2aeea4"/></g>
+  <g transform="translate(150 96) scale(3)"><path d="M9 0h3v5h3v3h5v3h-5v3h-3v5H9v-5H6v-3H1V8h5V5h3zm10 16h2v3h3v2h-3v3h-2v-3h-3v-2h3z" fill="#20211d"/></g><g transform="translate(144 90) scale(3)"><path d="M9 0h3v5h3v3h5v3h-5v3h-3v5H9v-5H6v-3H1V8h5V5h3zm10 16h2v3h3v2h-3v3h-2v-3h-3v-2h3z" fill="#04bcf0"/></g>
+  <g transform="translate(984 96) scale(3)"><path d="M10 1h4v6h3v3h6v4h-6v3h-3v6h-4v-6H7v-3H1v-4h6V7h3z" fill="#20211d"/></g><g transform="translate(978 90) scale(3)"><path d="M10 1h4v6h3v3h6v4h-6v3h-3v6h-4v-6H7v-3H1v-4h6V7h3z" fill="#fff238"/></g>
+  <rect x="252" y="104" width="12" height="12" fill="#ffa6e8"/><rect x="936" y="300" width="12" height="12" fill="#04bcf0"/>
+  <rect x="140" y="300" width="8" height="8" fill="#fff238"/><rect x="1052" y="148" width="8" height="8" fill="#ffa6e8"/>
+  <!-- 外框 -->
+  <rect x="0" y="0" width="1200" height="360" fill="none" stroke="#20211d" stroke-width="8"/>
+</svg>

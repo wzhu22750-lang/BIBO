@@ -39,6 +39,9 @@ npm run preview
 # 代码格式化与规范检查
 npm run format
 npm run format:check
+
+# 重生成 README 配图（先起 npm run dev，截图落到 docs/media/）
+node scripts/qa/shoot-readme.mjs
 ```
 
 ### 2. Android 相关命令

@@ -1,5 +1,19 @@
 # 💌 BIBU！哔卟哔卟
 
+<p align="center">
+  <img src="docs/media/banner.svg" alt="BIBU！哔卟哔卟 · 两个人，一整个像素小宇宙" width="100%" />
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/React-19-fff238?style=flat-square&amp;labelColor=20211d&amp;logo=react&amp;logoColor=20211d" alt="React 19" />
+  <img src="https://img.shields.io/badge/TypeScript-7-04bcf0?style=flat-square&amp;labelColor=20211d&amp;logo=typescript&amp;logoColor=04bcf0" alt="TypeScript 7" />
+  <img src="https://img.shields.io/badge/Vite-8-2aeea4?style=flat-square&amp;labelColor=20211d&amp;logo=vite&amp;logoColor=2aeea4" alt="Vite 8" />
+  <img src="https://img.shields.io/badge/Supabase-ffa6e8?style=flat-square&amp;labelColor=20211d&amp;logo=supabase&amp;logoColor=ffa6e8" alt="Supabase" />
+  <img src="https://img.shields.io/badge/Capacitor-8-fffef7?style=flat-square&amp;labelColor=20211d&amp;logo=capacitor&amp;logoColor=fffef7" alt="Capacitor 8" />
+  <img src="https://img.shields.io/badge/Vitest-fffef7?style=flat-square&amp;labelColor=20211d&amp;logo=vitest&amp;logoColor=fffef7" alt="Vitest" />
+  <img src="https://img.shields.io/badge/%E7%A7%81%E6%9C%89%E7%A9%BA%E9%97%B4-%E4%BB%85%E9%99%90%202%20%E4%BA%BA-ffa6e8?style=flat-square&amp;labelColor=20211d" alt="私有空间，仅限 2 人" />
+</p>
+
 > 两个人，一整个小宇宙 ✨
 
 真的会有人为了谈恋爱，自己写一个 App 吗？
@@ -8,6 +22,15 @@
 事情是这样的：市面上的「情侣 App」我下过一圈，广告、会员、情侣广场、动不动催你拉好友进来。
 我只想要一个**只有两个人、没有第三个人能看到的角落**，于是它有了自己的名字——**BIBU！**（哔卟哔卟）
 一个高饱和像素风、粗黑描边、点一下会有「咔哒」手感的复古游戏小窝 🎮
+
+<p align="center">
+  <img src="docs/media/home.png" width="45%" alt="小窝：恋爱天数、像素小伙伴与今日寄语" />
+  <img src="docs/media/photos.png" width="45%" alt="照片墙：按回忆时间正序或倒序翻看" />
+</p>
+<p align="center">
+  <img src="docs/media/chat.png" width="45%" alt="悄悄话：只属于两个人的聊天" />
+  <img src="docs/media/wardrobe.png" width="45%" alt="萌宠衣橱：像素小动物与全套装备" />
+</p>
 
 ---
 
@@ -57,7 +80,7 @@
 
 ## 🚀 想自己搭一个？
 
-需要 Node.js 22.12 或更高。
+需要 Node.js 22.12 或更高——就两条命令：
 
 ```bash
 npm install
@@ -66,10 +89,13 @@ npm run dev
 
 打开终端里那个地址（默认 `http://localhost:5173`）就能玩：
 
-- **开箱即用**：不配任何环境变量时是本地演示模式，数据留在浏览器里
+- **开箱即用**：不配任何环境变量时是本地演示模式，数据留在浏览器里（上面的截图就是这么拍的）
 - **默认共享库**：App 内置了一个公开的 Supabase 项目凭据，不自己搭后端也能体验双人登录与同步
 
-想接**自己的** Supabase 项目：
+Web 部署（Vercel）：构建预设选 **Vite**，Build Command `npm run build`，Output Directory `dist`，环境变量填下面那两项。
+
+<details>
+<summary><b>接自己的 Supabase 项目（可选）</b></summary>
 
 ```bash
 cp .env.example .env.local
@@ -86,9 +112,10 @@ VITE_SUPABASE_PUBLISHABLE_KEY=your-public-anon-key
 - **Site URL**：`https://你的域名`
 - **Redirect URLs**：`http://localhost:5173`、`https://你的域名`、`love.bibu.space://`（Android 深链接）
 
-Web 部署（Vercel）：构建预设选 **Vite**，Build Command `npm run build`，Output Directory `dist`，环境变量填上面两个。
+</details>
 
-Android：
+<details>
+<summary><b>Android 打包（可选）</b></summary>
 
 ```bash
 npm run android:sync          # 编译前端并同步到 Android 工程
@@ -98,6 +125,8 @@ npm run android:release:build # 签名 Release APK
 ```
 
 产物在 `android/app/build/outputs/apk/`。
+
+</details>
 
 ---
 
