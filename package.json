@@ -15,7 +15,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"supabase/tests/**/*.ts\" \"*.{json,ts,md}\" \"public/demo/*.md\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"supabase/tests/**/*.ts\" \"*.{json,ts,md}\" \"public/demo/*.md\"",
     "android:sync": "npm run build && cap sync android",
-    "android:build": "npm run android:sync && cd android && ./gradlew assembleDebug",
+    "android:build": "npm run android:sync && cd android && ./gradlew assembleDebug && node ../scripts/export-apk.mjs",
     "android:release:check": "node scripts/check-android-release.mjs",
     "android:release:build": "npm run build && cap sync android && cd android && ./gradlew assembleRelease"
   },

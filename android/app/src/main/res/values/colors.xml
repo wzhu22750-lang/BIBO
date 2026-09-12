@@ -4,4 +4,9 @@
     <color name="colorPrimaryDark">#fff238</color>
     <color name="colorAccent">#20211d</color>
     <color name="paperBackground">#fffef8</color>
+    <color name="widgetBg">#fffef8</color>
+    <color name="widgetInk">#20211d</color>
+    <color name="widgetYellow">#fff238</color>
+    <color name="widgetHeart">#ff6b6b</color>
+    <color name="widgetMuted">#7f7d75</color>
 </resources>

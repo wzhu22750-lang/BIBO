@@ -25,6 +25,7 @@ describe('bounded record navigation', () => {
     })
     expect(parseRoute('#wardrobe?mode=mirror')).toEqual({ page: 'wardrobe' })
     expect(parseRoute('#wardrobe?mode=invalid')).toEqual({ page: 'wardrobe' })
+    expect(parseRoute('#home?action=bibu')).toEqual({ page: 'home', action: 'bibu' })
   })
   it('rejects malformed and excessive IDs', () => {
     for (const id of ['', '../x', '<script>', 'x'.repeat(81), '%'])

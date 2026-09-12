@@ -28,6 +28,9 @@ import com.getcapacitor.annotation.CapacitorPlugin
 import com.getcapacitor.annotation.Permission
 import com.getcapacitor.annotation.PermissionCallback
 import com.igexin.sdk.PushManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @CapacitorPlugin(name = "BiboDevice", permissions = [Permission(alias = "notifications", strings = [Manifest.permission.POST_NOTIFICATIONS])])
 class BiboDevicePlugin : Plugin() {
@@ -271,6 +274,53 @@ class BiboDevicePlugin : Plugin() {
         if (route != null) activity.intent.data = null
         call.resolve(if(route == null) JSObject() else JSObject().put("route", safeRoute(route)))
     }
+
+    @PluginMethod
+    fun syncWidgetData(call: PluginCall) {
+        val payload = call.data
+        if (payload == null) {
+            call.reject("Missing widget data payload")
+            return
+        }
+
+        try {
+            // Save payload to SharedPreferences
+            WidgetDataStore.save(context, payload)
+
+            // Extract photo URLs and download in background
+            val photoUrlsArr = payload.optJSONArray("photoUrls")
+            val photoUrls = mutableListOf<String>()
+            if (photoUrlsArr != null) {
+                for (i in 0 until photoUrlsArr.length()) {
+                    val url = photoUrlsArr.optString(i, "")
+                    if (url.isNotBlank()) photoUrls.add(url)
+                }
+            }
+
+            // Immediately update widget text/layout
+            BibuWidgetProvider.updateAll(context)
+
+            // Ensure midnight alarm is active
+            WidgetMidnightReceiver.scheduleNextMidnight(context)
+
+            // Asynchronously download photos and update widget again once done
+            if (photoUrls.isNotEmpty()) {
+                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                    try {
+                        WidgetPhotoCache.downloadPhotos(context, photoUrls)
+                        BibuWidgetProvider.updateAll(context)
+                    } catch (e: Exception) {
+                        android.util.Log.w("BiboDevicePlugin", "Failed caching widget photos", e)
+                    }
+                }
+            }
+
+            call.resolve(JSObject().put("synced", true))
+        } catch (e: Exception) {
+            call.reject("Failed to sync widget data: ${e.message}")
+        }
+    }
+
     override fun handleOnNewIntent(intent: Intent) {
         super.handleOnNewIntent(intent)
         val route = routeFromIntent(intent) ?: return

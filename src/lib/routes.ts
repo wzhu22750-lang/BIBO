@@ -6,6 +6,7 @@ export type Route = {
   page: Page
   referenceId?: string
   wardrobeMode?: WardrobeViewMode
+  action?: string
 }
 export function validReferenceId(id: string) {
   return /^[A-Za-z0-9_-]{1,80}$/.test(id)
@@ -21,10 +22,13 @@ export function parseRoute(hash: string): Route {
     page === 'wardrobe' && (modeParam === 'split' || modeParam === 'drawer' || modeParam === 'qa')
       ? modeParam
       : undefined
+  const actionParam = search.get('action')
+  const action = actionParam && /^[a-z0-9_-]{1,30}$/i.test(actionParam) ? actionParam : undefined
   return {
     page,
     ...(id && validReferenceId(id) ? { referenceId: id } : {}),
     ...(wardrobeMode ? { wardrobeMode } : {}),
+    ...(action ? { action } : {}),
   }
 }
 export function referenceLink(kind: ReferenceKind, id: string) {

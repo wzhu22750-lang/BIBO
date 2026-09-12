@@ -87,6 +87,7 @@ dependencies {
     implementation 'com.getui:gtc:3.3.3.0'
     implementation 'com.getui:gtsdk:3.3.15.0'
     implementation 'com.getui:gsido:1.4.14.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1'
 }
 
 apply from: 'capacitor.build.gradle'

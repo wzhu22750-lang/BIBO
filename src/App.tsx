@@ -46,6 +46,13 @@ function Workspace({
   const page = route.page
   const bibu = useBibu(controller, demo)
   useEffect(() => {
+    if (route.action === 'bibu' && controller.space?.couple && !bibu.busy) {
+      void bibu.send('哔卟哔卟')
+      // Clear action param from hash so it doesn't re-trigger
+      window.location.hash = '#home'
+    }
+  }, [route.action, controller.space?.couple, bibu.busy])
+  useEffect(() => {
     // 声音/震动偏好持久化到本机：退出或刷新后保持开启，声音在首次点击时自动恢复
     storeFeedbackEnabled(sound)
     if (sound) restoreFeedback()

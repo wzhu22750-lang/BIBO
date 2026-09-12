@@ -46,6 +46,37 @@
                 <action android:name="android.intent.action.TIME_SET" />
             </intent-filter>
         </receiver>
+
+        <!-- BIBU Native AppWidget -->
+        <receiver
+            android:name=".BibuWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="love.bibu.WIDGET_REFRESHED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/bibu_widget_info" />
+        </receiver>
+
+        <!-- Widget Quick Action (BIBU send) -->
+        <receiver
+            android:name=".WidgetActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="love.bibu.WIDGET_BIBU" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Widget Midnight Refresh -->
+        <receiver
+            android:name=".WidgetMidnightReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="love.bibu.WIDGET_MIDNIGHT_ALARM" />
+            </intent-filter>
+        </receiver>
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -69,6 +100,5 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>
