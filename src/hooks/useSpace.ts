@@ -39,6 +39,9 @@ import { isPing, mergePings, shouldPresentPing } from '../lib/pingHistory'
 import type { PingKind } from '../lib/ping'
 import { playFeedback } from '../lib/notifications'
 import { clearImageCache, imageCacheKey, removeCachedImage } from '../lib/imageCache'
+import { togetherDays, daysUntil } from '../lib/dates'
+import { dailyMemories, upcomingEvents } from '../lib/home'
+import { DEFAULT_KEY, DEFAULT_URL } from '../lib/supabase'
 import type { AvatarType, EventInput, MemoryInput, Photo, Ping, Space } from '../lib/types'
 
 export function useSpace(
@@ -64,6 +67,42 @@ export function useSpace(
   const stateRef = useRef(space)
   stateRef.current = space
   const userId = session?.user.id
+  const accessToken = session?.access_token
+
+  const syncWidget = useCallback((targetSpace: Space | null) => {
+    if (!targetSpace?.couple) return
+    try {
+      const now = new Date()
+      const days = targetSpace.couple.together_since
+        ? togetherDays(targetSpace.couple.together_since, now)
+        : 0
+      const events = upcomingEvents(targetSpace, now).map((e) => ({
+        name: e.title,
+        daysRemaining: daysUntil(e.target_at, e.yearly, now),
+        targetAt: e.target_at,
+        yearly: e.yearly,
+      }))
+      const memories = dailyMemories(targetSpace.photos, targetSpace.couple.id, now)
+      const photoUrls = memories
+        .map((p) => p.url)
+        .filter((u): u is string => typeof u === 'string' && u.length > 0)
+        .slice(0, 3)
+      const partnerName = targetSpace.partner?.name || '另一半'
+
+      void BibuNative.widget.syncData({
+        days,
+        togetherSince: targetSpace.couple.together_since,
+        partnerName,
+        events,
+        photoUrls,
+        supabaseUrl: DEFAULT_URL,
+        anonKey: DEFAULT_KEY,
+        accessToken,
+      })
+    } catch {
+      // Widget sync errors should never crash or interrupt space loading
+    }
+  }, [accessToken])
   const reload = useCallback(async (): Promise<boolean> => {
     if (demo || !userId) return false
     const current = ++version.current
@@ -90,6 +129,7 @@ export function useSpace(
         } catch (cacheFailure) {
           setCacheError(errorText(cacheFailure))
         }
+        syncWidget(next)
         return current === version.current
       }
       return false
@@ -135,6 +175,19 @@ export function useSpace(
   useEffect(() => {
     if (space?.partner) setInviteCode('')
   }, [space?.partner?.id])
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && stateRef.current) {
+        syncWidget(stateRef.current)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [syncWidget])
   const cid = space?.couple?.id
   const outbox = useMessageOutbox(userId, cid, !demo, (saved) => {
     const current = stateRef.current
@@ -292,8 +345,10 @@ export function useSpace(
       if (!userId || demo) return
       setCacheEnabled(userId, enabled)
       setOfflineCacheEnabled(enabled)
-      if (enabled && stateRef.current && cachedAtRef.current === null)
+      if (enabled && stateRef.current && cachedAtRef.current === null) {
         writeSpaceCache(userId, stateRef.current)
+        syncWidget(stateRef.current)
+      }
       setCacheError('')
     },
     clearOfflineSnapshot() {
@@ -446,6 +501,7 @@ export function useSpace(
         setSpace(next)
         try {
           writeSpaceCache(me, next)
+          syncWidget(next)
         } catch (e) {
           setCacheError(errorText(e))
         }

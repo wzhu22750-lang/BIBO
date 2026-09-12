@@ -10,15 +10,16 @@
 
 **完成标准**：本次改动涉及的所有图标都能在 DOM 里找到对应的 `<svg>` 或已有图标组件（本条只约束应用界面，README 等对外宣传文档可以正常用 emoji）。
 
-## 2. APK 走热更新
+## 2. APK 走热更新与打包规范
 
 `capacitor.config.json` 的 `server.url` 指向生产站点 `https://www.515171.xyz`，APK 启动即加载线上最新前端。
 
 - 改网页 → 推送 `main` → Vercel 部署 → APK 打开就是新版，不重新打包
 - 修改 `capacitor.config.json` 后，确认 `server` 段仍在且 `server.url` 未变
-- 只有原生层（Kotlin 插件、权限、图标）改动才需要重新打包 APK
+- 只有原生层（Kotlin 插件、权限、图标、原生桌面微件）改动才需要重新打包 APK
+- **APK 打包规范**：打包统一执行 `npm run android:build`（或在打包后执行 `node scripts/export-apk.mjs`）。该脚本会自动将最新 APK 导出至用户桌面（`~/Desktop/BIBU.apk`）与根目录 `dist-apk/BIBU.apk`，并在 macOS 访达中自动弹窗并高亮选中，方便用户直接拖拽至微信发送给手机，免除在深层目录翻找。
 
-**完成标准**：`capacitor.config.json` 中 `server.url === "https://www.515171.xyz"`。
+**完成标准**：`capacitor.config.json` 中 `server.url === "https://www.515171.xyz"`，且打出的 APK 已导出到桌面 `~/Desktop/BIBU.apk`。
 
 ## 3. Supabase 改动直连线上库自己改
 

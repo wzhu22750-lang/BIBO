@@ -37,6 +37,24 @@ export interface PushDiagnostics {
   androidVersion: string
 }
 
+export interface WidgetEventInput {
+  name: string
+  daysRemaining: number
+  targetAt?: string
+  yearly?: boolean
+}
+
+export interface WidgetSyncInput {
+  days?: number
+  togetherSince?: string
+  partnerName?: string
+  events?: WidgetEventInput[]
+  photoUrls?: string[]
+  supabaseUrl?: string
+  anonKey?: string
+  accessToken?: string
+}
+
 interface DevicePlugin {
   scheduleReminder(input: ReminderInput): Promise<CapabilityResult>
   pushReady(): Promise<CapabilityResult & { configured: boolean }>
@@ -52,6 +70,7 @@ interface DevicePlugin {
   requestNotificationPermission(): Promise<NotificationPermission>
   notify(input: NotificationInput): Promise<CapabilityResult>
   vibrate(input: { pattern: number[] }): Promise<CapabilityResult>
+  syncWidgetData(input: WidgetSyncInput): Promise<CapabilityResult>
   launchRoute(): Promise<{ route?: string }>
   addListener(
     event: 'deepLink' | 'pushCid',
@@ -317,6 +336,35 @@ export const BibuNative = {
       }
       return () => {
         void handle.remove()
+      }
+    },
+  },
+  widget: {
+    async syncData(input: WidgetSyncInput): Promise<CapabilityResult> {
+      if (!native()) return unavailable('桌面组件仅在 Android 应用内可用')
+      try {
+        const payload: WidgetSyncInput = {
+          days: typeof input.days === 'number' ? input.days : undefined,
+          togetherSince: input.togetherSince || undefined,
+          partnerName: input.partnerName ? input.partnerName.slice(0, 30) : undefined,
+          events: Array.isArray(input.events)
+            ? input.events.slice(0, 5).map((e) => ({
+                name: (e.name || '').slice(0, 40),
+                daysRemaining: Math.max(0, Math.floor(Number(e.daysRemaining) || 0)),
+                targetAt: e.targetAt,
+                yearly: Boolean(e.yearly),
+              }))
+            : [],
+          photoUrls: Array.isArray(input.photoUrls)
+            ? input.photoUrls.filter((u): u is string => typeof u === 'string' && !!u).slice(0, 3)
+            : [],
+          supabaseUrl: input.supabaseUrl || undefined,
+          anonKey: input.anonKey || undefined,
+          accessToken: input.accessToken || undefined,
+        }
+        return await plugin.syncWidgetData(payload)
+      } catch (err) {
+        return unavailable(err instanceof Error ? err.message : '桌面组件同步失败')
       }
     },
   },

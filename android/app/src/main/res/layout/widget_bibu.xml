@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <!-- Empty / Placeholder state -->
+    <LinearLayout
+        android:id="@+id/widget_empty_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:contentDescription="Heart"
+            android:src="@drawable/ic_widget_heart" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="打开 BIBU！同步空间数据"
+            android:textColor="@color/widgetInk"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="点击进入应用"
+            android:textColor="@color/widgetMuted"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- Normal content state -->
+    <LinearLayout
+        android:id="@+id/widget_content_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- Top bar: Days count, Partner name, and quick BIBU button -->
+        <RelativeLayout
+            android:id="@+id/widget_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <!-- Left side: Days together and partner name (clickable -> #home) -->
+            <LinearLayout
+                android:id="@+id/widget_days_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_toStartOf="@+id/widget_btn_bibu"
+                android:gravity="center_vertical"
+                android:orientation="vertical"
+                android:paddingEnd="8dp">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:layout_marginEnd="6dp"
+                        android:contentDescription="Heart"
+                        android:src="@drawable/ic_widget_heart" />
+
+                    <TextView
+                        android:id="@+id/widget_days_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="在一起第 -- 天"
+                        android:textColor="@color/widgetInk"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/widget_partner_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="22dp"
+                    android:layout_marginTop="1dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text=""
+                    android:textColor="@color/widgetMuted"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <!-- Right side: Quick BIBU button -->
+            <LinearLayout
+                android:id="@+id/widget_btn_bibu"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:background="@drawable/widget_bibu_btn_bg"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:paddingStart="8dp"
+                android:paddingTop="5dp"
+                android:paddingEnd="8dp"
+                android:paddingBottom="5dp">
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_marginEnd="4dp"
+                    android:contentDescription="BIBU"
+                    android:src="@drawable/ic_widget_bibu" />
+
+                <TextView
+                    android:id="@+id/widget_btn_bibu_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="哔卟！"
+                    android:textColor="@color/widgetInk"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </RelativeLayout>
+
+        <!-- Divider line -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:background="@color/widgetInk" />
+
+        <!-- Middle section: Events Countdown -->
+        <LinearLayout
+            android:id="@+id/widget_events_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Event Row 1 -->
+            <LinearLayout
+                android:id="@+id/widget_event_row_1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:layout_marginEnd="6dp"
+                    android:contentDescription="Event"
+                    android:src="@drawable/ic_widget_star" />
+
+                <TextView
+                    android:id="@+id/widget_event_1_title"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="纪念日"
+                    android:textColor="@color/widgetInk"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/widget_event_1_days"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="还有 0 天"
+                    android:textColor="@color/widgetInk"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Event Row 2 -->
+            <LinearLayout
+                android:id="@+id/widget_event_row_2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:layout_marginEnd="6dp"
+                    android:contentDescription="Event"
+                    android:src="@drawable/ic_widget_star" />
+
+                <TextView
+                    android:id="@+id/widget_event_2_title"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="生日"
+                    android:textColor="@color/widgetInk"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/widget_event_2_days"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="还有 0 天"
+                    android:textColor="@color/widgetInk"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Event Row 3 -->
+            <LinearLayout
+                android:id="@+id/widget_event_row_3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:layout_marginEnd="6dp"
+                    android:contentDescription="Event"
+                    android:src="@drawable/ic_widget_star" />
+
+                <TextView
+                    android:id="@+id/widget_event_3_title"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="下一次见面"
+                    android:textColor="@color/widgetInk"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/widget_event_3_days"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="还有 0 天"
+                    android:textColor="@color/widgetInk"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Spacer -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <!-- Bottom section: Photos Strip -->
+        <LinearLayout
+            android:id="@+id/widget_photos_container"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/widget_photo_0"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                android:background="@drawable/widget_bg"
+                android:contentDescription="Photo 1"
+                android:scaleType="centerCrop" />
+
+            <ImageView
+                android:id="@+id/widget_photo_1"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                android:background="@drawable/widget_bg"
+                android:contentDescription="Photo 2"
+                android:scaleType="centerCrop" />
+
+            <ImageView
+                android:id="@+id/widget_photo_2"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/widget_bg"
+                android:contentDescription="Photo 3"
+                android:scaleType="centerCrop" />
+        </LinearLayout>
+    </LinearLayout>
+
+</LinearLayout>
