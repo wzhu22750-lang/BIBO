@@ -8,6 +8,8 @@ const DEFAULT_KEY = 'sb_publishable_nxRhiAvRRQ_lwAQ9vaz_Og_yEqfC-V8'
 
 // 原生 App 的邮箱验证回跳地址（与 AndroidManifest 里的 scheme 一致）。
 // 需在 Supabase 后台 Auth → URL Configuration → Redirect URLs 中加入该地址。
+// 说明：验证码登录（Auth.tsx 的 OTP 流程）不再走邮箱回跳深链接，
+// 6 位验证码在 App 内直接校验；该常量仍保留给深链接监听与未来的密码重置回跳。
 export const AUTH_REDIRECT_DEEP_LINK = 'love.bibu.space://'
 
 const url = import.meta.env.VITE_SUPABASE_URL?.trim() || DEFAULT_URL
